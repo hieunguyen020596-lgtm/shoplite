@@ -8,6 +8,7 @@ import { ProductPurchasePanel } from "@/features/cart/components/product-purchas
 import { ProductGrid } from "@/features/catalog/components/product-grid";
 import { ProductImage } from "@/features/catalog/components/product-image";
 import { StockBadge } from "@/features/catalog/components/stock-badge";
+import { WishlistButton } from "@/features/wishlist/components/wishlist-button";
 import {
   buildCatalogHref,
   DEFAULT_CATALOG_QUERY,
@@ -64,6 +65,12 @@ export default async function ProductDetailPage({ params }: PageProps<"/products
 
       <section className="grid gap-8 md:grid-cols-2">
         <div className="relative">
+          <WishlistButton
+            productId={product.id}
+            productName={product.name}
+            size="md"
+            className="absolute top-4 right-4 z-10"
+          />
           <ProductImage
             image={product.image}
             alt={product.name}

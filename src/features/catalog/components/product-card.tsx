@@ -4,6 +4,7 @@ import { RatingStars } from "@/components/ui/rating-stars";
 import { AddToCartButton } from "@/features/cart/components/add-to-cart-button";
 import { getDiscountPercent, getStockStatus } from "@/features/catalog/catalog-service";
 import type { Product } from "@/features/catalog/types";
+import { WishlistButton } from "@/features/wishlist/components/wishlist-button";
 import { ProductImage } from "./product-image";
 import { StockBadge } from "./stock-badge";
 
@@ -16,6 +17,12 @@ export function ProductCard({ product }: { product: Product }) {
       className="group relative flex flex-col rounded-2xl bg-white p-3 shadow-sm ring-1 ring-slate-200 transition hover:shadow-md"
       data-testid="product-card"
     >
+      <WishlistButton
+        productId={product.id}
+        productName={product.name}
+        size="sm"
+        className="absolute top-4 right-4 z-10"
+      />
       {/* Link ảnh bị ẩn khỏi bàn phím/screen reader để không đọc trùng với link tiêu đề */}
       <Link href={`/products/${product.slug}`} className="relative block" tabIndex={-1} aria-hidden>
         <ProductImage
