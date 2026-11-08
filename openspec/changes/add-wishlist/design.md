@@ -19,6 +19,43 @@ Xem thêm động lực tại `proposal.md`.
 - Không tạo API backend hoặc cơ sở dữ liệu server để lưu trữ wishlist.
 - Không xây dựng tính năng chia sẻ wishlist qua mạng xã hội hoặc gửi email thông báo tồn kho.
 
+## Luồng tham chiếu từ Giỏ hàng (Cart Flow Reference)
+
+Sơ đồ ASCII luồng hoạt động của Giỏ hàng mà Wishlist kế thừa trực tiếp:
+
+```text
+ProductCard (src/features/catalog/components/product-card.tsx:44)
+    │
+    ▼
+AddToCartButton.handleClick (src/features/cart/components/add-to-cart-button.tsx:25)
+    │
+    ▼
+useCart().addItem(product, 1) (src/features/cart/use-cart.ts:22)
+    │
+    ▼
+cartStore.dispatch({ type: "add", item, quantity }) (src/features/cart/cart-store.ts:84)
+    ├──► cartReducer(state, action) (src/features/cart/cart-reducer.ts:34)
+    │      └── Kiểm tra giới hạn 10 sản phẩm (MAX_QUANTITY_PER_ITEM) & tồn kho (stock)
+    ├──► writeToStorage(next) (src/features/cart/cart-store.ts:34)
+    │      └── localStorage.setItem("shoplite:cart", JSON.stringify(next))
+    └──► emit() (src/features/cart/cart-store.ts:47)
+           └── Kích hoạt tất cả subscriber dùng useSyncExternalStore (use-cart.ts:8)
+                 └── CartBadge, CartView, CheckoutSummary tự động re-render đồng bộ!
+
+[Đồng bộ liên tab]:
+Tab 1 thao tác ──► localStorage["shoplite:cart"] thay đổi
+                         │
+                         ▼ (sự kiện "storage" trên Window)
+Tab 2: handleStorageEvent (src/features/cart/cart-store.ts:52) ──► readFromStorage() ──► emit() ──► Re-render!
+```
+
+### Các nguyên tắc kỹ thuật rút ra từ luồng giỏ hàng:
+1. **useSyncExternalStore & getServerSnapshot**: `getServerSnapshot()` luôn trả về mảng rỗng `EMPTY_STATE` khi Next.js render trên server. Điều này ngăn ngừa hoàn toàn lỗi Hydration Mismatch vì server không truy cập được `window.localStorage`.
+2. **Cờ hydrated (`useHydrated`)**: Badge số lượng chỉ render sau khi component đã mount trên client (`hydrated = true`), tránh hiện tượng nhấp nháy từ số 0 lên số lượng thật.
+3. **So sánh lưu Snapshot vs. lưu Product ID**:
+   - Giỏ hàng lưu snapshot (tên, giá) để cố định giao dịch mua sắm.
+   - Ngược lại, **Wishlist chỉ lưu `productId: string[]`** để giá bán và số lượng tồn kho luôn phản ánh đúng thực tế khi truy cập lại danh sách sau thời gian dài.
+
 ## Decisions
 
 ### 1. Lưu mảng `productId[]` thay vì lưu snapshot sản phẩm
