@@ -35,12 +35,17 @@ The system SHALL hiển thị nút trái tim trên mỗi thẻ sản phẩm và 
 
 ### Requirement: Trạng thái nút trái tim truy cập được
 
-The system MUST thể hiện trạng thái đã thích / chưa thích của nút trái tim bằng cả hình ảnh (trái tim tô đầy hay rỗng) lẫn thuộc tính trợ năng (`aria-pressed` và nhãn tiếng Việt nêu tên sản phẩm), và nút MUST thao tác được bằng bàn phím.
+The system MUST thể hiện trạng thái đã thích / chưa thích của nút trái tim bằng cả hình ảnh (trái tim tô đầy hay rỗng) lẫn thuộc tính trợ năng (`aria-pressed`), với nhãn tiếng Việt cố định nêu tên sản phẩm không đổi theo trạng thái, và nút MUST thao tác được bằng bàn phím.
 
 #### Scenario: Screen reader đọc trạng thái
 
 - **WHEN** sản phẩm "Bàn phím cơ KeyPro 75%" đang có trong danh sách yêu thích
-- **THEN** nút trái tim của sản phẩm có `aria-pressed="true"` và nhãn cho biết bấm để bỏ "Bàn phím cơ KeyPro 75%" khỏi yêu thích
+- **THEN** nút trái tim của sản phẩm có nhãn "Yêu thích Bàn phím cơ KeyPro 75%" và `aria-pressed="true"`
+
+#### Scenario: Nhãn không đổi khi toggle
+
+- **WHEN** khách bỏ thích "Bàn phím cơ KeyPro 75%"
+- **THEN** nhãn nút vẫn là "Yêu thích Bàn phím cơ KeyPro 75%" và chỉ `aria-pressed` chuyển thành `"false"`
 
 #### Scenario: Thao tác bằng bàn phím
 
@@ -66,6 +71,11 @@ The system MUST giới hạn danh sách yêu thích tối đa 50 sản phẩm; k
 - **WHEN** danh sách có 50 sản phẩm và khách bấm trái tim của một sản phẩm chưa có trong danh sách
 - **THEN** sản phẩm không được thêm và danh sách vẫn có 50 sản phẩm
 - **AND** khách nhận thông báo danh sách yêu thích đã đầy (được công bố cho screen reader)
+
+#### Scenario: Danh sách đầy nhưng có sản phẩm không còn trong catalog
+
+- **WHEN** danh sách lưu 50 định danh, trong đó có định danh của sản phẩm không còn trong catalog, và khách thích một sản phẩm mới
+- **THEN** các định danh không còn trong catalog bị loại bỏ và sản phẩm mới được thêm vào danh sách
 
 #### Scenario: Bỏ thích khi danh sách đầy
 
