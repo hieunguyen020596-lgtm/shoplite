@@ -17,9 +17,7 @@ const TYPE_LABELS = {
 
 const input = parseJson(await readStdin());
 const message = String(input.message ?? "Claude Code cần bạn xác nhận").trim();
-const project = path.basename(
-  input.cwd ?? process.env.CLAUDE_PROJECT_DIR ?? process.cwd(),
-);
+const project = path.basename(input.cwd ?? process.env.CLAUDE_PROJECT_DIR ?? process.cwd());
 const title = `Claude Code - ${project}`;
 const subtitle = TYPE_LABELS[input.notification_type] ?? input.title ?? "";
 
@@ -51,8 +49,7 @@ if (process.platform === "darwin") {
 /** Chạy lệnh hiển thị; lỗi chỉ ghi ra stderr để không làm gián đoạn Claude Code. */
 function run(cmd, args, env) {
   execFile(cmd, args, { env: { ...process.env, ...env } }, (error) => {
-    if (error)
-      console.error(`notify: không hiện được thông báo (${error.message})`);
+    if (error) console.error(`notify: không hiện được thông báo (${error.message})`);
   });
 }
 

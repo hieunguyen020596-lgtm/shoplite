@@ -24,18 +24,19 @@ npm run format                            # Prettier (+ prettier-plugin-tailwind
 
 ## 3. Codemap
 
-| Capability | Thư mục | File quan trọng |
-| --- | --- | --- |
-| Catalog | `src/features/catalog/` | `catalog-service.ts` (`parseCatalogQuery`, `queryProducts`, `getProductById`, `PAGE_SIZE`) |
-| Cart | `src/features/cart/` | `cart-reducer.ts` (`cartReducer`, `MAX_QUANTITY_PER_ITEM`, `getMaxQuantity`), `cart-store.ts` (`cartStore`), `use-cart.ts` (`useCart`) |
-| Checkout | `src/features/checkout/` | `pricing.ts` (`calculateOrderTotals`, `FREE_SHIPPING_THRESHOLD`, `SHIPPING_OPTIONS`), `checkout-schema.ts` (`placeOrderSchema`, `checkoutFormSchema`, `toFieldErrors`), `components/checkout-form.tsx` |
-| Coupons | `src/features/coupons/` + `src/data/coupons.ts` | `coupon-rules.ts` (thuần, dùng được ở client: `evaluateCoupon`, `calculateCouponDiscount`, `deriveCouponStatus`), `coupon-service.ts` (CHỈ server: `findCouponByCode`, `toCouponError`, `couponService`), `coupon-schema.ts` (`couponCodeSchema`, `COUPON_CODE_MAX_LENGTH`), `components/coupon-field.tsx` |
-| Orders | `src/features/orders/` | `order-service.ts` (`createOrderService`), `order-repository.ts` (`OrderRepository`), `order-errors.ts` (`OrderError`), `server.ts` (`orderService`) |
-| API | `src/app/api/` + `src/lib/http.ts` | `products/route.ts`, `products/[slug]/route.ts`, `orders/route.ts`, `orders/[id]/route.ts`, `coupons/validate/route.ts`; `handleRouteError`, `jsonError`, `readJsonBody` |
+| Capability | Thư mục                                         | File quan trọng                                                                                                                                                                                                                                                                                            |
+| ---------- | ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Catalog    | `src/features/catalog/`                         | `catalog-service.ts` (`parseCatalogQuery`, `queryProducts`, `getProductById`, `PAGE_SIZE`)                                                                                                                                                                                                                 |
+| Cart       | `src/features/cart/`                            | `cart-reducer.ts` (`cartReducer`, `MAX_QUANTITY_PER_ITEM`, `getMaxQuantity`), `cart-store.ts` (`cartStore`), `use-cart.ts` (`useCart`)                                                                                                                                                                     |
+| Checkout   | `src/features/checkout/`                        | `pricing.ts` (`calculateOrderTotals`, `FREE_SHIPPING_THRESHOLD`, `SHIPPING_OPTIONS`), `checkout-schema.ts` (`placeOrderSchema`, `checkoutFormSchema`, `toFieldErrors`), `components/checkout-form.tsx`                                                                                                     |
+| Coupons    | `src/features/coupons/` + `src/data/coupons.ts` | `coupon-rules.ts` (thuần, dùng được ở client: `evaluateCoupon`, `calculateCouponDiscount`, `deriveCouponStatus`), `coupon-service.ts` (CHỈ server: `findCouponByCode`, `toCouponError`, `couponService`), `coupon-schema.ts` (`couponCodeSchema`, `COUPON_CODE_MAX_LENGTH`), `components/coupon-field.tsx` |
+| Orders     | `src/features/orders/`                          | `order-service.ts` (`createOrderService`), `order-repository.ts` (`OrderRepository`), `order-errors.ts` (`OrderError`), `server.ts` (`orderService`)                                                                                                                                                       |
+| API        | `src/app/api/` + `src/lib/http.ts`              | `products/route.ts`, `products/[slug]/route.ts`, `orders/route.ts`, `orders/[id]/route.ts`, `coupons/validate/route.ts`; `handleRouteError`, `jsonError`, `readJsonBody`                                                                                                                                   |
 
 Server Component (vd. `app/products/page.tsx`, `app/orders/page.tsx`) gọi thẳng service (`queryProducts`, `orderService`), không fetch API nội bộ. API chỉ dùng cho Client Component.
 
 **Luồng thêm vào giỏ hàng**
+
 1. `AddToCartButton` / `ProductPurchasePanel` (client) gọi `useCart().addItem(product, quantity)`.
 2. `addItem` → `cartStore.dispatch({ type: "add", item: toCartItem(product), quantity })`.
 3. `cartReducer` kẹp số lượng bằng `getMaxQuantity(stock)` (min của tồn kho và `MAX_QUANTITY_PER_ITEM`); hết hàng → trả state cũ.
@@ -43,6 +44,7 @@ Server Component (vd. `app/products/page.tsx`, `app/orders/page.tsx`) gọi th�
 5. `useCart` đọc qua `useSyncExternalStore`; `getServerSnapshot` trả `EMPTY_CART` nên UI dùng cờ `hydrated` để tránh nháy.
 
 **Luồng đặt hàng**
+
 1. `CheckoutForm` validate bằng `checkoutFormSchema` → `POST /api/orders` với `{ customer, shippingMethod, paymentMethod, items: [{ productId, quantity }], couponCode? }` (không gửi giá, không gửi số tiền giảm).
 2. `app/api/orders/route.ts` `POST`: `readJsonBody` → `orderService.placeOrder(body)`.
 3. `placeOrder`: `placeOrderSchema.safeParse` → gộp dòng trùng (`mergeItems`) → lấy giá từ `findProduct` (mặc định `getProductById`) → kiểm tra tồn kho → nếu có `couponCode`: `evaluateCoupon(findCoupon(code), subtotal, now())`, lỗi → `toCouponError` (422, không lưu đơn) → `calculateOrderTotals(items, method, discount)` → `repository.save(order)` với `status: "pending"`, id từ `generateOrderId` (`SL-YYYYMMDD-XXXXXX`).
@@ -50,6 +52,7 @@ Server Component (vd. `app/products/page.tsx`, `app/orders/page.tsx`) gọi th�
 5. Client nhận `201`, gọi `clear()` giỏ hàng, chuyển tới `/orders/{id}?placed=1`. Lỗi → hiển thị `error.message`.
 
 **Luồng mã giảm giá (trang thanh toán)**
+
 1. `CouponField` kiểm định dạng bằng `couponCodeSchema` → `CheckoutForm` gọi `POST /api/coupons/validate` với `{ code, items }`.
 2. Server (`couponService.validateCoupon`) tính tạm tính từ catalog, trả `{ coupon, subtotal, discount }` — chỉ quy tắc của đúng mã đó, không bao giờ trả danh sách mã.
 3. Client lưu `appliedCoupon = { rule }`; mỗi lần render `deriveCouponStatus(appliedCoupon, subtotal, now)` → `active` (trừ vào tổng) hoặc `error` (chưa đạt tối thiểu thì tự hồi phục khi giỏ đủ).
