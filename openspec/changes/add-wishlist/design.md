@@ -98,6 +98,7 @@ Sao chép `CartBadge`: `<Link href="/wishlist">` + icon `Heart`. Nhận prop `kn
 **layout** (sửa)
 
 - Sửa `src/components/layout/header.tsx` — gọi `getAllProducts()` lấy id, thêm `<WishlistBadge knownProductIds={...} />` trước `CartBadge` trong cùng nhóm `ml-auto flex`.
+- Sửa `src/components/layout/nav-links.tsx` — ẩn link "Trang chủ" dưới breakpoint `sm` (logo đã dẫn về trang chủ) và cho `nav` co/cuộn ngang (`min-w-0 overflow-x-auto`); phát hiện khi apply: thêm icon thứ hai làm header tràn 17px ở 390px.
 
 **e2e**
 
@@ -107,6 +108,7 @@ Sao chép `CartBadge`: `<Link href="/wishlist">` + icon `Heart`. Nhận prop `kn
 
 - [Id hết hiệu lực chiếm chỗ trong giới hạn 50] → dọn id không còn trong catalog ngay lúc thêm mà danh sách đầy (D1, D2); lúc chỉ đọc thì không dọn để không mất dữ liệu khi catalog tạm thiếu.
 - [Truyền `knownIds` (16 id, sau này có thể nhiều hơn) qua prop ở mọi trang] → chỉ là mảng chuỗi ngắn, rẻ hơn nhiều so với đưa cả catalog vào bundle; nếu catalog lớn thì chuyển sang API.
+- [`WishlistItemRow` dùng `StockBadge`, file này import `catalog-service` → dữ liệu catalog vào bundle client của riêng trang `/wishlist`] → chấp nhận (chỉ một trang, catalog tĩnh nhỏ); nếu cần tối ưu, tách `getStockStatus`/`LOW_STOCK_THRESHOLD` ra file không import `data/products`.
 - [Hai tab thao tác gần như đồng thời ghi đè nhau] → chấp nhận như giỏ hàng (last-write-wins qua sự kiện `storage`).
 - [Hydration mismatch nếu đọc localStorage khi render server] → `getServerSnapshot` trả rỗng (đây là cơ chế chính); `hydrated` dùng để hiện skeleton thay vì nháy trạng thái trống.
 - [Header chật ở 390px khi thêm một icon] → hai icon `size-10` cạnh nhau, kiểm tra thủ công ở viewport 390px.

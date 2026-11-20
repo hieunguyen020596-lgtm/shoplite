@@ -3,10 +3,14 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
 import { getProductById } from "@/features/catalog/catalog-service";
 import { cartStore } from "@/features/cart/cart-store";
+import { wishlistStore } from "@/features/wishlist/wishlist-store";
 import { ProductCard } from "./product-card";
 
 describe("<ProductCard />", () => {
-  beforeEach(() => cartStore.reset());
+  beforeEach(() => {
+    cartStore.reset();
+    wishlistStore.reset();
+  });
 
   it("hiển thị tên, giá, giá gốc và % giảm giá", () => {
     render(<ProductCard product={getProductById("p001")!} />);
@@ -34,5 +38,20 @@ describe("<ProductCard />", () => {
     expect(cartStore.getSnapshot().items).toEqual([
       expect.objectContaining({ productId: "p006", quantity: 1 }),
     ]);
+  });
+
+  it("có nút trái tim nằm ngoài link ảnh aria-hidden và toggle không đụng giỏ hàng", async () => {
+    const user = userEvent.setup();
+    const product = getProductById("p006")!;
+    render(<ProductCard product={product} />);
+
+    const heart = screen.getByRole("button", { name: `Yêu thích ${product.name}` });
+    expect(heart.closest("a")).toBeNull();
+    expect(heart.closest("[aria-hidden]")).toBeNull();
+
+    await user.click(heart);
+    expect(heart).toHaveAttribute("aria-pressed", "true");
+    expect(wishlistStore.getSnapshot().productIds).toEqual(["p006"]);
+    expect(cartStore.getSnapshot().items).toEqual([]);
   });
 });

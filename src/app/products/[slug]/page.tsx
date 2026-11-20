@@ -17,6 +17,7 @@ import {
   getProductBySlug,
   getRelatedProducts,
 } from "@/features/catalog/catalog-service";
+import { WishlistButton } from "@/features/wishlist/components/wishlist-button";
 
 export function generateStaticParams() {
   return getAllProducts().map((product) => ({ slug: product.slug }));
@@ -81,7 +82,16 @@ export default async function ProductDetailPage({ params }: PageProps<"/products
           <p className="text-sm font-semibold tracking-wide text-indigo-600 uppercase">
             {product.brand}
           </p>
-          <h1 className="text-3xl font-bold tracking-tight">{product.name}</h1>
+          <div className="flex items-start justify-between gap-4">
+            <h1 className="text-3xl font-bold tracking-tight">{product.name}</h1>
+            {/* Đặt ngoài purchase-panel để không lẫn với nút "Thêm vào giỏ" */}
+            <WishlistButton
+              product={{ id: product.id, name: product.name }}
+              knownIds={getAllProducts().map((item) => item.id)}
+              variant="inline"
+              className="shrink-0"
+            />
+          </div>
           <div className="flex flex-wrap items-center gap-3">
             <RatingStars rating={product.rating} reviewCount={product.reviewCount} />
             <StockBadge product={product} />
