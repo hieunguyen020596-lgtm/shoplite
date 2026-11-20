@@ -91,7 +91,7 @@ Hiện trạng liên quan:
   - Variant `icon`: nút `size-10` (40px, đủ vùng bấm trên mobile), nền trắng mờ, bo tròn. Variant `full`: `Button` `variant="secondary"` với chữ "Yêu thích" / "Đã thích".
 - **`wishlist-badge.tsx`**: sao theo `CartBadge`.
   - `Link href="/wishlist"`, icon `Heart`.
-  - Chỉ hiện số khi `hydrated && count > 0`, `>99` thì hiện `99+`.
+  - Chỉ hiện số khi `hydrated && count > 0`. Không cần định dạng `99+` như giỏ hàng vì danh sách tối đa 50.
   - `aria-label` là "Danh sách yêu thích (n sản phẩm)" hoặc "Danh sách yêu thích".
   - `data-testid="wishlist-count"`.
 - **`wishlist-view.tsx`**: nhận `products: Product[]` (toàn bộ catalog) từ server.
@@ -106,7 +106,7 @@ Hiện trạng liên quan:
 
 ### 6. Vị trí nút trái tim
 
-- **`ProductCard`:** `<WishlistButton variant="icon">` hiển thị ở góc `absolute top-2 right-2 z-10` của `<article>`. Nó là **anh em** của link ảnh (`aria-hidden`, `tabIndex={-1}`), không lồng bên trong.
+- **`ProductCard`:** `<WishlistButton variant="icon">` hiển thị ở góc `absolute top-5 right-5 z-10` của `<article>` (bù `p-3` của thẻ để thẳng hàng với badge giảm giá `top-2 left-2` trong ảnh). Nó là **anh em** của link ảnh (`aria-hidden`, `tabIndex={-1}`), không lồng bên trong.
   - `<article>` đã có `relative`. Badge giảm giá nằm ở `top-2 left-2`, nên không đè nhau. `z-10` giữ nút nằm trên ảnh khi ảnh phóng to lúc hover.
   - **Thứ tự trong DOM:** đặt nút ở **cuối** `<article>`, sau hàng nút mua. Thứ tự Tab khi đó là: tên sản phẩm → Thêm vào giỏ → ♡. Khách nghe tên sản phẩm trước khi gặp nút yêu thích. Vị trí hiển thị do `absolute` quyết định, không phụ thuộc thứ tự DOM.
 - **Trang chi tiết:** `<WishlistButton variant="full">` đặt **ngay dưới `ProductPurchasePanel`**. Panel đã tự xử lý trường hợp hết hàng (hiện thông báo thay cho nút mua), còn nút ♡ vẫn hiện cho sản phẩm hết hàng (ví dụ `p004`).

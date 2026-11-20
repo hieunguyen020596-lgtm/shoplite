@@ -17,6 +17,7 @@ import {
   getProductBySlug,
   getRelatedProducts,
 } from "@/features/catalog/catalog-service";
+import { WishlistButton } from "@/features/wishlist/components/wishlist-button";
 
 export function generateStaticParams() {
   return getAllProducts().map((product) => ({ slug: product.slug }));
@@ -90,6 +91,7 @@ export default async function ProductDetailPage({ params }: PageProps<"/products
           <p className="text-slate-600">{product.shortDescription}</p>
 
           <ProductPurchasePanel product={product} />
+          <WishlistButton product={product} variant="full" className="self-start" />
 
           <ul className="mt-2 flex flex-col gap-2 rounded-2xl bg-white p-4 text-sm text-slate-600 ring-1 ring-slate-200">
             <li className="flex items-center gap-2">

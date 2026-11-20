@@ -7,6 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Stack: Next.js 16 (App Router, Turbopack), React 19, TypeScript, Tailwind CSS v4, Zod 4, Vitest + Testing Library, Playwright. Node >= 22.12.
 - Sản phẩm, danh mục: dữ liệu tĩnh trong `src/data/products.ts`, `src/data/categories.ts`.
 - Giỏ hàng: chỉ ở trình duyệt, `localStorage` key `CART_STORAGE_KEY = "shoplite:cart"`.
+- Danh sách yêu thích: chỉ ở trình duyệt, `localStorage` key `WISHLIST_STORAGE_KEY = "shoplite:wishlist"`, chỉ lưu `productIds` (tối đa `WISHLIST_MAX_ITEMS = 50`).
 - Đơn hàng: file JSON `DEFAULT_ORDERS_FILE` = `storage/orders.json` (gitignore), đổi bằng env `ORDERS_FILE`.
 
 ## 2. Lệnh thường dùng
@@ -28,6 +29,7 @@ npm run format                                # Prettier (+ prettier-plugin-tail
 | ---------- | ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Catalog    | `src/features/catalog/`                        | `catalog-service.ts` (`parseCatalogQuery`, `queryProducts`, `getProductById`, `PAGE_SIZE`), `types.ts`                                                                                                                                  |
 | Cart       | `src/features/cart/`                           | `cart-reducer.ts` (`cartReducer`, `getMaxQuantity`), `cart-store.ts` (`cartStore`), `use-cart.ts` (`useCart`)                                                                                                                           |
+| Wishlist   | `src/features/wishlist/`                       | `wishlist-reducer.ts` (`wishlistReducer`, `sanitizeWishlist`, `WISHLIST_MAX_ITEMS`), `wishlist-store.ts` (`wishlistStore`), `use-wishlist.ts` (`useWishlist`), `components/wishlist-button.tsx`, route `app/wishlist/page.tsx`          |
 | Checkout   | `src/features/checkout/`                       | `checkout-schema.ts` (`checkoutFormSchema`, `placeOrderSchema`, `toFieldErrors`), `pricing.ts` (`calculateOrderTotals`)                                                                                                                 |
 | Orders     | `src/features/orders/`                         | `order-service.ts` (`createOrderService`), `order-repository.ts`, `order-errors.ts` (`OrderError`), `server.ts`                                                                                                                         |
 | Coupons    | `src/features/coupons/`, `src/data/coupons.ts` | `coupon-rules.ts` (hàm thuần, client dùng được: `normalizeCouponCode`, `evaluateCoupon`, `isCouponExpired`), `coupon-service.ts` (chỉ server: `findCouponByCode`, `validateCouponCode`, `toCouponError`), `components/coupon-field.tsx` |

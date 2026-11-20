@@ -4,6 +4,7 @@ import { RatingStars } from "@/components/ui/rating-stars";
 import { AddToCartButton } from "@/features/cart/components/add-to-cart-button";
 import { getDiscountPercent, getStockStatus } from "@/features/catalog/catalog-service";
 import type { Product } from "@/features/catalog/types";
+import { WishlistButton } from "@/features/wishlist/components/wishlist-button";
 import { ProductImage } from "./product-image";
 import { StockBadge } from "./stock-badge";
 
@@ -46,6 +47,9 @@ export function ProductCard({ product }: { product: Product }) {
           <AddToCartButton product={product} size="sm" />
         </div>
       </div>
+
+      {/* Đặt cuối thẻ để thứ tự Tab là: tên sản phẩm → Thêm vào giỏ → ♡; hiển thị ở góc ảnh bằng absolute. */}
+      <WishlistButton product={product} className="absolute top-5 right-5 z-10" />
     </article>
   );
 }

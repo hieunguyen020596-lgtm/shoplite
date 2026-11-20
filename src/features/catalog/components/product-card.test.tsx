@@ -3,10 +3,14 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
 import { getProductById } from "@/features/catalog/catalog-service";
 import { cartStore } from "@/features/cart/cart-store";
+import { wishlistStore } from "@/features/wishlist/wishlist-store";
 import { ProductCard } from "./product-card";
 
 describe("<ProductCard />", () => {
-  beforeEach(() => cartStore.reset());
+  beforeEach(() => {
+    cartStore.reset();
+    wishlistStore.reset();
+  });
 
   it("hiển thị tên, giá, giá gốc và % giảm giá", () => {
     render(<ProductCard product={getProductById("p001")!} />);
@@ -34,5 +38,32 @@ describe("<ProductCard />", () => {
     expect(cartStore.getSnapshot().items).toEqual([
       expect.objectContaining({ productId: "p006", quantity: 1 }),
     ]);
+  });
+
+  it("có nút trái tim nằm ngoài mọi liên kết và đứng sau nút mua trong thứ tự Tab", () => {
+    const product = getProductById("p006")!;
+    render(<ProductCard product={product} />);
+
+    const heart = screen.getByRole("button", {
+      name: `Thêm ${product.name} vào danh sách yêu thích`,
+    });
+    expect(heart.closest("a")).toBeNull();
+
+    const addToCart = screen.getByRole("button", { name: /Thêm vào giỏ/ });
+    expect(
+      addToCart.compareDocumentPosition(heart) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it("sản phẩm hết hàng vẫn thích được", async () => {
+    const user = userEvent.setup();
+    const product = getProductById("p004")!;
+    render(<ProductCard product={product} />);
+
+    await user.click(
+      screen.getByRole("button", { name: `Thêm ${product.name} vào danh sách yêu thích` }),
+    );
+
+    expect(wishlistStore.getSnapshot().productIds).toEqual(["p004"]);
   });
 });
