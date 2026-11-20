@@ -30,7 +30,7 @@
 ## 5. Tích hợp và kiểm tra cuối
 
 - [x] 5.1 Tạo `e2e/wishlist.spec.ts`: thích "Bàn phím cơ KeyPro 75%" trên thẻ → badge = 1 → tải lại vẫn còn → vào `/wishlist` → "Thêm vào giỏ" làm tăng badge giỏ; bỏ thích → trạng thái trống — kiểm chứng: `npm run test:e2e` pass, gồm cả `shopping-flow.spec.ts` (đảm bảo nút trái tim không làm khớp nhầm selector "Thêm vào giỏ"/"Giỏ hàng")
-- [ ] 5.2 Chạy `npm run format` và kiểm tra thủ công 9 kịch bản của bài 3.4 (đồng bộ 2 tab, dữ liệu `abc`, bàn phím, 390px) — kiểm chứng: không có lỗi console, kịch bản đều đúng
+- [x] 5.2 Chạy `npm run format` và kiểm tra thủ công 9 kịch bản của bài 3.4 (đồng bộ 2 tab, dữ liệu `abc`, bàn phím, 390px) — kiểm chứng: không có lỗi console, kịch bản đều đúng
 - [x] 5.3 Chạy `npm run check` (lint + typecheck + test) và đảm bảo pass
 
 ## Workflow follow-up
