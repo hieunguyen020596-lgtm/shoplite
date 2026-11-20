@@ -47,23 +47,31 @@
 ## 3. Nút trái tim trên thẻ và trang chi tiết
 
 - [ ] 3.1 Tạo `components/wishlist-button.tsx` (`"use client"`):
-  - các variant `icon` / `full`
+  - variant `icon` (nút `size-10`, nền trắng mờ) và `full` (`Button` secondary "Yêu thích" / "Đã thích")
   - `aria-pressed` và `aria-label` theo trạng thái, có tên sản phẩm
   - icon `Heart` tô đầy khi đã thích
-  - chưa hydrate thì hiện trạng thái chưa thích
-  - vùng `role="status"` hiện thông báo "Danh sách yêu thích đã đầy (tối đa 50 sản phẩm)" khi đầy
+  - chưa hydrate thì hiện trạng thái chưa thích (giữ cờ `hydrated`, xem design mục "Vì sao vẫn dùng cờ hydrated")
+  - `toggle` tính kết quả từ `wishlistStore.getSnapshot()` lúc bấm
+  - `<span role="status">` luôn render sẵn và rỗng; khi đầy thì đặt text "Danh sách yêu thích đã đầy (tối đa 50 sản phẩm)", tự xóa sau khoảng 3 giây, dọn timer khi unmount
 
   Kiểm tra: render được trong component test ở 3.4.
 
-- [ ] 3.2 Sửa `product-card.tsx`: đặt `<WishlistButton variant="icon">` ở góc `top-2 right-2` của `<article>`, là anh em của link ảnh `aria-hidden`, không lồng trong `<Link>`. Kiểm tra: thẻ sản phẩm có nút trái tim khi chạy `npm run dev`.
-- [ ] 3.3 Sửa `src/app/products/[slug]/page.tsx`: thêm `<WishlistButton variant="full">` ở khối thông tin sản phẩm. Nút vẫn hiện với sản phẩm hết hàng. Kiểm tra: trang chi tiết có nút trái tim.
+- [ ] 3.2 Sửa `product-card.tsx`:
+  - đặt `<WishlistButton variant="icon">` ở **cuối** `<article>` trong DOM (sau hàng nút mua)
+  - hiển thị ở góc bằng `absolute top-2 right-2 z-10`
+  - là anh em của link ảnh `aria-hidden`, không lồng trong `<Link>`
+
+  Kiểm tra: khi chạy `npm run dev`, nút ♡ nằm ở góc trên phải của ảnh, và Tab đi theo thứ tự tên sản phẩm → Thêm vào giỏ → ♡.
+
+- [ ] 3.3 Sửa `src/app/products/[slug]/page.tsx`: thêm `<WishlistButton variant="full">` **ngay dưới `ProductPurchasePanel`**. Kiểm tra: trang chi tiết của `p004` (hết hàng) vẫn có nút ♡.
 - [ ] 3.4 Viết `wishlist-button.test.tsx` và cập nhật `product-card.test.tsx`, cần cover:
   - click đảo `aria-pressed` và đổi `aria-label`
   - nhấn Enter/Space trên nút cũng toggle
-  - đã có 50 sản phẩm thì hiện thông báo đầy và không thêm
-  - nút trái tim không nằm trong phần tử `a`
+  - đã có 50 sản phẩm thì hiện thông báo đầy trong vùng `role="status"` (vùng này có sẵn từ lần render đầu) và không thêm
+  - nút trái tim không nằm trong phần tử `a`, và đứng sau nút "Thêm vào giỏ" trong DOM
+  - `product-card.test.tsx` gọi thêm `wishlistStore.reset()` trong `beforeEach`; các test cũ dùng `/Thêm vào giỏ/` vẫn pass
 
-  Kiểm tra: vitest pass.
+  Kiểm tra: `npx vitest run src/features/wishlist src/features/catalog` pass.
 
 ## 4. Badge ở header
 
@@ -75,7 +83,10 @@
 
   Kiểm tra: test ở 4.3.
 
-- [ ] 4.2 Sửa `header.tsx`: đặt `WishlistBadge` cạnh `CartBadge` trong khối `ml-auto`, dùng `flex gap-1`. Kiểm tra: header ở 390px không vỡ (DevTools mobile).
+- [ ] 4.2 Sửa `header.tsx`: đặt `WishlistBadge` cạnh `CartBadge` trong khối `ml-auto`, dùng `flex gap-1`. Kiểm tra ở 390px (DevTools mobile):
+  - header không tràn ngang (không có thanh cuộn ngang)
+  - cả 3 link nav, nút ♡ và giỏ hàng đều bấm được
+  - nếu tràn thì giảm padding link nav ở mobile, không ẩn nút ♡
 - [ ] 4.3 Viết `wishlist-badge.test.tsx`, cần cover:
   - rỗng thì không có số
   - 2 sản phẩm thì hiện "2" với nhãn đúng
@@ -114,7 +125,7 @@
   - bỏ thích thì hiện trạng thái trống
   - sửa `localStorage` thành `abc` rồi tải lại thì trang không lỗi
 
-  Kiểm tra: `npm run test:e2e` pass.
+  Kiểm tra: `npm run test:e2e` pass, gồm cả `e2e/shopping-flow.spec.ts` cũ (không bị nút ♡ làm hỏng selector).
 
 - [ ] 6.2 Cập nhật `AGENTS.md`: thêm dòng Wishlist vào bảng Codemap (`src/features/wishlist/`, các file chính) và ghi key `localStorage` `shoplite:wishlist` ở mục Tổng quan. Kiểm tra: đọc lại diff.
 
