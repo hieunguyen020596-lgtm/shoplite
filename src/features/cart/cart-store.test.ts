@@ -30,6 +30,25 @@ describe("cartStore", () => {
     expect(cartStore.getSnapshot().items).toEqual([]);
   });
 
+  it("đồng bộ khi tab khác thay đổi giỏ hàng, bỏ qua key khác", () => {
+    const listener = vi.fn();
+    const unsubscribe = cartStore.subscribe(listener);
+    cartStore.getSnapshot();
+
+    window.localStorage.setItem("shoplite:wishlist", JSON.stringify({ productIds: ["p001"] }));
+    window.dispatchEvent(new StorageEvent("storage", { key: "shoplite:wishlist" }));
+    expect(listener).not.toHaveBeenCalled();
+
+    window.localStorage.setItem(
+      CART_STORAGE_KEY,
+      JSON.stringify({ items: [{ ...toCartItem(product), quantity: 4 }] }),
+    );
+    window.dispatchEvent(new StorageEvent("storage", { key: CART_STORAGE_KEY }));
+    expect(listener).toHaveBeenCalledTimes(1);
+    expect(cartStore.getSnapshot().items[0]).toMatchObject({ productId: "p001", quantity: 4 });
+    unsubscribe();
+  });
+
   it("thông báo cho subscriber khi giỏ hàng thay đổi", () => {
     const listener = vi.fn();
     const unsubscribe = cartStore.subscribe(listener);

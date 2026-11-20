@@ -29,6 +29,15 @@ describe("<CartView />", () => {
     expect(screen.getByTestId("cart-total")).toHaveTextContent(/180\.000/);
   });
 
+  it("tạm tính đúng ngưỡng 500.000đ thì được miễn phí giao hàng", () => {
+    seedCart([["p007", 2]]); // 2 x 250.000đ = đúng ngưỡng
+    render(<CartView />);
+
+    expect(screen.getByText(/được miễn phí giao hàng tiêu chuẩn/)).toBeVisible();
+    expect(screen.queryByText(/Mua thêm/)).not.toBeInTheDocument();
+    expect(screen.getByTestId("cart-total")).toHaveTextContent(/500\.000/);
+  });
+
   it("cập nhật số lượng và tổng tiền", async () => {
     const user = userEvent.setup();
     seedCart([["p010", 1]]);
