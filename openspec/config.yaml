@@ -1,0 +1,42 @@
+schema: spec-driven
+
+# Project context: OpenSpec chèn vào MỌI artifact (proposal, specs, design, tasks) và khi apply.
+# Chỉ ghi ràng buộc + codemap rút gọn. Chi tiết đầy đủ nằm ở AGENTS.md (CLAUDE.md import file này).
+context: |
+  Ngôn ngữ: viết mọi artifact (proposal, design, tasks, specs) bằng tiếng Việt.
+  Giữ nguyên tiêu đề cấu trúc của OpenSpec (## Why, ## ADDED Requirements, #### Scenario...)
+  và từ khóa SHALL/MUST, WHEN/THEN/AND bằng tiếng Anh.
+
+  Dự án: ShopLite - cửa hàng đồ công nghệ mini.
+  Stack: Next.js 16 App Router, React 19, TypeScript strict, Tailwind CSS v4, Zod 4, Vitest + Testing Library, Playwright.
+  Không có database: sản phẩm tĩnh ở src/data/, giỏ hàng ở localStorage, đơn hàng lưu file storage/orders.json.
+
+  Codemap (capability -> thư mục -> file chính):
+  - catalog  -> src/features/catalog/   catalog-service.ts (queryProducts, getProductById), components/product-card.tsx
+  - cart     -> src/features/cart/      cart-reducer.ts (getMaxQuantity) + cart-store.ts (localStorage) + use-cart.ts
+  - checkout -> src/features/checkout/  pricing.ts (calculateOrderTotals), checkout-schema.ts, components/checkout-form.tsx
+  - orders   -> src/features/orders/    order-service.ts, order-repository.ts, order-errors.ts; API src/app/api/orders/
+  - coupons  -> src/features/coupons/   coupon-rules.ts (client dùng được), coupon-service.ts (chỉ server)
+  - layout   -> src/components/layout/  header.tsx (badge giỏ hàng), nav-links.tsx
+  - src/app/ chỉ chứa route mỏng; mọi logic nằm trong src/features/<feature>/, test đặt cạnh file.
+
+  Ràng buộc quan trọng nhất:
+  - Server là nguồn sự thật về giá, tổng tiền, tồn kho và giảm giá; không tin số liệu client gửi lên.
+  - State chỉ có ở trình duyệt theo pattern giỏ hàng: hàm thuần + store + useSyncExternalStore + localStorage
+    (+ sự kiện storage để đồng bộ tab, cờ hydrated để tránh lệch hydrate).
+  - Không hard-code hằng số nghiệp vụ (10, 30_000, 500_000...); import từ cart-reducer.ts / pricing.ts.
+  - Lỗi API dùng OrderError + ApiErrorBody { error: { code, message, details? } }; không thêm dependency/database mới nếu không giải thích.
+  - Text giao diện, comment, tên test bằng tiếng Việt; tiền/ngày định dạng bằng formatCurrency / formatDateTime (src/lib/format.ts).
+
+  Chi tiết (quy ước, quy tắc nghiệp vụ, Definition of Done): xem AGENTS.md.
+
+rules:
+  proposal:
+    - Luôn có mục "Ngoài phạm vi" liệt kê những gì KHÔNG làm trong change này
+  specs:
+    - Mỗi requirement có ít nhất một scenario cho trường hợp lỗi hoặc giá trị biên
+  design:
+    - Liệt kê rõ file tạo mới / file sửa, bám theo codemap trong context
+  tasks:
+    - Mỗi nhóm task kết thúc bằng một task viết hoặc cập nhật test
+    - Task cuối cùng luôn là chạy `npm run check` (và kiểm tra giao diện trên trình duyệt nếu có UI)
