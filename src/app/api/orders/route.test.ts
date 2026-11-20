@@ -1,5 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it, vi } from "vitest";
+import { MAX_QUANTITY_PER_ITEM } from "@/features/cart/cart-reducer";
 import { GET, POST } from "./route";
 
 // Thay orderService (ghi file) bằng bản dùng repository trong bộ nhớ.
@@ -47,6 +48,20 @@ describe("POST /api/orders", () => {
     expect(response.status).toBe(400);
     const body = await response.json();
     expect(body.error.details).toHaveProperty(["customer.phone"]);
+  });
+
+  it("400 - dòng trùng sản phẩm có tổng vượt giới hạn mỗi sản phẩm", async () => {
+    const response = await postOrder({
+      ...validBody,
+      items: [
+        { productId: "p006", quantity: MAX_QUANTITY_PER_ITEM },
+        { productId: "p006", quantity: 1 },
+      ],
+    });
+    expect(response.status).toBe(400);
+    const body = await response.json();
+    expect(body.error.code).toBe("VALIDATION_ERROR");
+    expect(body.error.details.items).toContain('"p006"');
   });
 
   it("409 - vượt quá tồn kho", async () => {

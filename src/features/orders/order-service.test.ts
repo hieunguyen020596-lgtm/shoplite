@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
+import { MAX_QUANTITY_PER_ITEM } from "@/features/cart/cart-reducer";
 import { SHIPPING_OPTIONS } from "@/features/checkout/pricing";
 import { OrderError } from "./order-errors";
 import { createInMemoryOrderRepository, type OrderRepository } from "./order-repository";
@@ -252,6 +253,37 @@ describe("orderService", () => {
 
     it("trả lỗi ORDER_NOT_FOUND với mã đơn không tồn tại", async () => {
       await expectOrderError(service.getOrder("SL-KHONG-CO"), "ORDER_NOT_FOUND");
+    });
+  });
+
+  describe("placeOrder - dòng trùng sản phẩm", () => {
+    it("tổng vượt giới hạn thì ném VALIDATION_ERROR và không lưu đơn", async () => {
+      await expectOrderError(
+        service.placeOrder(
+          validInput({
+            items: [
+              { productId: "p010", quantity: MAX_QUANTITY_PER_ITEM },
+              { productId: "p010", quantity: MAX_QUANTITY_PER_ITEM },
+            ],
+          }),
+        ),
+        "VALIDATION_ERROR",
+      );
+      expect(await repository.findAll()).toEqual([]);
+    });
+
+    it("tổng đúng bằng giới hạn thì gộp thành một dòng", async () => {
+      const order = await service.placeOrder(
+        validInput({
+          items: [
+            { productId: "p010", quantity: 4 },
+            { productId: "p010", quantity: MAX_QUANTITY_PER_ITEM - 4 },
+          ],
+        }),
+      );
+      expect(order.items).toEqual([
+        expect.objectContaining({ productId: "p010", quantity: MAX_QUANTITY_PER_ITEM }),
+      ]);
     });
   });
 

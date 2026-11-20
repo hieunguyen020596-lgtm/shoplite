@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { MAX_QUANTITY_PER_ITEM } from "@/features/cart/cart-reducer";
 import {
   checkoutFormSchema,
   placeOrderSchema,
@@ -51,6 +52,64 @@ describe("checkoutFormSchema", () => {
   it("từ chối phương thức giao hàng không hỗ trợ", () => {
     const result = checkoutFormSchema.safeParse({ ...validForm, shippingMethod: "drone" });
     expect(result.success).toBe(false);
+  });
+});
+
+describe("placeOrderSchema - giới hạn số lượng mỗi sản phẩm", () => {
+  const order = (items: { productId: string; quantity: number }[]) => ({
+    customer: { fullName: "Nguyễn Văn A", phone: "0912345678", address: "12 Nguyễn Huệ, Quận 1" },
+    shippingMethod: "standard",
+    paymentMethod: "cod",
+    items,
+  });
+
+  it(`hai dòng trùng sản phẩm, mỗi dòng ${MAX_QUANTITY_PER_ITEM} thì bị từ chối ở key items`, () => {
+    const result = placeOrderSchema.safeParse(
+      order([
+        { productId: "p010", quantity: MAX_QUANTITY_PER_ITEM },
+        { productId: "p010", quantity: MAX_QUANTITY_PER_ITEM },
+      ]),
+    );
+    expect(result.success).toBe(false);
+    expect(toFieldErrors(result.error!).items).toContain('"p010"');
+  });
+
+  it("dòng trùng có tổng đúng bằng giới hạn (4 + 6) thì hợp lệ", () => {
+    const result = placeOrderSchema.safeParse(
+      order([
+        { productId: "p010", quantity: 4 },
+        { productId: "p010", quantity: MAX_QUANTITY_PER_ITEM - 4 },
+      ]),
+    );
+    expect(result.success).toBe(true);
+  });
+
+  it("dòng trùng có tổng vượt giới hạn 1 đơn vị (5 + 6) thì bị từ chối", () => {
+    const result = placeOrderSchema.safeParse(
+      order([
+        { productId: "p010", quantity: 5 },
+        { productId: "p010", quantity: MAX_QUANTITY_PER_ITEM - 4 },
+      ]),
+    );
+    expect(result.success).toBe(false);
+  });
+
+  it(`một dòng có số lượng ${MAX_QUANTITY_PER_ITEM + 1} thì bị từ chối`, () => {
+    const result = placeOrderSchema.safeParse(
+      order([{ productId: "p010", quantity: MAX_QUANTITY_PER_ITEM + 1 }]),
+    );
+    expect(result.success).toBe(false);
+    expect(toFieldErrors(result.error!)).toHaveProperty(["items.0.quantity"]);
+  });
+
+  it(`hai sản phẩm khác nhau, mỗi sản phẩm ${MAX_QUANTITY_PER_ITEM} thì hợp lệ`, () => {
+    const result = placeOrderSchema.safeParse(
+      order([
+        { productId: "p010", quantity: MAX_QUANTITY_PER_ITEM },
+        { productId: "p006", quantity: MAX_QUANTITY_PER_ITEM },
+      ]),
+    );
+    expect(result.success).toBe(true);
   });
 });
 

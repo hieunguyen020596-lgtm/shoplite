@@ -59,7 +59,22 @@ export const placeOrderSchema = z.object({
         quantity: z.number().int().min(1).max(MAX_QUANTITY_PER_ITEM),
       }),
     )
-    .min(1, "Giỏ hàng đang trống"),
+    .min(1, "Giỏ hàng đang trống")
+    // Giới hạn áp dụng cho TỔNG số lượng mỗi sản phẩm, kể cả khi client gửi nhiều dòng trùng productId.
+    .superRefine((items, ctx) => {
+      const totals = new Map<string, number>();
+      for (const { productId, quantity } of items) {
+        totals.set(productId, (totals.get(productId) ?? 0) + quantity);
+      }
+      for (const [productId, total] of totals) {
+        if (total > MAX_QUANTITY_PER_ITEM) {
+          ctx.addIssue({
+            code: "custom",
+            message: `Mỗi sản phẩm chỉ được đặt tối đa ${MAX_QUANTITY_PER_ITEM} (sản phẩm "${productId}")`,
+          });
+        }
+      }
+    }),
   /** Mã giảm giá (tùy chọn). Rỗng = không dùng mã. Server tự tra mã và tính tiền giảm. */
   couponCode: z
     .string("Mã giảm giá không hợp lệ")
