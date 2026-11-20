@@ -3,15 +3,21 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
 import { getProductById } from "@/features/catalog/catalog-service";
 import { cartStore } from "@/features/cart/cart-store";
+import { wishlistStore } from "@/features/wishlist/wishlist-store";
 import { ProductCard } from "./product-card";
 
 describe("<ProductCard />", () => {
-  beforeEach(() => cartStore.reset());
+  beforeEach(() => {
+    cartStore.reset();
+    wishlistStore.reset();
+  });
 
   it("hiển thị tên, giá, giá gốc và % giảm giá", () => {
     render(<ProductCard product={getProductById("p001")!} />);
 
-    expect(screen.getByRole("heading", { name: "Tai nghe không dây SoundMax Pro" })).toBeVisible();
+    expect(
+      screen.getByRole("heading", { name: "Tai nghe không dây SoundMax Pro" }),
+    ).toBeVisible();
     expect(screen.getByTestId("price")).toHaveTextContent(/1\.290\.000/);
     expect(screen.getByText(/1\.590\.000/)).toHaveClass("line-through");
     expect(screen.getByText("-19%")).toBeVisible();
@@ -34,5 +40,18 @@ describe("<ProductCard />", () => {
     expect(cartStore.getSnapshot().items).toEqual([
       expect.objectContaining({ productId: "p006", quantity: 1 }),
     ]);
+  });
+
+  it("toggle trạng thái yêu thích khi bấm nút trái tim", async () => {
+    const user = userEvent.setup();
+    render(<ProductCard product={getProductById("p001")!} />);
+
+    const heartButton = screen.getByRole("button", {
+      name: "Thêm Tai nghe không dây SoundMax Pro vào danh sách yêu thích",
+    });
+    await user.click(heartButton);
+
+    expect(wishlistStore.getSnapshot().productIds).toContain("p001");
+    expect(heartButton).toHaveAttribute("aria-pressed", "true");
   });
 });

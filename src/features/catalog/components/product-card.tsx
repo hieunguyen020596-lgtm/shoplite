@@ -2,8 +2,12 @@ import Link from "next/link";
 import { PriceTag } from "@/components/ui/price-tag";
 import { RatingStars } from "@/components/ui/rating-stars";
 import { AddToCartButton } from "@/features/cart/components/add-to-cart-button";
-import { getDiscountPercent, getStockStatus } from "@/features/catalog/catalog-service";
+import {
+  getDiscountPercent,
+  getStockStatus,
+} from "@/features/catalog/catalog-service";
 import type { Product } from "@/features/catalog/types";
+import { WishlistButton } from "@/features/wishlist/components/wishlist-button";
 import { ProductImage } from "./product-image";
 import { StockBadge } from "./stock-badge";
 
@@ -16,8 +20,22 @@ export function ProductCard({ product }: { product: Product }) {
       className="group relative flex flex-col rounded-2xl bg-white p-3 shadow-sm ring-1 ring-slate-200 transition hover:shadow-md"
       data-testid="product-card"
     >
+      {/* Nút yêu thích đặt ở góc trên phải, nằm ngoài Link ảnh */}
+      <div className="absolute top-2 right-2 z-10">
+        <WishlistButton
+          productId={product.id}
+          productName={product.name}
+          size="sm"
+        />
+      </div>
+
       {/* Link ảnh bị ẩn khỏi bàn phím/screen reader để không đọc trùng với link tiêu đề */}
-      <Link href={`/products/${product.slug}`} className="relative block" tabIndex={-1} aria-hidden>
+      <Link
+        href={`/products/${product.slug}`}
+        className="relative block"
+        tabIndex={-1}
+        aria-hidden
+      >
         <ProductImage
           image={product.image}
           alt={product.name}
@@ -35,11 +53,17 @@ export function ProductCard({ product }: { product: Product }) {
           {product.brand}
         </p>
         <h3 className="line-clamp-2 min-h-10 text-sm font-semibold text-slate-900">
-          <Link href={`/products/${product.slug}`} className="hover:text-indigo-600">
+          <Link
+            href={`/products/${product.slug}`}
+            className="hover:text-indigo-600"
+          >
             {product.name}
           </Link>
         </h3>
-        <RatingStars rating={product.rating} reviewCount={product.reviewCount} />
+        <RatingStars
+          rating={product.rating}
+          reviewCount={product.reviewCount}
+        />
         <PriceTag price={product.price} originalPrice={product.originalPrice} />
         <div className="mt-auto flex items-center justify-between gap-2 pt-2">
           {status === "in-stock" ? <span /> : <StockBadge product={product} />}
