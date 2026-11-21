@@ -5,18 +5,19 @@ import { useState } from "react";
 import { Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { QuantityInput } from "@/components/ui/quantity-input";
-import type { Product } from "@/features/catalog/types";
+import type { StockedProduct } from "@/features/catalog/types";
 import { getMaxQuantity } from "@/features/cart/cart-reducer";
 import { getQuantityInCart, useCart } from "@/features/cart/use-cart";
 import { AddToCartButton } from "./add-to-cart-button";
 
 /** Khối chọn số lượng + "Thêm vào giỏ" + "Mua ngay" ở trang chi tiết sản phẩm. */
-export function ProductPurchasePanel({ product }: { product: Product }) {
+export function ProductPurchasePanel({ product }: { product: StockedProduct }) {
   const router = useRouter();
   const { items, addItem } = useCart();
   const [quantity, setQuantity] = useState(1);
 
-  const remaining = getMaxQuantity(product.stock) - getQuantityInCart(items, product.id);
+  const remaining =
+    getMaxQuantity(product.stock) - getQuantityInCart(items, product.id);
   // Không cho chọn vượt quá số lượng còn có thể thêm vào giỏ.
   const selectedQuantity = Math.min(quantity, Math.max(1, remaining));
 

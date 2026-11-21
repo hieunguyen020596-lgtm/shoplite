@@ -10,6 +10,7 @@ import {
   type CategorySlug,
   type Product,
   type SortOption,
+  type StockedProduct,
   type StockStatus,
 } from "./types";
 
@@ -24,7 +25,10 @@ export const SORT_LABELS: Record<SortOption, string> = {
   newest: "Mới nhất",
 };
 
-export const DEFAULT_CATALOG_QUERY: CatalogQuery = { sort: "featured", page: 1 };
+export const DEFAULT_CATALOG_QUERY: CatalogQuery = {
+  sort: "featured",
+  page: 1,
+};
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
@@ -62,21 +66,42 @@ export function getFeaturedProducts(limit = 4): Product[] {
 /** Sản phẩm cùng danh mục (trừ chính nó), ưu tiên đánh giá cao. */
 export function getRelatedProducts(product: Product, limit = 4): Product[] {
   return products
-    .filter((item) => item.categorySlug === product.categorySlug && item.id !== product.id)
+    .filter(
+      (item) =>
+        item.categorySlug === product.categorySlug && item.id !== product.id,
+    )
     .sort((a, b) => b.rating - a.rating)
     .slice(0, limit);
 }
 
-export function getStockStatus(product: Pick<Product, "stock">): StockStatus {
+/** Ghép Tồn kho vào sản phẩm. Sản phẩm thiếu dòng tồn tính là 0. */
+export function attachStock(
+  items: Product[],
+  stock: Record<string, number>,
+): StockedProduct[] {
+  return items.map((product) => ({
+    ...product,
+    stock: stock[product.id] ?? 0,
+  }));
+}
+
+export function getStockStatus(
+  product: Pick<StockedProduct, "stock">,
+): StockStatus {
   if (product.stock <= 0) return "out-of-stock";
   if (product.stock <= LOW_STOCK_THRESHOLD) return "low-stock";
   return "in-stock";
 }
 
 /** Phần trăm giảm giá làm tròn, ví dụ 19 (nghĩa là -19%). Trả về 0 nếu không giảm. */
-export function getDiscountPercent(product: Pick<Product, "price" | "originalPrice">): number {
-  if (!product.originalPrice || product.originalPrice <= product.price) return 0;
-  return Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100);
+export function getDiscountPercent(
+  product: Pick<Product, "price" | "originalPrice">,
+): number {
+  if (!product.originalPrice || product.originalPrice <= product.price)
+    return 0;
+  return Math.round(
+    ((product.originalPrice - product.price) / product.originalPrice) * 100,
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -112,7 +137,9 @@ export function parseCatalogQuery(params: SearchParams): CatalogQuery {
     minPrice: parseNonNegativeInt(firstValue(params.minPrice)),
     maxPrice: parseNonNegativeInt(firstValue(params.maxPrice)),
     inStock: inStock === "1" || inStock === "true" ? true : undefined,
-    sort: SORT_OPTIONS.includes(sort as SortOption) ? (sort as SortOption) : "featured",
+    sort: SORT_OPTIONS.includes(sort as SortOption)
+      ? (sort as SortOption)
+      : "featured",
     page: page && page >= 1 ? page : 1,
   };
 }
@@ -120,9 +147,13 @@ export function parseCatalogQuery(params: SearchParams): CatalogQuery {
 function matchesKeyword(product: Product, keyword: string): boolean {
   const categoryName = getCategoryBySlug(product.categorySlug)?.name ?? "";
   const haystack = normalizeText(
-    [product.name, product.brand, product.shortDescription, categoryName, ...product.tags].join(
-      " ",
-    ),
+    [
+      product.name,
+      product.brand,
+      product.shortDescription,
+      categoryName,
+      ...product.tags,
+    ].join(" "),
   );
   return normalizeText(keyword)
     .split(" ")
@@ -130,7 +161,8 @@ function matchesKeyword(product: Product, keyword: string): boolean {
 }
 
 const comparators: Record<SortOption, (a: Product, b: Product) => number> = {
-  featured: (a, b) => Number(b.featured) - Number(a.featured) || b.reviewCount - a.reviewCount,
+  featured: (a, b) =>
+    Number(b.featured) - Number(a.featured) || b.reviewCount - a.reviewCount,
   "price-asc": (a, b) => a.price - b.price,
   "price-desc": (a, b) => b.price - a.price,
   rating: (a, b) => b.rating - a.rating || b.reviewCount - a.reviewCount,
@@ -139,14 +171,16 @@ const comparators: Record<SortOption, (a: Product, b: Product) => number> = {
 
 export function queryProducts(
   query: CatalogQuery,
-  source: Product[] = products,
+  source: StockedProduct[],
   pageSize = PAGE_SIZE,
 ): CatalogResult {
   const filtered = source.filter((product) => {
     if (query.q && !matchesKeyword(product, query.q)) return false;
     if (query.category && product.categorySlug !== query.category) return false;
-    if (query.minPrice !== undefined && product.price < query.minPrice) return false;
-    if (query.maxPrice !== undefined && product.price > query.maxPrice) return false;
+    if (query.minPrice !== undefined && product.price < query.minPrice)
+      return false;
+    if (query.maxPrice !== undefined && product.price > query.maxPrice)
+      return false;
     if (query.inStock && product.stock <= 0) return false;
     return true;
   });
@@ -178,8 +212,10 @@ export function buildCatalogHref(
 
   if (next.q) params.set("q", next.q);
   if (next.category) params.set("category", next.category);
-  if (next.minPrice !== undefined) params.set("minPrice", String(next.minPrice));
-  if (next.maxPrice !== undefined) params.set("maxPrice", String(next.maxPrice));
+  if (next.minPrice !== undefined)
+    params.set("minPrice", String(next.minPrice));
+  if (next.maxPrice !== undefined)
+    params.set("maxPrice", String(next.maxPrice));
   if (next.inStock) params.set("inStock", "1");
   if (next.sort !== "featured") params.set("sort", next.sort);
   if (next.page > 1) params.set("page", String(next.page));

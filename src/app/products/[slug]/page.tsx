@@ -11,16 +11,16 @@ import { StockBadge } from "@/features/catalog/components/stock-badge";
 import {
   buildCatalogHref,
   DEFAULT_CATALOG_QUERY,
-  getAllProducts,
   getCategoryBySlug,
   getDiscountPercent,
   getProductBySlug,
-  getRelatedProducts,
 } from "@/features/catalog/catalog-service";
+import {
+  getStockedProductBySlug,
+  getStockedRelatedProducts,
+} from "@/features/catalog/server";
 
-export function generateStaticParams() {
-  return getAllProducts().map((product) => ({ slug: product.slug }));
-}
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({
   params,
@@ -31,17 +31,22 @@ export async function generateMetadata({
     : { title: "Không tìm thấy sản phẩm" };
 }
 
-export default async function ProductDetailPage({ params }: PageProps<"/products/[slug]">) {
-  const product = getProductBySlug((await params).slug);
+export default async function ProductDetailPage({
+  params,
+}: PageProps<"/products/[slug]">) {
+  const product = await getStockedProductBySlug((await params).slug);
   if (!product) notFound();
 
   const category = getCategoryBySlug(product.categorySlug);
   const discount = getDiscountPercent(product);
-  const related = getRelatedProducts(product);
+  const related = await getStockedRelatedProducts(product);
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-10 px-4 py-8">
-      <nav aria-label="Breadcrumb" className="flex items-center gap-1 text-sm text-slate-500">
+      <nav
+        aria-label="Breadcrumb"
+        className="flex items-center gap-1 text-sm text-slate-500"
+      >
         <Link href="/" className="hover:text-indigo-600">
           Trang chủ
         </Link>
@@ -53,7 +58,10 @@ export default async function ProductDetailPage({ params }: PageProps<"/products
           <>
             <ChevronRight className="size-4" />
             <Link
-              href={buildCatalogHref({ ...DEFAULT_CATALOG_QUERY, category: category.slug })}
+              href={buildCatalogHref({
+                ...DEFAULT_CATALOG_QUERY,
+                category: category.slug,
+              })}
               className="hover:text-indigo-600"
             >
               {category.name}
@@ -83,23 +91,33 @@ export default async function ProductDetailPage({ params }: PageProps<"/products
           </p>
           <h1 className="text-3xl font-bold tracking-tight">{product.name}</h1>
           <div className="flex flex-wrap items-center gap-3">
-            <RatingStars rating={product.rating} reviewCount={product.reviewCount} />
+            <RatingStars
+              rating={product.rating}
+              reviewCount={product.reviewCount}
+            />
             <StockBadge product={product} />
           </div>
-          <PriceTag price={product.price} originalPrice={product.originalPrice} size="lg" />
+          <PriceTag
+            price={product.price}
+            originalPrice={product.originalPrice}
+            size="lg"
+          />
           <p className="text-slate-600">{product.shortDescription}</p>
 
           <ProductPurchasePanel product={product} />
 
           <ul className="mt-2 flex flex-col gap-2 rounded-2xl bg-white p-4 text-sm text-slate-600 ring-1 ring-slate-200">
             <li className="flex items-center gap-2">
-              <Truck className="size-4 text-indigo-600" /> Giao hàng toàn quốc, nhận hàng 1–5 ngày
+              <Truck className="size-4 text-indigo-600" /> Giao hàng toàn quốc,
+              nhận hàng 1–5 ngày
             </li>
             <li className="flex items-center gap-2">
-              <ShieldCheck className="size-4 text-indigo-600" /> Bảo hành chính hãng 12 tháng
+              <ShieldCheck className="size-4 text-indigo-600" /> Bảo hành chính
+              hãng 12 tháng
             </li>
             <li className="flex items-center gap-2">
-              <RotateCcw className="size-4 text-indigo-600" /> Đổi trả miễn phí trong 7 ngày
+              <RotateCcw className="size-4 text-indigo-600" /> Đổi trả miễn phí
+              trong 7 ngày
             </li>
           </ul>
         </div>
@@ -108,7 +126,9 @@ export default async function ProductDetailPage({ params }: PageProps<"/products
       <section className="grid gap-6 md:grid-cols-[1fr_360px]">
         <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
           <h2 className="mb-3 text-lg font-semibold">Mô tả sản phẩm</h2>
-          <p className="leading-relaxed text-slate-700">{product.description}</p>
+          <p className="leading-relaxed text-slate-700">
+            {product.description}
+          </p>
           <div className="mt-4 flex flex-wrap gap-2">
             {product.tags.map((tag) => (
               <span

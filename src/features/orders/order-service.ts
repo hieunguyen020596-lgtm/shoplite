@@ -1,6 +1,9 @@
 import { getProductById } from "@/features/catalog/catalog-service";
 import type { Product } from "@/features/catalog/types";
-import { placeOrderSchema, toFieldErrors } from "@/features/checkout/checkout-schema";
+import {
+  placeOrderSchema,
+  toFieldErrors,
+} from "@/features/checkout/checkout-schema";
 import { calculateOrderTotals } from "@/features/checkout/pricing";
 import { OrderError } from "./order-errors";
 import type { OrderRepository } from "./order-repository";
@@ -8,6 +11,8 @@ import type { Order, OrderItem } from "./types";
 
 export interface OrderServiceDeps {
   repository: OrderRepository;
+  /** Đọc Tồn kho (tạm đến Story 1.7, khi `reserveStock` thay thế). Id thiếu dòng trả 0. */
+  readStock: (ids: readonly string[]) => Promise<Record<string, number>>;
   findProduct?: (id: string) => Product | undefined;
   now?: () => Date;
   generateId?: (date: Date) => string;
@@ -16,7 +21,11 @@ export interface OrderServiceDeps {
 /** Mã đơn hàng dạng SL-20261021-4F9A2C */
 export function generateOrderId(date: Date): string {
   const ymd = date.toISOString().slice(0, 10).replace(/-/g, "");
-  const random = crypto.randomUUID().replace(/-/g, "").slice(0, 6).toUpperCase();
+  const random = crypto
+    .randomUUID()
+    .replace(/-/g, "")
+    .slice(0, 6)
+    .toUpperCase();
   return `SL-${ymd}-${random}`;
 }
 
@@ -24,13 +33,20 @@ export function generateOrderId(date: Date): string {
 function mergeItems(items: { productId: string; quantity: number }[]) {
   const merged = new Map<string, number>();
   for (const item of items) {
-    merged.set(item.productId, (merged.get(item.productId) ?? 0) + item.quantity);
+    merged.set(
+      item.productId,
+      (merged.get(item.productId) ?? 0) + item.quantity,
+    );
   }
-  return [...merged.entries()].map(([productId, quantity]) => ({ productId, quantity }));
+  return [...merged.entries()].map(([productId, quantity]) => ({
+    productId,
+    quantity,
+  }));
 }
 
 export function createOrderService({
   repository,
+  readStock,
   findProduct = getProductById,
   now = () => new Date(),
   generateId = generateOrderId,
@@ -38,7 +54,10 @@ export function createOrderService({
   async function getOrder(id: string): Promise<Order> {
     const order = await repository.findById(id);
     if (!order) {
-      throw new OrderError("ORDER_NOT_FOUND", `Không tìm thấy đơn hàng "${id}"`);
+      throw new OrderError(
+        "ORDER_NOT_FOUND",
+        `Không tìm thấy đơn hàng "${id}"`,
+      );
     }
     return order;
   }
@@ -62,17 +81,24 @@ export function createOrderService({
 
       const { customer, items, shippingMethod, paymentMethod } = parsed.data;
 
-      const orderItems: OrderItem[] = mergeItems(items).map(({ productId, quantity }) => {
+      const merged = mergeItems(items);
+      const stockById = await readStock(merged.map((item) => item.productId));
+
+      const orderItems: OrderItem[] = merged.map(({ productId, quantity }) => {
         const product = findProduct(productId);
         if (!product) {
-          throw new OrderError("PRODUCT_NOT_FOUND", `Không tìm thấy sản phẩm "${productId}"`);
+          throw new OrderError(
+            "PRODUCT_NOT_FOUND",
+            `Không tìm thấy sản phẩm "${productId}"`,
+          );
         }
-        if (quantity > product.stock) {
+        const available = stockById[productId] ?? 0;
+        if (quantity > available) {
           throw new OrderError(
             "INSUFFICIENT_STOCK",
-            product.stock === 0
+            available === 0
               ? `Sản phẩm "${product.name}" đã hết hàng`
-              : `Sản phẩm "${product.name}" chỉ còn ${product.stock} sản phẩm`,
+              : `Sản phẩm "${product.name}" chỉ còn ${available} sản phẩm`,
           );
         }
         return {
@@ -126,7 +152,11 @@ export function createOrderService({
           "Chỉ có thể hủy đơn hàng đang ở trạng thái Chờ xác nhận",
         );
       }
-      const cancelled: Order = { ...order, status: "cancelled", updatedAt: now().toISOString() };
+      const cancelled: Order = {
+        ...order,
+        status: "cancelled",
+        updatedAt: now().toISOString(),
+      };
       await repository.save(cancelled);
       return cancelled;
     },

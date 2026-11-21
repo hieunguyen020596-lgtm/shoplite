@@ -4,14 +4,30 @@ import Link from "next/link";
 import { buttonStyles } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useCart } from "@/features/cart/use-cart";
+import { useStock } from "@/features/cart/use-stock";
 import { CartItemRow } from "./cart-item-row";
 import { CartSummary } from "./cart-summary";
 
 export function CartView() {
-  const { items, itemCount, subtotal, hydrated, updateQuantity, removeItem, clear } = useCart();
+  const {
+    items,
+    itemCount,
+    subtotal,
+    hydrated,
+    updateQuantity,
+    removeItem,
+    clear,
+  } = useCart();
+
+  const stock = useStock(hydrated ? items.map((item) => item.productId) : []);
 
   if (!hydrated) {
-    return <div className="h-64 animate-pulse rounded-2xl bg-slate-200/60" aria-busy />;
+    return (
+      <div
+        className="h-64 animate-pulse rounded-2xl bg-slate-200/60"
+        aria-busy
+      />
+    );
   }
 
   if (items.length === 0) {
@@ -47,7 +63,14 @@ export function CartView() {
             <CartItemRow
               key={item.productId}
               item={item}
-              onQuantityChange={(quantity) => updateQuantity(item.productId, quantity)}
+              stock={stock?.[item.productId]}
+              onQuantityChange={(quantity) =>
+                updateQuantity(
+                  item.productId,
+                  quantity,
+                  stock?.[item.productId],
+                )
+              }
               onRemove={() => removeItem(item.productId)}
             />
           ))}

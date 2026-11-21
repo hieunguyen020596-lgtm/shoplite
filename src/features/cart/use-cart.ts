@@ -1,5 +1,5 @@
 import { useMemo, useSyncExternalStore } from "react";
-import type { Product } from "@/features/catalog/types";
+import type { StockedProduct } from "@/features/catalog/types";
 import { useHydrated } from "@/lib/use-hydrated";
 import { getCartItemCount, getCartSubtotal, toCartItem } from "./cart-reducer";
 import { cartStore } from "./cart-store";
@@ -19,11 +19,22 @@ export function useCart() {
       subtotal: getCartSubtotal(cart),
       /** false trong lần render đầu (chưa đọc localStorage) - dùng để hiển thị skeleton. */
       hydrated,
-      addItem: (product: Product, quantity = 1) =>
-        cartStore.dispatch({ type: "add", item: toCartItem(product), quantity }),
-      updateQuantity: (productId: string, quantity: number) =>
-        cartStore.dispatch({ type: "update-quantity", productId, quantity }),
-      removeItem: (productId: string) => cartStore.dispatch({ type: "remove", productId }),
+      addItem: (product: StockedProduct, quantity = 1) =>
+        cartStore.dispatch({
+          type: "add",
+          item: toCartItem(product),
+          quantity,
+          stock: product.stock,
+        }),
+      updateQuantity: (productId: string, quantity: number, stock?: number) =>
+        cartStore.dispatch({
+          type: "update-quantity",
+          productId,
+          quantity,
+          stock,
+        }),
+      removeItem: (productId: string) =>
+        cartStore.dispatch({ type: "remove", productId }),
       clear: () => cartStore.dispatch({ type: "clear" }),
     }),
     [cart, hydrated],

@@ -1,4 +1,5 @@
 import "server-only";
+import { readStock } from "@/features/inventory/server";
 import { getOrdersFile } from "@/lib/env";
 import {
   createJsonFileOrderRepository,
@@ -14,4 +15,5 @@ import { createOrderService } from "./order-service";
  */
 export const orderService = createOrderService({
   repository: createJsonFileOrderRepository(getOrdersFile(DEFAULT_ORDERS_FILE)),
+  readStock,
 });

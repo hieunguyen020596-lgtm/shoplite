@@ -5,20 +5,27 @@ import { getProductById } from "@/features/catalog/catalog-service";
 import { cartStore } from "@/features/cart/cart-store";
 import { ProductCard } from "./product-card";
 
+const stocked = (id: string, stock: number) => ({
+  ...getProductById(id)!,
+  stock,
+});
+
 describe("<ProductCard />", () => {
   beforeEach(() => cartStore.reset());
 
   it("hiển thị tên, giá, giá gốc và % giảm giá", () => {
-    render(<ProductCard product={getProductById("p001")!} />);
+    render(<ProductCard product={stocked("p001", 25)} />);
 
-    expect(screen.getByRole("heading", { name: "Tai nghe không dây SoundMax Pro" })).toBeVisible();
+    expect(
+      screen.getByRole("heading", { name: "Tai nghe không dây SoundMax Pro" }),
+    ).toBeVisible();
     expect(screen.getByTestId("price")).toHaveTextContent(/1\.290\.000/);
     expect(screen.getByText(/1\.590\.000/)).toHaveClass("line-through");
     expect(screen.getByText("-19%")).toBeVisible();
   });
 
   it("vô hiệu hóa nút mua khi sản phẩm hết hàng", () => {
-    render(<ProductCard product={getProductById("p004")!} />);
+    render(<ProductCard product={stocked("p004", 0)} />);
 
     expect(screen.getByRole("button", { name: "Hết hàng" })).toBeDisabled();
     expect(screen.getAllByText("Hết hàng")).toHaveLength(2); // badge + nút
@@ -26,7 +33,7 @@ describe("<ProductCard />", () => {
 
   it("thêm sản phẩm vào giỏ khi bấm nút", async () => {
     const user = userEvent.setup();
-    render(<ProductCard product={getProductById("p006")!} />);
+    render(<ProductCard product={stocked("p006", 60)} />);
 
     await user.click(screen.getByRole("button", { name: /Thêm vào giỏ/ }));
 

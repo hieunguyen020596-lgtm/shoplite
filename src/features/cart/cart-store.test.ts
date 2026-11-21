@@ -37,4 +37,44 @@ describe("cartStore", () => {
     expect(listener).toHaveBeenCalledTimes(1);
     unsubscribe();
   });
+
+  it("làm sạch giỏ cũ: bỏ stock, loại dòng thiếu field, kẹp số lượng 1..10", () => {
+    const line = { ...toCartItem(product), quantity: 3 };
+    window.localStorage.setItem(
+      CART_STORAGE_KEY,
+      JSON.stringify({
+        items: [
+          { ...line, stock: 25 },
+          { ...line, productId: "p002", quantity: 99 },
+          { ...line, productId: "p003", quantity: 0 },
+          { productId: "p004", quantity: 1 },
+        ],
+      }),
+    );
+    const items = cartStore.getSnapshot().items;
+    expect(items.map((i) => [i.productId, i.quantity])).toEqual([
+      ["p001", 3],
+      ["p002", 10],
+      ["p003", 1],
+    ]);
+    expect(items.every((i) => !("stock" in i))).toBe(true);
+  });
+
+  it("loại price không hợp lệ, image thiếu field, giữ dòng đầu khi trùng productId", () => {
+    const line = { ...toCartItem(product), quantity: 1 };
+    window.localStorage.setItem(
+      CART_STORAGE_KEY,
+      JSON.stringify({
+        items: [
+          { ...line, productId: "a", price: -1 },
+          { ...line, productId: "b", price: null },
+          { ...line, productId: "c", image: { emoji: "x" } },
+          { ...line, productId: "d" },
+          { ...line, productId: "d", quantity: 5 },
+        ],
+      }),
+    );
+    const items = cartStore.getSnapshot().items;
+    expect(items.map((i) => [i.productId, i.quantity])).toEqual([["d", 1]]);
+  });
 });

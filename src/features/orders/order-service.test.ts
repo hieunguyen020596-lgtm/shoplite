@@ -1,8 +1,25 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { SHIPPING_OPTIONS } from "@/features/checkout/pricing";
 import { OrderError } from "./order-errors";
-import { createInMemoryOrderRepository, type OrderRepository } from "./order-repository";
-import { createOrderService, generateOrderId, type OrderService } from "./order-service";
+import {
+  createInMemoryOrderRepository,
+  type OrderRepository,
+} from "./order-repository";
+import {
+  createOrderService,
+  generateOrderId,
+  type OrderService,
+} from "./order-service";
+
+/** Tồn kho giả của test: p004 hết, p011 còn 3, còn lại 100; id lạ thiếu dòng nên là 0. */
+const TEST_STOCK: Record<string, number> = { p004: 0, p011: 3 };
+const readStock = async (ids: readonly string[]) =>
+  Object.fromEntries(
+    ids.map((id) => [
+      id,
+      id in TEST_STOCK ? TEST_STOCK[id] : id === "p999" ? 0 : 100,
+    ]),
+  );
 
 const FIXED_DATE = new Date("2026-10-21T03:00:00.000Z");
 
@@ -19,7 +36,10 @@ const validInput = (overrides: Record<string, unknown> = {}) => ({
   ...overrides,
 });
 
-async function expectOrderError(promise: Promise<unknown>, code: OrderError["code"]) {
+async function expectOrderError(
+  promise: Promise<unknown>,
+  code: OrderError["code"],
+) {
   const error = await promise.catch((e: unknown) => e);
   expect(error).toBeInstanceOf(OrderError);
   expect((error as OrderError).code).toBe(code);
@@ -35,6 +55,7 @@ describe("orderService", () => {
     let counter = 0;
     service = createOrderService({
       repository,
+      readStock,
       now: () => FIXED_DATE,
       generateId: () => `SL-TEST-${++counter}`,
     });
@@ -90,7 +111,9 @@ describe("orderService", () => {
 
     it("trả lỗi VALIDATION_ERROR kèm chi tiết từng field", async () => {
       const error = await expectOrderError(
-        service.placeOrder(validInput({ customer: { fullName: "", phone: "123", address: "" } })),
+        service.placeOrder(
+          validInput({ customer: { fullName: "", phone: "123", address: "" } }),
+        ),
         "VALIDATION_ERROR",
       );
       expect(error.details).toHaveProperty(["customer.phone"]);
@@ -98,12 +121,17 @@ describe("orderService", () => {
     });
 
     it("từ chối giỏ hàng trống", async () => {
-      await expectOrderError(service.placeOrder(validInput({ items: [] })), "VALIDATION_ERROR");
+      await expectOrderError(
+        service.placeOrder(validInput({ items: [] })),
+        "VALIDATION_ERROR",
+      );
     });
 
     it("trả lỗi PRODUCT_NOT_FOUND khi sản phẩm không tồn tại", async () => {
       await expectOrderError(
-        service.placeOrder(validInput({ items: [{ productId: "p999", quantity: 1 }] })),
+        service.placeOrder(
+          validInput({ items: [{ productId: "p999", quantity: 1 }] }),
+        ),
         "PRODUCT_NOT_FOUND",
       );
     });
@@ -111,11 +139,15 @@ describe("orderService", () => {
     it("trả lỗi INSUFFICIENT_STOCK khi vượt tồn kho hoặc hết hàng", async () => {
       // Giá đỡ laptop (p011) chỉ còn 3 sản phẩm, micro (p004) đã hết hàng
       await expectOrderError(
-        service.placeOrder(validInput({ items: [{ productId: "p011", quantity: 4 }] })),
+        service.placeOrder(
+          validInput({ items: [{ productId: "p011", quantity: 4 }] }),
+        ),
         "INSUFFICIENT_STOCK",
       );
       await expectOrderError(
-        service.placeOrder(validInput({ items: [{ productId: "p004", quantity: 1 }] })),
+        service.placeOrder(
+          validInput({ items: [{ productId: "p004", quantity: 1 }] }),
+        ),
         "INSUFFICIENT_STOCK",
       );
     });
@@ -126,6 +158,7 @@ describe("orderService", () => {
       let time = FIXED_DATE.getTime();
       const timedService = createOrderService({
         repository,
+        readStock,
         now: () => new Date((time += 60_000)),
       });
       const first = await timedService.placeOrder(validInput());
@@ -136,7 +169,10 @@ describe("orderService", () => {
     });
 
     it("trả lỗi ORDER_NOT_FOUND với mã đơn không tồn tại", async () => {
-      await expectOrderError(service.getOrder("SL-KHONG-CO"), "ORDER_NOT_FOUND");
+      await expectOrderError(
+        service.getOrder("SL-KHONG-CO"),
+        "ORDER_NOT_FOUND",
+      );
     });
   });
 
@@ -151,7 +187,10 @@ describe("orderService", () => {
     it("không cho hủy đơn đã hủy hoặc đã xác nhận", async () => {
       const order = await service.placeOrder(validInput());
       await repository.save({ ...order, status: "confirmed" });
-      await expectOrderError(service.cancelOrder(order.id), "INVALID_STATUS_TRANSITION");
+      await expectOrderError(
+        service.cancelOrder(order.id),
+        "INVALID_STATUS_TRANSITION",
+      );
     });
   });
 });

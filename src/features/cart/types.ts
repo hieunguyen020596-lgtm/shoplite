@@ -7,7 +7,6 @@ export interface CartItem {
   name: string;
   price: number;
   image: ProductImage;
-  stock: number;
   quantity: number;
 }
 
@@ -16,7 +15,17 @@ export interface CartState {
 }
 
 export type CartAction =
-  | { type: "add"; item: Omit<CartItem, "quantity">; quantity: number }
-  | { type: "update-quantity"; productId: string; quantity: number }
+  | {
+      type: "add";
+      item: Omit<CartItem, "quantity">;
+      quantity: number;
+      stock?: number;
+    }
+  | {
+      type: "update-quantity";
+      productId: string;
+      quantity: number;
+      stock?: number;
+    }
   | { type: "remove"; productId: string }
   | { type: "clear" };

@@ -1,5 +1,5 @@
-import { cartReducer, EMPTY_CART } from "./cart-reducer";
-import type { CartAction, CartState } from "./types";
+import { cartReducer, EMPTY_CART, MAX_QUANTITY_PER_ITEM } from "./cart-reducer";
+import type { CartAction, CartItem, CartState } from "./types";
 
 export const CART_STORAGE_KEY = "shoplite:cart";
 
@@ -8,15 +8,56 @@ type Listener = () => void;
 let state: CartState | null = null;
 const listeners = new Set<Listener>();
 
-function isCartState(value: unknown): value is CartState {
+function isImage(value: unknown): value is CartItem["image"] {
+  const v = value as Record<string, unknown> | null;
   return (
-    typeof value === "object" &&
-    value !== null &&
-    Array.isArray((value as CartState).items) &&
-    (value as CartState).items.every(
-      (item) => typeof item?.productId === "string" && typeof item?.quantity === "number",
-    )
+    typeof v === "object" &&
+    v !== null &&
+    typeof v.emoji === "string" &&
+    typeof v.from === "string" &&
+    typeof v.to === "string"
   );
+}
+
+/** Làm sạch giỏ cũ: bỏ `stock`, loại dòng thiếu field, kẹp số lượng vào 1..10. */
+export function sanitizeCart(value: unknown): CartState {
+  const rawItems = (value as { items?: unknown } | null)?.items;
+  if (!Array.isArray(rawItems)) return EMPTY_CART;
+
+  const items: CartItem[] = [];
+  const seen = new Set<string>();
+  for (const raw of rawItems) {
+    const r = raw as Record<string, unknown> | null;
+    if (
+      typeof r !== "object" ||
+      r === null ||
+      typeof r.productId !== "string" ||
+      typeof r.slug !== "string" ||
+      typeof r.name !== "string" ||
+      typeof r.price !== "number" ||
+      !Number.isFinite(r.price) ||
+      r.price < 0 ||
+      !isImage(r.image) ||
+      typeof r.quantity !== "number" ||
+      !Number.isFinite(r.quantity)
+    ) {
+      continue;
+    }
+    if (seen.has(r.productId)) continue;
+    seen.add(r.productId);
+    items.push({
+      productId: r.productId,
+      slug: r.slug,
+      name: r.name,
+      price: r.price,
+      image: r.image,
+      quantity: Math.min(
+        Math.max(1, Math.floor(r.quantity)),
+        MAX_QUANTITY_PER_ITEM,
+      ),
+    });
+  }
+  return { items };
 }
 
 function readFromStorage(): CartState {
@@ -25,7 +66,7 @@ function readFromStorage(): CartState {
     const raw = window.localStorage.getItem(CART_STORAGE_KEY);
     if (!raw) return EMPTY_CART;
     const parsed: unknown = JSON.parse(raw);
-    return isCartState(parsed) ? parsed : EMPTY_CART;
+    return sanitizeCart(parsed);
   } catch {
     return EMPTY_CART;
   }

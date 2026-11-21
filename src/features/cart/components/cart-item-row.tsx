@@ -4,17 +4,27 @@ import Link from "next/link";
 import { Trash2 } from "lucide-react";
 import { QuantityInput } from "@/components/ui/quantity-input";
 import { ProductImage } from "@/features/catalog/components/product-image";
-import { getMaxQuantity } from "@/features/cart/cart-reducer";
+import {
+  getMaxQuantity,
+  MAX_QUANTITY_PER_ITEM,
+} from "@/features/cart/cart-reducer";
 import type { CartItem } from "@/features/cart/types";
 import { formatCurrency } from "@/lib/format";
 
 interface CartItemRowProps {
   item: CartItem;
+  /** Tồn kho đọc từ /api/inventory; undefined khi chưa biết hoặc tải lỗi (giới hạn 10). */
+  stock?: number;
   onQuantityChange: (quantity: number) => void;
   onRemove: () => void;
 }
 
-export function CartItemRow({ item, onQuantityChange, onRemove }: CartItemRowProps) {
+export function CartItemRow({
+  item,
+  stock,
+  onQuantityChange,
+  onRemove,
+}: CartItemRowProps) {
   return (
     <li className="flex gap-4 py-4" data-testid="cart-item">
       <Link href={`/products/${item.slug}`} className="w-20 shrink-0 sm:w-24">
@@ -33,7 +43,12 @@ export function CartItemRow({ item, onQuantityChange, onRemove }: CartItemRowPro
         <div className="flex items-center gap-4">
           <QuantityInput
             value={item.quantity}
-            max={getMaxQuantity(item.stock)}
+            max={Math.max(
+              item.quantity,
+              stock === undefined
+                ? MAX_QUANTITY_PER_ITEM
+                : getMaxQuantity(stock),
+            )}
             onChange={onQuantityChange}
             label={`Số lượng ${item.name}`}
           />

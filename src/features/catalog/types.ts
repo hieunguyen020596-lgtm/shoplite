@@ -39,7 +39,6 @@ export interface Product {
   originalPrice?: number;
   rating: number;
   reviewCount: number;
-  stock: number;
   image: ProductImage;
   shortDescription: string;
   description: string;
@@ -50,7 +49,16 @@ export interface Product {
   createdAt: string;
 }
 
-export const SORT_OPTIONS = ["featured", "price-asc", "price-desc", "rating", "newest"] as const;
+/** Sản phẩm kèm Tồn kho đọc từ PostgreSQL. Chỉ server ghép (features/catalog/server.ts). */
+export type StockedProduct = Product & { stock: number };
+
+export const SORT_OPTIONS = [
+  "featured",
+  "price-asc",
+  "price-desc",
+  "rating",
+  "newest",
+] as const;
 
 export type SortOption = (typeof SORT_OPTIONS)[number];
 
@@ -65,7 +73,7 @@ export interface CatalogQuery {
 }
 
 export interface CatalogResult {
-  items: Product[];
+  items: StockedProduct[];
   total: number;
   page: number;
   pageSize: number;

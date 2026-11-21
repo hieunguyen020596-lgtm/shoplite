@@ -2,7 +2,7 @@ import type { Product } from "@/features/catalog/types";
 
 /**
  * Dữ liệu sản phẩm mẫu (read-only). Giá tính bằng VND.
- * Đơn hàng được lưu riêng trong storage/orders.json (xem features/orders).
+ * Tồn kho nằm ở PostgreSQL (features/inventory), không nằm ở đây.
  */
 export const products: Product[] = [
   {
@@ -15,7 +15,6 @@ export const products: Product[] = [
     originalPrice: 1_590_000,
     rating: 4.6,
     reviewCount: 128,
-    stock: 25,
     image: { emoji: "🎧", from: "#e0f2fe", to: "#c7d2fe" },
     shortDescription: "Chống ồn chủ động, pin 30 giờ, kết nối Bluetooth 5.3.",
     description:
@@ -39,7 +38,6 @@ export const products: Product[] = [
     price: 690_000,
     rating: 4.3,
     reviewCount: 86,
-    stock: 40,
     image: { emoji: "🔊", from: "#fef3c7", to: "#fecaca" },
     shortDescription: "Nhỏ gọn bỏ túi, âm thanh 360°, chống nước IPX7.",
     description:
@@ -62,7 +60,6 @@ export const products: Product[] = [
     price: 2_450_000,
     rating: 4.8,
     reviewCount: 54,
-    stock: 8,
     image: { emoji: "🎶", from: "#ede9fe", to: "#fbcfe8" },
     shortDescription: "Âm thanh studio, đệm tai memory foam, có dây và không dây.",
     description:
@@ -86,7 +83,6 @@ export const products: Product[] = [
     price: 1_150_000,
     rating: 4.5,
     reviewCount: 37,
-    stock: 0,
     image: { emoji: "🎙️", from: "#f1f5f9", to: "#cbd5e1" },
     shortDescription: "Micro condenser cắm USB, phù hợp podcast và livestream.",
     description:
@@ -110,7 +106,6 @@ export const products: Product[] = [
     originalPrice: 2_190_000,
     rating: 4.7,
     reviewCount: 211,
-    stock: 15,
     image: { emoji: "⌨️", from: "#dcfce7", to: "#a7f3d0" },
     shortDescription: "Layout 75%, hot-swap, kết nối 3 chế độ, LED RGB.",
     description:
@@ -134,7 +129,6 @@ export const products: Product[] = [
     price: 450_000,
     rating: 4.4,
     reviewCount: 302,
-    stock: 60,
     image: { emoji: "🖱️", from: "#fae8ff", to: "#ddd6fe" },
     shortDescription: "Siêu nhẹ 60g, cảm biến 26.000 DPI, pin sạc 70 giờ.",
     description:
@@ -157,7 +151,6 @@ export const products: Product[] = [
     price: 250_000,
     rating: 4.2,
     reviewCount: 98,
-    stock: 100,
     image: { emoji: "🟪", from: "#e0e7ff", to: "#c4b5fd" },
     shortDescription: "Kích thước 90x40cm, đế cao su chống trượt, viền khâu chắc chắn.",
     description:
@@ -179,7 +172,6 @@ export const products: Product[] = [
     price: 590_000,
     rating: 4.6,
     reviewCount: 176,
-    stock: 35,
     image: { emoji: "⚡", from: "#fef9c3", to: "#fde68a" },
     shortDescription: "3 cổng (2 USB-C, 1 USB-A), sạc được laptop, nhỏ gọn.",
     description:
@@ -203,7 +195,6 @@ export const products: Product[] = [
     originalPrice: 890_000,
     rating: 4.5,
     reviewCount: 240,
-    stock: 22,
     image: { emoji: "🔋", from: "#dcfce7", to: "#bbf7d0" },
     shortDescription: "Dung lượng 20.000mAh, sạc nhanh 22.5W, màn hình hiển thị %.",
     description:
@@ -226,7 +217,6 @@ export const products: Product[] = [
     price: 150_000,
     rating: 4.1,
     reviewCount: 412,
-    stock: 200,
     image: { emoji: "🔗", from: "#f1f5f9", to: "#e2e8f0" },
     shortDescription: "Bện dù siêu bền, hỗ trợ sạc 100W và truyền dữ liệu 480Mbps.",
     description:
@@ -248,7 +238,6 @@ export const products: Product[] = [
     price: 390_000,
     rating: 4.3,
     reviewCount: 67,
-    stock: 3,
     image: { emoji: "💻", from: "#e2e8f0", to: "#bae6fd" },
     shortDescription: "Nhôm nguyên khối, gấp gọn, chỉnh 6 mức độ cao.",
     description:
@@ -271,7 +260,6 @@ export const products: Product[] = [
     originalPrice: 3_490_000,
     rating: 4.6,
     reviewCount: 143,
-    stock: 12,
     image: { emoji: "⌚", from: "#ffe4e6", to: "#fecdd3" },
     shortDescription: "Màn hình AMOLED, GPS, đo nhịp tim và SpO2, pin 10 ngày.",
     description:
@@ -294,7 +282,6 @@ export const products: Product[] = [
     price: 890_000,
     rating: 4.2,
     reviewCount: 189,
-    stock: 0,
     image: { emoji: "🏃", from: "#ccfbf1", to: "#99f6e4" },
     shortDescription: "Theo dõi giấc ngủ, bước chân, nhịp tim; pin 14 ngày.",
     description:
@@ -316,7 +303,6 @@ export const products: Product[] = [
     price: 7_990_000,
     rating: 4.4,
     reviewCount: 21,
-    stock: 5,
     image: { emoji: "🥽", from: "#e0f2fe", to: "#a5f3fc" },
     shortDescription: "Kính VR độc lập, màn hình 4K, theo dõi chuyển động 6DoF.",
     description:
@@ -340,7 +326,6 @@ export const products: Product[] = [
     originalPrice: 1_190_000,
     rating: 4.5,
     reviewCount: 91,
-    stock: 18,
     image: { emoji: "📷", from: "#f5f5f4", to: "#d6d3d1" },
     shortDescription: "Độ phân giải 2K, xoay 360°, đàm thoại hai chiều, nhìn đêm.",
     description:
@@ -363,7 +348,6 @@ export const products: Product[] = [
     price: 4_590_000,
     rating: 4.7,
     reviewCount: 64,
-    stock: 7,
     image: { emoji: "🤖", from: "#ecfccb", to: "#d9f99d" },
     shortDescription: "Lực hút 4.000Pa, lau nhà, dẫn đường LiDAR, tự về sạc.",
     description:
