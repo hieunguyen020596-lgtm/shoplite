@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ShopLite Ops — Brainstorm Control Room</title>
+  <title>ShopLite Ops — Brainstorm Control Room (54 Ý Tưởng)</title>
   <style>
     :root {
       --bg: #0b1120;
@@ -17,6 +17,7 @@
       --amber: #fbbf24;
       --rose: #fb7185;
       --violet: #a78bfa;
+      --teal: #2dd4bf;
     }
     * { box-sizing: border-box; }
     body {
@@ -26,7 +27,7 @@
       color: var(--text);
       line-height: 1.6;
     }
-    .container { max-width: 1120px; margin: 0 auto; padding: 32px 20px 64px; }
+    .container { max-width: 1140px; margin: 0 auto; padding: 32px 20px 64px; }
     header {
       border: 1px solid var(--border);
       background: linear-gradient(135deg, rgba(56,189,248,0.12), rgba(167,139,250,0.08));
@@ -48,7 +49,7 @@
       border-radius: 999px;
     }
     h1 { margin: 14px 0 8px; font-size: 32px; letter-spacing: -0.02em; }
-    .subtitle { color: var(--muted); max-width: 780px; margin: 0; }
+    .subtitle { color: var(--muted); max-width: 820px; margin: 0; }
     .stats {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
@@ -102,9 +103,10 @@
       background: var(--surface);
       color: var(--muted);
       border: 1px solid var(--border);
-      padding: 9px 16px;
+      padding: 9px 14px;
       border-radius: 12px;
       font-weight: 600;
+      font-size: 13px;
       cursor: pointer;
       transition: all 0.15s ease;
     }
@@ -136,6 +138,8 @@
     .b-role { background: rgba(167,139,250,0.18); color: var(--violet); }
     .b-hmw { background: rgba(56,189,248,0.18); color: var(--accent); }
     .b-rev { background: rgba(251,113,133,0.18); color: var(--rose); }
+    .b-scamper { background: rgba(45,212,191,0.18); color: var(--teal); }
+    .b-assump { background: rgba(251,191,36,0.18); color: var(--amber); }
     .moscow {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -187,12 +191,12 @@
       <span class="eyebrow">BMAD Brainstorming · 2026-11-21 · ShopLite Ops</span>
       <h1>Phòng Điều Hành Đơn Hàng ShopLite Ops</h1>
       <p class="subtitle">
-        Biến ý tưởng thô "nhân viên xử lý đơn hàng &amp; khách theo dõi tiến trình" thành phạm vi MVP sắc nét,
-        bám sát hiện trạng brownfield của codebase Next.js 16 hiện có.
+        Biến ý tưởng thô "nhân viên xử lý đơn hàng &amp; khách theo dõi tiến trình" thành phạm vi MVP sắc nét
+        với 54 ý tưởng phân kỳ qua 5 kỹ thuật sáng tạo, bám sát codebase Next.js 16 hiện có.
       </p>
       <div class="stats">
-        <div class="stat"><strong>34</strong><span>Ý tưởng phân kỳ đã ghi .memlog.md</span></div>
-        <div class="stat"><strong>3</strong><span>Kỹ thuật: Role Playing · HMW · Reverse</span></div>
+        <div class="stat"><strong>54</strong><span>Ý tưởng phân kỳ đã ghi .memlog.md</span></div>
+        <div class="stat"><strong>5</strong><span>Kỹ thuật BMAD đa góc nhìn</span></div>
         <div class="stat"><strong>5 / 5</strong><span>Mục MUST cho MVP không dịch vụ ngoài</span></div>
         <div class="stat"><strong>4</strong><span>Câu hỏi mở cần chốt ở 4.3 &amp; 4.4</span></div>
       </div>
@@ -232,12 +236,14 @@
     </section>
 
     <section class="section">
-      <h2>💡 Kho Ý Tưởng Theo 3 Kỹ Thuật</h2>
+      <h2>💡 Kho 54 Ý Tưởng Theo 5 Kỹ Thuật BMAD</h2>
       <div class="tabs">
-        <button class="tab-btn active" onclick="filterIdeas('all', this)">Tất cả (34)</button>
+        <button class="tab-btn active" onclick="filterIdeas('all', this)">Tất cả (54)</button>
         <button class="tab-btn" onclick="filterIdeas('role', this)">🎭 Role Playing (12)</button>
         <button class="tab-btn" onclick="filterIdeas('hmw', this)">❓ How Might We (11)</button>
-        <button class="tab-btn" onclick="filterIdeas('rev', this)">💥 Reverse Brainstorming (11)</button>
+        <button class="tab-btn" onclick="filterIdeas('rev', this)">💥 Reverse (11)</button>
+        <button class="tab-btn" onclick="filterIdeas('scamper', this)">🔧 SCAMPER (10)</button>
+        <button class="tab-btn" onclick="filterIdeas('assump', this)">🔄 Assumption Reversal (10)</button>
       </div>
       <div class="idea-grid" id="ideaGrid"></div>
     </section>
@@ -249,9 +255,9 @@
           <h3>MUST (5 mục cốt lõi)</h3>
           <ul>
             <li>Máy trạng thái thuần + <code>statusHistory</code> tương thích ngược đơn cũ.</li>
-            <li>Trang <code>/admin/orders</code>: lọc, tìm kiếm, chuyển 1 bước, bắt buộc lý do hủy.</li>
-            <li>Bảo vệ admin bằng <code>ADMIN_PASSCODE</code> + cookie HttpOnly ký HMAC (proxy + API).</li>
-            <li>Tồn kho thật tại <code>storage/inventory.json</code> + mutex &amp; file tạm UUID.</li>
+            <li>Trang <code>/admin/orders</code>: lọc URL query, tìm kiếm, chuyển 1 bước, chip lý do hủy, responsive 390px.</li>
+            <li>Bảo vệ admin bằng <code>ADMIN_PASSCODE</code> + cookie HttpOnly ký HMAC (8 giờ + đăng xuất, proxy &amp; API).</li>
+            <li>Tồn kho thật tại <code>storage/inventory.json</code> + mutex &amp; file tạm UUID, đồng bộ catalog.</li>
             <li>Timeline 4 bước trên <code>/orders/[id]</code>; giữ quy tắc khách chỉ hủy khi <code>pending</code>.</li>
           </ul>
         </div>
@@ -259,16 +265,18 @@
           <h3>SHOULD</h3>
           <ul>
             <li>Thẻ KPI nhanh đầu trang <code>/admin/orders</code> (đơn từng trạng thái, doanh thu đã giao).</li>
-            <li>Cảnh báo sản phẩm sắp hết hàng (<code>stock &lt;= 5</code>).</li>
+            <li>Cảnh báo đơn chờ quá 2 giờ, ưu tiên đơn giao nhanh &amp; sản phẩm sắp hết hàng (<code>&lt;= 5</code>).</li>
             <li>Chống ghi đè bằng <code>expectedStatus</code> (trả <code>409 Conflict</code>).</li>
+            <li>Ghi chú mã vận đơn khi chuyển <code>shipping</code> &amp; dùng <code>statusHistory</code> làm audit log.</li>
           </ul>
         </div>
         <div class="col could">
           <h3>COULD</h3>
           <ul>
-            <li>Lọc đơn theo phương thức thanh toán (COD / Chuyển khoản).</li>
-            <li>In nhanh phiếu nhặt hàng (packing slip).</li>
-            <li>Điều chỉnh tồn kho thủ công khi nhập thêm hàng.</li>
+            <li>Xác nhận hàng loạt nhiều đơn <code>pending</code> (Bulk Confirm).</li>
+            <li>Nút "Làm mới trạng thái" &amp; "Đặt lại các sản phẩm này" cho đơn đã hủy.</li>
+            <li>Tab "Tồn kho" xem biến động và nhập thêm hàng (<code>+N</code>).</li>
+            <li>Lọc theo phương thức thanh toán &amp; in nhanh phiếu nhặt hàng.</li>
           </ul>
         </div>
         <div class="col wont">
@@ -296,7 +304,7 @@
     </section>
 
     <footer>
-      Sinh từ <code>.memlog.md</code> bởi BMAD Method v6.12.4 (Antigravity) · Đầu vào cho Bài 4.3 (Party Mode) &amp; Bài 4.4 (Brief / PRD).
+      Sinh từ <code>.memlog.md</code> (54 ý tưởng) bởi BMAD Method v6.12.4 (Antigravity) · Đầu vào cho Bài 4.3 (Party Mode) &amp; Bài 4.4 (Brief / PRD).
     </footer>
   </div>
 
@@ -336,6 +344,26 @@
       { cat: "rev", tag: "Reverse", cls: "b-rev", text: "[Phòng thủ #9] Thống nhất nguồn tồn kho giữa catalog và order-service." },
       { cat: "rev", tag: "Reverse", cls: "b-rev", text: "[Phòng thủ #10] Mọi chuyển trạng thái đều ghi bản ghi bất biến vào statusHistory." },
       { cat: "rev", tag: "Reverse", cls: "b-rev", text: "[Phòng thủ #11] Giữ nguyên 100% pass cho e2e/shopping-flow.spec.ts và npm run check." },
+      { cat: "scamper", tag: "SCAMPER", cls: "b-scamper", text: "[Substitute] Thay dropdown trạng thái tự do bằng thanh hành động 1 chạm theo đúng bước kế tiếp." },
+      { cat: "scamper", tag: "SCAMPER", cls: "b-scamper", text: "[Substitute] Thay nhập lý do hủy dài dòng bằng chip chọn nhanh ('Hết hàng', 'Khách hủy qua ĐT', 'Sai địa chỉ') + ghi chú." },
+      { cat: "scamper", tag: "SCAMPER", cls: "b-scamper", text: "[Combine] Gộp bảng /admin/orders với cảnh báo 'Đơn chờ xác nhận quá 2 giờ' để ưu tiên SLA." },
+      { cat: "scamper", tag: "SCAMPER", cls: "b-scamper", text: "[Combine] Gộp ghi chú khách và badge phương thức giao nhanh (express) ngay trên danh sách xử lý." },
+      { cat: "scamper", tag: "SCAMPER", cls: "b-scamper", text: "[Adapt] Mượn UX theo dõi giao đồ ăn cho /orders/[id]: mốc hiện tại, bước tiếp theo và timeline chi tiết." },
+      { cat: "scamper", tag: "SCAMPER", cls: "b-scamper", text: "[Adapt] Mượn mô hình kiểm kê kho mini xem nhanh 16 sản phẩm kèm tồn kho thực và chênh lệch ban đầu." },
+      { cat: "scamper", tag: "SCAMPER", cls: "b-scamper", text: "[Modify] Cập nhật ProductCard động theo tồn kho thực tế: về 0 lập tức chuyển sang 'Hết hàng'." },
+      { cat: "scamper", tag: "SCAMPER", cls: "b-scamper", text: "[Put-to-other-use] Tái sử dụng mảng statusHistory làm audit log rà soát đơn hủy bất thường." },
+      { cat: "scamper", tag: "SCAMPER", cls: "b-scamper", text: "[Eliminate] Loại bỏ màn hình quản lý tài khoản rườm rà trong MVP — chỉ /admin/login với 1 ô passcode + Đăng xuất." },
+      { cat: "scamper", tag: "SCAMPER", cls: "b-scamper", text: "[Reverse] Hiện badge cảnh báo tồn kho thấp ngay trên dòng đơn thay vì bắt nhân viên mở từng sản phẩm." },
+      { cat: "assump", tag: "Assumption Reversal", cls: "b-assump", text: "[Đảo giả định #1] Cho phép chọn nhiều đơn pending để xác nhận hàng loạt (Bulk Confirm) giờ cao điểm." },
+      { cat: "assump", tag: "Assumption Reversal", cls: "b-assump", text: "[Đảo giả định #2] Thêm nút 'Làm mới trạng thái' hoặc polling nhẹ 30s trên /orders/[id] khi đơn đang xử lý." },
+      { cat: "assump", tag: "Assumption Reversal", cls: "b-assump", text: "[Đảo giả định #3] Xem nhanh lịch sử biến động tồn kho (đơn nào trừ, đơn nào hoàn) để đối soát kho." },
+      { cat: "assump", tag: "Assumption Reversal", cls: "b-assump", text: "[Đảo giả định #4] Thêm thao tác 'Nhập thêm kho' (+N sản phẩm) trong /admin để bán tiếp không cần sửa code." },
+      { cat: "assump", tag: "Assumption Reversal", cls: "b-assump", text: "[Đảo giả định #5] Trên đơn bị hủy ở /orders/[id], hiển thị rõ lý do và nút 'Đặt lại các sản phẩm này'." },
+      { cat: "assump", tag: "Assumption Reversal", cls: "b-assump", text: "[Đảo giả định #6] Lưu bộ lọc /admin/orders lên URL query (?status=pending&q=...) để F5 hoặc share link không mất." },
+      { cat: "assump", tag: "Assumption Reversal", cls: "b-assump", text: "[Đảo giả định #7] Hỗ trợ ghi chú nội bộ tùy chọn ở mọi bước chuyển (như mã vận đơn khi chuyển sang shipping)." },
+      { cat: "assump", tag: "Assumption Reversal", cls: "b-assump", text: "[Đảo giả định #8] Tối ưu /admin/orders cho điện thoại 390px: thanh lọc cuộn ngang & nút bấm 1 ngón cái." },
+      { cat: "assump", tag: "Assumption Reversal", cls: "b-assump", text: "[Đảo giả định #9] Lưu thêm updatedAt và lastOrderId trong storage/inventory.json để dễ debug & đối soát." },
+      { cat: "assump", tag: "Assumption Reversal", cls: "b-assump", text: "[Đảo giả định #10] Đặt thời hạn session cookie admin đúng 1 ca làm việc (8 giờ) kèm nút Đăng xuất ngay." },
     ];
 
     function render(filter) {
