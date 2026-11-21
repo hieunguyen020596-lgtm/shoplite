@@ -454,7 +454,7 @@ Mã đơn và số tiền dùng `tabular-nums` khi xếp thành cột. Không d�
 |---|---|---|
 | `/staff` | Tìm kiếm, `order-tabs` 4 cột, danh sách `order-row` | Tìm kiếm, `order-tabs`, `order-table` 5 cột: Mã đơn, Khách, Thanh toán, Trạng thái, Nhãn |
 | `/staff/orders/:id` | Một cột: đầu đơn (Mã đơn, `order-status-badge`, `refund-flag-label` nếu có), Người nhận, Đơn hàng, thao tác, Lịch sử | Đầu đơn và thao tác ở đầu trang, 2 thẻ thông tin, bảng Lịch sử toàn chiều rộng |
-| `/orders/:id` | Một cột | Lưới 2 cột từ `sm` (640px) theo trang đơn hiện có, không thuộc A2 |
+| `/orders/:id` | Một cột. Thẻ Đơn hàng có `ProductImage` cỡ `sm`, tên, đơn giá × số lượng, thành tiền, Tạm tính, Phí giao hàng (`Miễn phí` khi bằng 0), Tổng cộng và giờ đặt, dùng style hiện có | Lưới 2 cột từ `sm` (640px) theo trang đơn hiện có, không thuộc A2. Thẻ Đơn hàng có cùng nội dung như cột 390px |
 
 Bố cục tham chiếu: [Hàng đợi](mockups/key-staff-queue.html), [Chi tiết đơn nhân viên](mockups/key-staff-order-detail.html), [Trang xác nhận](mockups/key-order-confirmation.html).
 

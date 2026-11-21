@@ -58,9 +58,9 @@ Khoa là quản lý kiêm chủ shop. Khách hàng gọi báo chưa nhận đư�
 - **Quản lý:** người có Tài khoản vai quản lý, làm được mọi việc của Nhân viên, thao tác Lùi đơn, `Đã xử lý hoàn tiền` và ghi thêm kết quả hoàn tiền.
 - **Tài khoản:** thông tin đăng nhập riêng của đúng một người.
 - **Tra đơn:** Khách hàng dùng Mã đơn và số điện thoại để xem Dữ liệu tối thiểu.
-- **Dữ liệu tối thiểu:** Trạng thái, mốc thời gian, sản phẩm, tổng tiền, phương thức giao hàng và thanh toán, thông tin chuyển khoản khi đơn chuyển khoản còn Chờ xác nhận, tên và số điện thoại Khách hàng đã che, số điện thoại shop. Không gồm địa chỉ đầy đủ, email hoặc ghi chú.
+- **Dữ liệu tối thiểu:** Trạng thái, giờ đặt, mốc thời gian, sản phẩm (ảnh, tên, số lượng, đơn giá, thành tiền), tạm tính, phí giao hàng, tổng tiền, phương thức giao hàng và thanh toán, thông tin chuyển khoản khi đơn chuyển khoản còn Chờ xác nhận, tên và số điện thoại Khách hàng đã che, số điện thoại shop. Không gồm địa chỉ đầy đủ, email hoặc ghi chú.
 - **Trang xác nhận:** trang chung Khách hàng thấy sau khi đặt hoặc Tra đơn thành công, gồm Dữ liệu tối thiểu, Mã đơn, bước kế tiếp và lối Tra đơn.
-- **Quyền xem đơn:** cookie có ký, gắn với đúng một Đơn hàng và trình duyệt.
+- **Quyền xem đơn:** một cookie có ký, gắn với trình duyệt, chứa tối đa 20 Mã đơn `[ASSUMPTION]`, mỗi mã có hạn riêng.
 - **Hàng đợi:** tab Cần xử lý của Danh sách đơn, gồm các Đơn hàng còn cần Nhân viên xử lý.
 - **Trang nhân viên:** khu vực đăng nhập nơi Nhân viên và Quản lý dùng Danh sách đơn và Chi tiết đơn để xem Hàng đợi, Lịch sử và thao tác trên Đơn hàng.
 - **Danh sách đơn:** màn hình chính của Trang nhân viên, gồm ô tìm theo Mã đơn hoặc số điện thoại và 4 tab.
@@ -106,9 +106,11 @@ Hệ thống giới hạn số lần Tra đơn sai. Realizes UJ-2.
 **Consequences (testable):**
 - Cùng một IP và Mã đơn bị chặn sau 5 lần sai trong 15 phút. `[ASSUMPTION]`
 - Một IP bị chặn sau 20 lần sai trong 15 phút trên mọi Mã đơn. `[ASSUMPTION]`
+- Chỉ có hai giới hạn trên. Không có giới hạn theo Mã đơn bất kể IP, để người khác không khóa được đơn của Khách hàng thật (rủi ro ở mục 6.3).
+- Cửa sổ giới hạn neo tại lần đếm đầu của mỗi khóa. `[ASSUMPTION]`
 - Khi bị chặn, hệ thống vẫn hiển thị "Thông tin không đúng", không cho biết Mã đơn có tồn tại hay không.
-- Một IP bị chặn không làm Khách hàng ở IP khác mất quyền Tra đơn.
-- Hệ thống chỉ đọc IP từ header khi proxy tin cậy đã được cấu hình; nếu chưa cấu hình thì dùng địa chỉ kết nối. Giá trị IP giả trong header không vượt được giới hạn.
+- Một IP bị chặn không làm Khách hàng ở IP khác mất quyền Tra đơn. Tiêu chí này áp dụng khi `TRUSTED_PROXY_HOPS ≥ 1`; ở local mọi request dùng chung bucket `direct`.
+- Hệ thống chỉ đọc IP từ header khi proxy tin cậy đã được cấu hình. Production từ chối khởi động nếu `TRUSTED_PROXY_HOPS` chưa khai báo hợp lệ (số nguyên ≥ 1, không nhận `0`); local không đọc header và dùng bucket `direct`. Giá trị IP giả trong header không vượt được giới hạn.
 - Bộ đếm vẫn còn sau khi server khởi động lại.
 
 #### FR-4: Đóng các đường truy cập không kiểm tra quyền
@@ -116,8 +118,8 @@ Hệ thống giới hạn số lần Tra đơn sai. Realizes UJ-2.
 Chỉ người có quyền mới đọc hoặc đổi được Đơn hàng.
 
 **Consequences (testable):**
-- `GET /api/orders` và `GET /api/orders/:id` trả 401 khi không có quyền phù hợp.
-- `PATCH /api/orders/:id` không còn cho Khách hàng hủy đơn.
+- `GET /api/orders` luôn trả 401. `GET /api/orders/:id` chỉ trả dữ liệu theo Quyền xem đơn, không có quyền thì trả 401. Nhân viên đọc đơn qua `/api/staff/orders*`.
+- `PATCH /api/orders/:id` luôn trả 401, không còn cho Khách hàng hủy đơn; đổi Trạng thái qua `PATCH /api/staff/orders/:id`.
 - `/orders` không còn liệt kê đơn; mục "Đơn hàng" trên menu dẫn tới trang Tra đơn.
 - `/orders/:id` không có Quyền xem đơn thì chuyển tới trang Tra đơn với Mã đơn điền sẵn, và trang Tra đơn không tự chuyển ngược lại nếu chưa Tra đơn thành công.
 
@@ -130,10 +132,10 @@ Chỉ người có quyền mới đọc hoặc đổi được Đơn hàng.
 Khách hàng vừa đặt có thể xem lại Trang xác nhận trên cùng trình duyệt. Realizes UJ-2.
 
 **Consequences (testable):**
-- Đặt đơn thành công cấp Quyền xem đơn dạng cookie `HttpOnly` có ký, hiệu lực 7 ngày. `[ASSUMPTION]`
+- Đặt đơn thành công cấp Quyền xem đơn dạng cookie `HttpOnly` có ký; mỗi Mã đơn có hiệu lực 7 ngày từ lần cấp. `[ASSUMPTION]`
 - Đặt đơn và Tra đơn thành công dẫn tới cùng một Trang xác nhận.
 - Tải lại trang vẫn thấy Trang xác nhận.
-- Cookie bị sửa, hết hạn hoặc của đơn khác đều bị từ chối.
+- Cookie bị sửa, Mã đơn đã hết hạn hoặc không có trong cookie đều bị từ chối.
 - Trang chỉ hiện nội dung đã định nghĩa cho Trang xác nhận ở mục 3.
 - Trang có lối "Tra đơn" với Mã đơn điền sẵn.
 
@@ -176,15 +178,15 @@ Khách hàng có thể xem Trạng thái hiện tại, các mốc đã qua và b
 Nhân viên và Quản lý có thể đăng nhập bằng Tài khoản riêng. Realizes UJ-1.
 
 **Consequences (testable):**
-- Tài khoản cấu hình qua biến môi trường, mật khẩu lưu dạng hash.
+- Tài khoản khai báo qua `STAFF_ACCOUNTS` (chỉ chứa hash scrypt) và nạp vào `staff_accounts` bằng `npm run staff:seed`; cấu hình không chứa mật khẩu rõ.
 - Không có quyền thì mọi trang và API nhân viên trả 401 hoặc chuyển tới đăng nhập.
 - Đăng nhập lại đưa người dùng về đúng trang đang xem; hệ thống chỉ nhận đích nội bộ trong `/staff`.
 - Người đã đăng nhập vào `/staff/login` được chuyển về `/staff`.
 - Vai Nhân viên gọi thao tác của Quản lý nhận 403.
-- Phiên đăng nhập hết hạn sau 8 giờ. `[ASSUMPTION]`
+- Phiên đăng nhập lưu trong database, cookie chỉ chứa token ngẫu nhiên. Phiên hết hạn cố định sau 8 giờ, không gia hạn trượt. `[ASSUMPTION]`
 - Mỗi người có một Tài khoản riêng; cấu hình không có Tài khoản dùng chung.
-- Người dùng có thể đăng xuất, và phiên cũ không còn dùng được.
-- Đăng nhập sai 5 lần trong 15 phút theo cặp IP và tên đăng nhập thì bị chặn tạm thời. `[ASSUMPTION]`
+- Người dùng có thể đăng xuất, và phiên cũ không còn dùng được. Nạp lại làm đổi hash mật khẩu thì mọi phiên của Tài khoản đó bị thu hồi.
+- Đăng nhập sai 5 lần trong 15 phút theo cặp IP và tên đăng nhập thì bị chặn tạm thời. Ở local, bucket `direct` làm giới hạn này thực chất theo tên đăng nhập. `[ASSUMPTION]`
 
 #### FR-9: Hàng đợi và Danh sách đơn
 
@@ -211,6 +213,7 @@ Nhân viên có thể chuyển đơn: Chờ xác nhận → Đã xác nhận →
 **Consequences (testable):**
 - Mọi chuyển đổi khác trả `INVALID_STATUS_TRANSITION`, ví dụ `pending` → `delivered`.
 - Hai thao tác đồng thời trên cùng đơn: đúng một thành công, bên còn lại nhận `INVALID_STATUS_TRANSITION`; giao diện báo `Đơn vừa được người khác cập nhật` và tải lại Trạng thái mới nhất.
+- Thao tác từ màn hình cũ (sai `expectedVersion`, kể cả khi Trạng thái đã quay lại sau Lùi đơn) cũng nhận `INVALID_STATUS_TRANSITION`.
 - Đã hủy không chuyển tiếp được. Đã giao chỉ chuyển được theo FR-13.
 
 #### FR-11: Xác nhận hai lần cho Đã giao
@@ -227,7 +230,7 @@ Nhân viên có thể hủy đơn Chờ xác nhận hoặc Đã xác nhận, b�
 
 **Consequences (testable):**
 - Hủy từ Đang giao, Đã giao hoặc Đã hủy bị từ chối.
-- Lý do chọn từ danh sách: `Khách đổi ý`, `Không liên lạc được`, `Đơn trùng`, `Hết hàng`, `Khác`. Chọn `Khác` thì bắt buộc nhập chữ.
+- Lý do chọn từ danh sách: `Khách đổi ý`, `Không liên lạc được`, `Đơn trùng`, `Hết hàng`, `Khác`. Chọn `Khác` thì bắt buộc nhập chữ, tối đa 200 ký tự.
 - Lý do Hủy được lưu bằng mã cố định: `Hết hàng` là `out_of_stock`, `Khác` là `other` kèm chữ đã nhập.
 - Thiếu lý do, hoặc chọn `Khác` mà để trống hay chỉ có khoảng trắng, trả `VALIDATION_ERROR`.
 - Trạng thái, Lịch sử và thay đổi Tồn kho theo FR-17 diễn ra trong cùng một giao dịch; với `out_of_stock`, Tồn kho không đổi.
@@ -241,7 +244,7 @@ Nhân viên có thể hủy đơn Chờ xác nhận hoặc Đã xác nhận, b�
 Quản lý có thể Lùi đơn, bắt buộc có lý do. Realizes UJ-3.
 
 **Consequences (testable):**
-- Lý do chọn từ danh sách: `Bấm nhầm, hàng còn trên xe`, `Khách báo chưa nhận hàng`, `Khác`. Chọn `Khác` thì bắt buộc nhập chữ.
+- Lý do chọn từ danh sách: `Bấm nhầm, hàng còn trên xe`, `Khách báo chưa nhận hàng`, `Khác`. Chọn `Khác` thì bắt buộc nhập chữ, tối đa 200 ký tự.
 - Nhân viên không thấy nút Lùi đơn, kể cả ở dạng vô hiệu; gọi thẳng thao tác này nhận 403.
 - Lùi đơn thêm dòng Lịch sử mới và không đổi Tồn kho.
 - Sau khi Lùi đơn, đơn có thể chuyển Đã giao lại theo FR-10 và FR-11.
@@ -296,6 +299,7 @@ Khách hàng thấy trạng thái còn hàng theo Tồn kho hiện tại. Realiz
 
 **Consequences (testable):**
 - Nhãn tồn kho, bộ lọc `inStock` và giới hạn số lượng đọc từ Tồn kho, không đọc số tĩnh trong code.
+- Khi đã biết Tồn kho, trang sản phẩm và giỏ chặn tăng vượt `min(Tồn kho, 10)`, tính cả số đã có trong giỏ; không tự giảm số đã có. Lỗi tải Tồn kho thì giới hạn 10. Server kiểm tra lần cuối khi đặt.
 - Sau khi đơn cuối được đặt, trang sản phẩm tải lại hiện "Hết hàng".
 
 #### FR-19: Giữ form khi hết hàng
@@ -316,7 +320,7 @@ Khách hàng bị thiếu hàng lúc đặt vẫn giữ được thông tin đã
 Hệ thống giới hạn việc tạo đơn để bảo vệ Tồn kho.
 
 **Consequences (testable):**
-- Một IP bị chặn sau 10 đơn trong 1 giờ. `[ASSUMPTION]`
+- Một IP bị chặn sau 10 đơn trong 1 giờ. Ở local, bucket `direct` làm ngưỡng này áp dụng cho cả shop. `[ASSUMPTION]`
 - Một số điện thoại có tối đa 3 đơn Chờ xác nhận cùng lúc. `[ASSUMPTION]`
 - Yêu cầu bị chặn trả HTTP 429 với mã lỗi `RATE_LIMITED`, không tạo đơn và không trừ Tồn kho.
 - Số `0...` và `+84...` của cùng một thuê bao được tính chung.
@@ -332,7 +336,7 @@ Khi đơn chuyển khoản bị hủy, hệ thống bật Cờ cần hoàn tiề
 - Kết quả chỉ quyết định việc đơn rời tab Cần hoàn tiền và việc có được ghi thêm hay không.
 - Sau `Khách chưa chuyển tiền`, Quản lý được ghi thêm `Đã hoàn tiền`; dòng cũ vẫn giữ trong Lịch sử.
 - `Ghi thêm: Đã hoàn tiền` chỉ đi từ `Khách chưa chuyển tiền` sang `Đã hoàn tiền`; đơn không quay lại tab Cần hoàn tiền.
-- Nếu ghi nhầm `Đã hoàn tiền`, Quản lý ghi thêm một dòng đính chính về `Khách chưa chuyển tiền`, bắt buộc có lý do; dòng cũ vẫn giữ trong Lịch sử và Khách hàng không thấy.
+- Nếu ghi nhầm `Đã hoàn tiền`, Quản lý ghi thêm một dòng đính chính về `Khách chưa chuyển tiền`, bắt buộc có lý do, tối đa 200 ký tự; dòng cũ vẫn giữ trong Lịch sử và Khách hàng không thấy.
 - Mỗi thao tác chỉ hợp lệ theo kết quả mới nhất; lần ghi trùng nhận lỗi xung đột.
 - Quản lý kiêm chủ shop đối soát sao kê và hoàn tay trong 3 ngày làm việc, không thu phí. `[ASSUMPTION]`
 - Hệ thống không lưu trạng thái thanh toán và không chuyển tiền; kết quả xử lý hoàn tiền chỉ là ghi chú của Quản lý trong Lịch sử.
@@ -364,8 +368,8 @@ Khi đơn chuyển khoản bị hủy, hệ thống bật Cờ cần hoàn tiề
 
 - **Toàn vẹn:** mọi thay đổi Trạng thái và Tồn kho đi qua một đường duy nhất trong một giao dịch. Trang xác nhận, Trang nhân viên và Lịch sử đọc cùng một bản ghi Đơn hàng. Sửa sai là thêm thao tác mới, không xóa dấu vết. Ngoại lệ đã chấp nhận: Tồn kho sai được sửa tay trong database (mục 6.3), nằm ngoài đường này và không có dấu vết trong Lịch sử.
 - **Bảo mật:** dữ liệu khách không xuất hiện trong URL hoặc log ứng dụng. Bí mật chỉ nằm trong biến môi trường.
-- **Cấu hình:** giá trị thật ở `.env`, mẫu ở `.env.example`.
-- **Kiểm thử:** các ca đồng thời chạy trên PostgreSQL thật, không mock cơ sở dữ liệu.
+- **Cấu hình:** giá trị thật ở `.env`, mẫu ở `.env.example`. Production bắt buộc `TRUSTED_PROXY_HOPS` là số nguyên ≥ 1.
+- **Kiểm thử:** các ca đồng thời chạy trên PostgreSQL thật, không mock cơ sở dữ liệu. Cổng `npm run check:full` gồm test DB và race.
 - **Tiếng Việt:** toàn bộ nội dung giao diện và thông báo lỗi viết bằng tiếng Việt.
 - **Khả năng tiếp cận:** trạng thái không truyền đạt chỉ bằng màu sắc; form và hộp xác nhận dùng được bằng bàn phím.
 - **Phát hành:** chỉ phát hành khi đủ DB, Tồn kho, Trang xác nhận, Tra đơn và Trang nhân viên; đóng route cũ sau cùng.
@@ -380,14 +384,14 @@ Khi đơn chuyển khoản bị hủy, hệ thống bật Cờ cần hoàn tiề
 - Không xử lý giao thất bại, trả hàng hoặc hủy khi Đang giao.
 - Không tích hợp đơn vị vận chuyển hay dự báo ngày giao.
 - Không gửi thông báo chủ động hoặc OTP.
-- Không xây hệ thống quản lý người dùng; Tài khoản cấu hình qua biến môi trường.
+- Không xây hệ thống quản lý người dùng; Tài khoản nạp bằng script seed từ biến môi trường.
 
 ## 6. MVP Scope
 
 ### 6.1 In Scope
 
 - FR-1 đến FR-21.
-- PostgreSQL và Docker Compose cho local; DB riêng cho e2e.
+- PostgreSQL cài sẵn trên máy, database `shoplite_dev` và `shoplite_test`.
 - Viết lại test hiện có bị ảnh hưởng bởi việc đóng route.
 
 ### 6.2 Out of Scope for MVP
@@ -410,6 +414,9 @@ Mã trong ngoặc là mã ứng viên trong `brainstorm-intent.md`.
 - Không hoàn kho chỉ tránh cộng thêm, không gỡ được số ảo đã có. SM-2 đo trên số của hệ thống nên có thể vẫn bằng 0 khi hàng thực tế đã lệch.
 - MVP không có công cụ chỉnh Tồn kho; Tồn kho sai được sửa tay trong database.
 - Nhãn gói hàng có thể lộ Mã đơn và số điện thoại, nên người nhặt được vẫn Tra đơn và xem được Dữ liệu tối thiểu. OTP để sau MVP.
+- Không có giới hạn theo Mã đơn bất kể IP, nên dò phân tán từ nhiều IP chỉ bị chặn bởi việc phải khớp cả số điện thoại.
+- PostgreSQL 14 đã hết hỗ trợ; bắt buộc nâng lên bản còn hỗ trợ trước đơn thật đầu tiên.
+- Local dùng chung bucket IP `direct`, nên giới hạn theo IP ở local không phân biệt người dùng.
 
 ### 6.4 Ý kiến thiểu số còn mở
 
@@ -450,7 +457,7 @@ Không câu nào dưới đây chặn UX, kiến trúc hoặc chia story.
 2. Ai đối soát chuyển khoản và thời hạn hoàn tiền thực tế là bao lâu? Chủ shop trả lời trước khi có đơn thật.
 3. Giả định 2 Nhân viên và 1 Quản lý có đúng không, và họ đang xử lý đơn thế nào? Chủ shop trả lời trước khi có đơn thật.
 4. Các ngưỡng ở FR-3, FR-8 và FR-20 có phù hợp với lượng đơn thật không? Xem lại sau 4 tuần có đơn thật.
-5. Khi triển khai, ứng dụng đứng sau proxy nào? Quyết định ở bước triển khai; trước đó dùng địa chỉ kết nối.
+5. Khi triển khai, ứng dụng đứng sau proxy nào? Quyết định ở bước triển khai. Trước đó local dùng bucket `direct`; production không khởi động nếu chưa khai báo `TRUSTED_PROXY_HOPS` hợp lệ.
 6. Đã từng có sự cố mất tiền thật chưa? Chủ shop trả lời để xác nhận mức ưu tiên của tính năng.
 7. (Ràng buộc khóa học) Bài 4.4 ghi "không thêm database", trong khi dự án dùng PostgreSQL theo quyết định của landv. landv cần báo giảng viên nếu bài bị chấm theo ràng buộc đó.
 
@@ -460,6 +467,8 @@ landv đã xác nhận các mặc định về ngưỡng, thời hạn, route, d
 
 - §2.3: UJ-1, UJ-2, UJ-3 do coach viết nháp.
 - FR-3: 5 lần sai theo IP và Mã đơn; 20 lần sai mỗi IP; cùng trong 15 phút.
+- Mục 3: cookie Quyền xem đơn chứa tối đa 20 Mã đơn.
+- FR-3, FR-8, FR-20: cửa sổ rate limit neo tại lần đếm đầu.
 - FR-5: Quyền xem đơn hiệu lực 7 ngày.
 - FR-6 (A6): giữ hàng Ngân hàng trong thông tin chuyển khoản.
 - FR-7: Khách hàng không thấy tên Nhân viên, lý do nội bộ hoặc mốc Đã giao đã bị sửa.

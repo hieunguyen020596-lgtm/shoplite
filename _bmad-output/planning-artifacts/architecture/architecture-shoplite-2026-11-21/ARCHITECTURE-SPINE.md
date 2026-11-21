@@ -196,7 +196,7 @@ interface StaffOrderDetail extends StaffOrderRow {
 }
 ```
 
-- **Rule (danh sách):** `queue` gồm `pending`, `confirmed`, `shipping`, không phân trang: đơn `isOverdue` lên đầu, rồi `created_at` tăng dần. `delivered`, `cancelled`: `updated_at DESC, id DESC`, 50 đơn mỗi lần, keyset `(updated_at, id)`, cursor là base64url của `[updatedAtIso, id]`, cursor sai là `VALIDATION_ERROR`. `refund`: `refund_required` chưa có dòng `refund_outcome_recorded`, `created_at` tăng dần, không phân trang. `[ASSUMPTION]` "Thay đổi mới nhất" của tab Đã hủy chỉ tính đổi Trạng thái, nên ghi kết quả hoàn tiền không đẩy đơn lên đầu.
+- **Rule (danh sách):** `queue` gồm `pending`, `confirmed`, `shipping`, không phân trang: đơn `isOverdue` lên đầu, rồi `created_at` tăng dần. `delivered`, `cancelled`: `updated_at DESC, id DESC`, 50 đơn mỗi lần, keyset `(updated_at, id)`, cursor là base64url của `[updatedAtIso, id]`, cursor sai là `VALIDATION_ERROR`. `refund`: `refund_required` chưa có dòng `refund_outcome_recorded`, `created_at` tăng dần, không phân trang. "Thay đổi mới nhất" của tab Đã hủy chỉ tính đổi Trạng thái, nên ghi kết quả hoàn tiền không đẩy đơn lên đầu.
 - **Rule (tính ở server):** `isOverdue` do SQL tính: `payment_method = 'bank_transfer' AND status = 'pending' AND created_at < now() - interval '24 hours'`. `refundState`: không có cờ là `none`, có cờ chưa có kết quả là `required`, còn lại `processed`. `refundPendingCount` đếm cùng điều kiện tab `refund`, không phụ thuộc tab hay từ khóa. Tìm kiếm chỉ qua body, khớp chính xác `normalizeOrderId` hoặc `normalizePhone`, mới nhất trước; từ khóa không hợp lệ trả danh sách rỗng.
 
 ### AD-20 — Quyền xem đơn bằng cookie ký, không lộ đơn tồn tại
@@ -210,7 +210,7 @@ interface StaffOrderDetail extends StaffOrderRow {
 
 - **Binds:** FR-1, FR-2, FR-5, FR-6, FR-7, FR-21
 - **Prevents:** `POST /api/orders` hoặc trang trả `Order` đầy đủ; che dữ liệu ở client; tiền và tên đơn cũ đổi theo catalog.
-- **Rule:** `toCustomerOrderView(order, statusRows, shopConfig)` trong `features/orders/customer-order-view.ts` là hàm thuần và là đường duy nhất tạo dữ liệu cho khách, dùng cho `/orders/:id`, `GET /api/orders/:id`, `POST /api/orders`, `POST /api/orders/lookup`. `shopConfig = { shopPhone, bankName, bankAccountNumber }` do `orders/server.ts` đọc từ env và truyền vào. Kết quả chỉ có: `id`, `status`, `createdAt`, `milestones`, `items[{ name, image, quantity, lineTotal }]`, `subtotal`, `shippingFee`, `total`, `shippingMethod`, `paymentMethod`, `recipient{ maskedName, maskedPhone }`, `shopPhone`, `bankTransfer`. `[ASSUMPTION]` Không gồm `unitPrice`, dù trang hiện tại có hiển thị. `bankTransfer` là `{ bankName, accountNumber, amount, transferContent }` chỉ khi `bank_transfer` và `pending`, ngược lại `null`; `amount = total`, `transferContent` là Mã đơn. Che tên và số ở server theo FR-2, tên xử lý theo code point sau NFC. Test khẳng định đúng tập khóa này. UI khách chỉ `import type { CustomerOrderView }`, không import `Order`.
+- **Rule:** `toCustomerOrderView(order, statusRows, shopConfig)` trong `features/orders/customer-order-view.ts` là hàm thuần và là đường duy nhất tạo dữ liệu cho khách, dùng cho `/orders/:id`, `GET /api/orders/:id`, `POST /api/orders`, `POST /api/orders/lookup`. `shopConfig = { shopPhone, bankName, bankAccountNumber }` do `orders/server.ts` đọc từ env và truyền vào. Kết quả chỉ có: `id`, `status`, `createdAt`, `milestones`, `items[{ name, image, quantity, unitPrice, lineTotal }]`, `subtotal`, `shippingFee`, `total`, `shippingMethod`, `paymentMethod`, `recipient{ maskedName, maskedPhone }`, `shopPhone`, `bankTransfer`. `bankTransfer` là `{ bankName, accountNumber, amount, transferContent }` chỉ khi `bank_transfer` và `pending`, ngược lại `null`; `amount = total`, `transferContent` là Mã đơn. Che tên và số ở server theo FR-2, tên xử lý theo code point sau NFC. Test khẳng định đúng tập khóa này. UI khách chỉ `import type { CustomerOrderView }`, không import `Order`.
 - **Rule (bản chụp):** `order_items.name`, `slug`, `image`, `unit_price`, `line_total` và `orders.subtotal`, `shipping_fee`, `total` là bản chụp lúc đặt. Khi đọc không join catalog, không gọi `calculateOrderTotals`.
 
 ### AD-25 — Rate limit, nguồn IP và Tra đơn
@@ -251,7 +251,7 @@ interface StaffOrderDetail extends StaffOrderRow {
 - **Binds:** FR-3, FR-5, FR-6, FR-7, FR-8, FR-20, NFR Cấu hình, NFR Phát hành
 - **Prevents:** Biến bị `.env.local` che; production chạy với bucket IP chung; app chạy nửa vời; script TypeScript không chạy được; schema trôi; seed ghi đè tồn thật.
 - **Rule (đọc biến):** Biến mới chỉ khai báo ở `.env` (gitignored) và `.env.example`, không bao giờ ở `.env.local`. Trong `src/`, chỉ `src/lib/env.ts` đọc `process.env`, qua `getServerEnv()` lazy, parse bằng Zod; ngoại lệ là `NODE_ENV`, `NEXT_RUNTIME` do runtime cấp. Khi `NODE_ENV=production`, `replace_me` bị coi là thiếu.
-- **Rule (chặn khởi động):** `src/instrumentation.ts#register` ở runtime `nodejs` gọi `getServerEnv()`; thiếu hoặc sai thì log **tên** biến, không in giá trị, rồi gọi `process.exit(1)`. Không dùng `throw`, vì `next start` vẫn sống và trả 500. Production yêu cầu `TRUSTED_PROXY_HOPS` là số nguyên từ 1 trở lên; thiếu, `0` hoặc sai định dạng đều không khởi động được. `[ASSUMPTION]` "Hợp lệ" ở production loại trừ `0`, vì `0` chính là bucket `direct`. Ngoài production, thiếu biến này nghĩa là `0`.
+- **Rule (chặn khởi động):** `src/instrumentation.ts#register` ở runtime `nodejs` gọi `getServerEnv()`; thiếu hoặc sai thì log **tên** biến, không in giá trị, rồi gọi `process.exit(1)`. Không dùng `throw`, vì `next start` vẫn sống và trả 500. Production yêu cầu `TRUSTED_PROXY_HOPS` là số nguyên từ 1 trở lên; thiếu, `0` hoặc sai định dạng đều không khởi động được. "Hợp lệ" ở production loại trừ `0`, vì `0` chính là bucket `direct`. Ngoài production, thiếu biến này nghĩa là `0`.
 
 | Biến | Bắt buộc với app | Ghi chú |
 | --- | --- | --- |
@@ -468,56 +468,17 @@ flowchart LR
 | FR-20 Chống đơn ảo | `placeOrder`, `features/rate-limit` | AD-10, AD-25, AD-31 |
 | FR-21 Hoàn tiền | `refund-outcomes.ts`, `refund-outcomes` route | AD-8, AD-12, AD-14, AD-18, AD-19 |
 
-## Upstream Edits Required
+## Upstream Edits (đã áp dụng)
 
-Số dòng tính theo bản ngày 2026-11-21. Spine chưa sửa các file này.
+Toàn bộ 44 sửa đổi đã áp dụng ngày 2026-11-21. Spine không còn sửa đổi nào đang chờ ở tài liệu nguồn.
 
-| File | Vị trí | Sửa |
+| File | Số sửa đổi | Phạm vi |
 | --- | --- | --- |
-| `prd.md` | §3 Dữ liệu tối thiểu, dòng 61 | Thêm tạm tính, phí giao, ảnh sản phẩm, giờ đặt vào phần được hiển thị |
-| `prd.md` | §3 Quyền xem đơn, dòng 63 | Đổi thành: một cookie có ký, gắn với trình duyệt, chứa tối đa 20 Mã đơn, mỗi mã có hạn riêng |
-| `prd.md` | FR-3, dòng 110 | Thêm: tiêu chí này áp dụng khi `TRUSTED_PROXY_HOPS ≥ 1`; local dùng chung bucket `direct` |
-| `prd.md` | FR-3, dòng 111 | Thay "nếu chưa cấu hình thì dùng địa chỉ kết nối" bằng: production từ chối khởi động nếu chưa khai báo hợp lệ; local không đọc header và dùng bucket `direct` |
-| `prd.md` | FR-4, dòng 119 | Ghi rõ: `GET /api/orders` luôn 401; `GET /api/orders/:id` chỉ theo Quyền xem đơn; nhân viên dùng `/api/staff/orders*` |
-| `prd.md` | FR-4, dòng 120 | Đổi thành: `PATCH /api/orders/:id` luôn 401; đổi Trạng thái qua `PATCH /api/staff/orders/:id` |
-| `prd.md` | FR-8, dòng 179 | Đổi thành: Tài khoản khai báo qua `STAFF_ACCOUNTS` (chỉ chứa hash scrypt) và nạp vào `staff_accounts` bằng `npm run staff:seed` |
-| `prd.md` | FR-8, dòng 187 | Thêm: ở local bucket `direct` làm giới hạn thực chất theo tên đăng nhập |
-| `prd.md` | FR-10, dòng 213 | Thêm: thao tác từ màn hình cũ (sai `expectedVersion`, kể cả khi Trạng thái đã quay lại sau Lùi đơn) cũng nhận `INVALID_STATUS_TRANSITION` |
-| `prd.md` | FR-18, dòng 298 | Giữ câu hiện có, thêm: khi đã biết Tồn kho, trang sản phẩm và giỏ chặn tăng vượt `min(Tồn kho, 10)`, tính cả số đã có trong giỏ; không tự giảm; lỗi tải tồn thì giới hạn 10; server kiểm tra lần cuối |
-| `prd.md` | FR-20, dòng 319 | Thêm: ở local bucket `direct` làm ngưỡng này áp dụng cho cả shop |
-| `prd.md` | §4.9 Cấu hình, dòng 367 | Thêm: production bắt buộc `TRUSTED_PROXY_HOPS` là số nguyên ≥ 1 |
-| `prd.md` | §4.9 Kiểm thử, dòng 368 | Thêm cổng `npm run check:full` gồm test DB và race |
-| `prd.md` | §5, dòng 383 | Đổi "Tài khoản cấu hình qua biến môi trường" thành "Tài khoản nạp bằng script seed từ biến môi trường" |
-| `prd.md` | §6.1, dòng 390 | Thay "PostgreSQL và Docker Compose cho local; DB riêng cho e2e" bằng "PostgreSQL cài sẵn trên máy, database `shoplite_dev` và `shoplite_test`" |
-| `prd.md` | §6.3, sau dòng 412 | Thêm rủi ro: không có giới hạn theo Mã đơn bất kể IP, nên dò phân tán nhiều IP chỉ bị chặn bởi việc phải khớp cả số điện thoại; PostgreSQL 14 đã hết hỗ trợ, bắt buộc nâng trước đơn thật; local dùng chung bucket IP |
-| `prd.md` | §8 câu 5, dòng 453 | Bỏ "trước đó dùng địa chỉ kết nối"; thay bằng hành vi `direct` ở local và chặn khởi động ở production |
-| `prd.md` | §9, sau dòng 462 | Thêm giả định: cookie tối đa 20 Mã đơn; cửa sổ rate limit neo tại lần đếm đầu |
-| `addendum.md` | Dòng 7 | Đổi "Next 16.4.2" thành "Next 16.4.6" |
-| `addendum.md` | Dòng 8 | Thay Docker Compose bằng PostgreSQL cài sẵn; race test và E2E dùng `shoplite_test` |
-| `addendum.md` | Dòng 9 | Liệt kê đủ biến theo bảng AD-31 |
-| `addendum.md` | Dòng 10 | Đính chính mô tả `.env.local` sau khi landv xác nhận giá trị ở HEAD; giữ quy tắc không khai báo biến mới ở file này |
-| `addendum.md` | Dòng 11 | Thêm `version`: `UPDATE ... WHERE id = $id AND status = $from AND version = $expectedVersion` |
-| `addendum.md` | Dòng 18-22 | Thay bảng dữ liệu theo ERD: đủ cột và bản chụp của `orders`, `order_items`; thêm `event_type`, `refund_outcome`, `actor_*`; thêm `staff_accounts`, `staff_sessions`; `inventory` seed từ `src/data/inventory-seed.ts` |
-| `addendum.md` | Dòng 24 | Ghi đủ mã lý do Hủy và Lùi đơn; chữ lý do tối đa 200 ký tự |
-| `addendum.md` | Dòng 25 | Chốt dùng `event_type`, không ghi Trạng thái cũ và mới giống nhau |
-| `addendum.md` | Dòng 32-36 | Đổi route: `GET /api/orders` và `PATCH /api/orders/:id` luôn 401; `GET /api/orders/:id` chỉ theo Quyền xem đơn; thay `POST /api/orders/search` bằng `POST /api/staff/orders/search`; thêm `GET`, `PATCH /api/staff/orders/:id`, `GET /api/staff/orders`, `POST /api/staff/orders/:id/refund-outcomes`, `POST /api/staff/login`, `POST /api/staff/logout`, `GET /api/inventory` |
-| `addendum.md` | Dòng 54 | Liệt kê đủ mã lỗi và `OrderErrorDetails` theo AD-3 |
-| `addendum.md` | Dòng 55-56 | Đổi "Chặn theo vai" thành: route khách luôn 401 hoặc theo Quyền xem đơn; vai chỉ kiểm ở `/api/staff/*` |
-| `addendum.md` | Dòng 61-62 | Đổi: `catalog-service` giữ thuần, nhận `StockedProduct`; đọc `inventory` ở `features/catalog/server.ts` |
-| `addendum.md` | Dòng 64 | Xóa `generateStaticParams`, đặt `force-dynamic` |
-| `addendum.md` | Dòng 65 | Đổi: giỏ không còn `stock`, chặn tăng theo `min(Tồn kho, 10)`, lấy tồn qua `/api/inventory`, làm sạch giỏ cũ |
-| `addendum.md` | Bảng Điểm chạm, thêm dòng | `src/lib/http.ts:22` bỏ `console.error(error)`; `src/app/orders/[id]/page.tsx:132` bỏ số tài khoản hard-code; `package.json` nâng `next`, `eslint-config-next`, `engines`, thêm script theo AD-30, AD-31 |
-| `addendum.md` | Dòng 69-72 | Bỏ test dùng repository trong bộ nhớ; `route.test.ts` chuyển sang `*.db.test.ts`; Playwright theo AD-30 |
-| `EXPERIENCE.md` | Nội dung Trang xác nhận, dòng 67 | Thêm tạm tính, phí giao, ảnh sản phẩm, giờ đặt |
-| `EXPERIENCE.md` | `quantity-input`, dòng 165 | Thêm: chặn tăng vượt `min(Tồn kho, 10)` khi đã biết, không tự giảm, lỗi tải tồn thì giới hạn 10 |
-| `EXPERIENCE.md` | `tab-count`, dòng 170 | Ghi nguồn: `refundPendingCount` trong response danh sách và tìm kiếm |
-| `EXPERIENCE.md` | Khu nhân viên, dòng 212 | Ghi tín hiệu hết phiên: `/staff/login?next=<đích>&expired=1` |
-| `EXPERIENCE.md` | Hoàn tiền, dòng 233-234 | Thêm: thiếu lý do đính chính là lỗi tại trường, giữ hộp thoại; chỉ lệch kết quả mới nhất hoặc đơn không đủ điều kiện mới là xung đột |
-| `EXPERIENCE.md` | Dòng 423 | Ghi tên biến `BANK_NAME`, `BANK_ACCOUNT_NUMBER`; thiếu biến thì server không khởi động |
-| `EXPERIENCE.md` | Thay đổi cần cập nhật ở PRD, dòng 448 | Thêm tạm tính, phí giao, ảnh sản phẩm, giờ đặt vào định nghĩa Dữ liệu tối thiểu |
-| `EXPERIENCE.md` | Open Questions, dòng 502-509 | Đóng các câu đã chốt: tên biến ngân hàng, thiếu biến, phân trang, `event_type`, 200 ký tự, mã lý do. Giữ câu về giá trị thật của số shop và số tài khoản |
-| `DESIGN.md` | Bố cục `/orders/:id`, dòng 457 | Thêm: thẻ Đơn hàng có `ProductImage` cỡ `sm`, Tạm tính, Phí giao hàng (`Miễn phí` khi bằng 0), Tổng cộng và giờ đặt, dùng style hiện có |
-| `mockups/key-order-confirmation.html` | Thẻ Đơn hàng | Thêm ảnh sản phẩm, Tạm tính, Phí giao và giờ đặt để khớp EXPERIENCE |
+| `prd.md` | 18 | Dữ liệu tối thiểu, Quyền xem đơn, FR-3, FR-4, FR-8, FR-10, FR-18, FR-20, §4.9, §5, §6.1, §6.3, §8, §9 |
+| `addendum.md` | 16 | Lựa chọn kỹ thuật, dữ liệu, mã lý do, route, điểm chạm trong code, test |
+| `EXPERIENCE.md` | 8 | Trang xác nhận, `quantity-input`, `tab-count`, hết phiên, hoàn tiền, biến cấu hình, Open Questions |
+| `DESIGN.md` | 1 | Bố cục `/orders/:id` |
+| `mockups/key-order-confirmation.html` | 1 | Thẻ Đơn hàng |
 
 ## Deferred
 

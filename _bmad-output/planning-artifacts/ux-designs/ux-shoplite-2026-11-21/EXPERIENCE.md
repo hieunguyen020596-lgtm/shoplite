@@ -17,10 +17,10 @@ sources:
 - **Nền tảng:** web responsive trên Next.js. Desktop và mobile được thiết kế ngang nhau, kể cả khu nhân viên. Mọi thao tác dùng được ở 390px và tận dụng màn hình rộng trên desktop.
 - **UI system:** design system ngầm đang có (Tailwind CSS v4, Be Vietnam Pro, component trong `src/components/ui`). [DESIGN.md](DESIGN.md) giữ nhận diện hình ảnh và đánh dấu phần hiện có, phần delta. Tài liệu này giữ hành vi.
 - **Hai khu tách biệt:** khu Khách hàng dùng layout cửa hàng, không cần tài khoản. Khu nhân viên dùng layout riêng, lối vào duy nhất là gõ `/staff`.
-- **Thuật ngữ:** theo mục 3 của PRD, trừ định nghĩa Dữ liệu tối thiểu đã đổi ở [Thay đổi cần cập nhật ở PRD](#thay-đổi-cần-cập-nhật-ở-prd).
+- **Thuật ngữ:** theo mục 3 của PRD. Các thay đổi UX đã áp dụng vào PRD được ghi ở [Thay đổi cần cập nhật ở PRD](#thay-đổi-cần-cập-nhật-ở-prd).
 - **Thứ tự ưu tiên nguồn:** memlog thắng PRD về quyết định UX; PRD thắng brief.
 
-Giả định đã được chấp nhận nhưng cần xem lại mang thẻ `[ASSUMPTION: A-n]`, tổng hợp ở [Assumptions](#assumptions). Câu hỏi còn mở và phần chuyển sang kiến trúc nằm trong [Open Questions](#open-questions).
+Giả định đã được chấp nhận nhưng cần xem lại mang thẻ `[ASSUMPTION: A-n]`, tổng hợp ở [Assumptions](#assumptions). Câu hỏi còn mở và các câu đã chốt ở bước kiến trúc nằm trong [Open Questions](#open-questions).
 
 ### Tham chiếu hình ảnh
 
@@ -57,14 +57,14 @@ Hộp thoại trên Chi tiết đơn: Xác nhận Đã giao, Hủy đơn, Lùi �
 |---|---|---|
 | Cần xử lý (Hàng đợi, mặc định) | Chờ xác nhận, Đã xác nhận, Đang giao | Đơn chuyển khoản Chờ xác nhận quá 24 giờ lên đầu, sau đó đơn cũ nhất trước |
 | Đã giao | Đơn Đã giao | Thay đổi mới nhất trước `[ASSUMPTION: A4]` |
-| Đã hủy | Đơn Đã hủy | Thay đổi mới nhất trước `[ASSUMPTION: A4]` |
+| Đã hủy | Đơn Đã hủy | Lần đổi Trạng thái gần nhất trước; ghi kết quả hoàn tiền không đẩy đơn lên đầu |
 | Cần hoàn tiền | Đơn có Cờ cần hoàn tiền, chưa qua `Đã xử lý hoàn tiền` | Đơn cũ nhất trước `[ASSUMPTION: A4]` |
 
 Một đơn có thể nằm ở cả Đã hủy và Cần hoàn tiền. `refund-flag-label` phân biệt đơn cần hoàn, đơn đã xử lý và đơn COD (không có nhãn).
 
 ### Nội dung Trang xác nhận
 
-**Có:** Mã đơn, Trạng thái, mốc thời gian, bước kế tiếp, sản phẩm, tổng tiền, phương thức giao hàng và thanh toán, tên và số điện thoại đã che, số điện thoại shop ở mọi Trạng thái, lối "Tra đơn". Thông tin chuyển khoản chỉ có khi đơn chuyển khoản còn Chờ xác nhận.
+**Có:** Mã đơn, giờ đặt, Trạng thái, mốc thời gian, bước kế tiếp, sản phẩm (ảnh, tên, số lượng, đơn giá, thành tiền), tạm tính, phí giao hàng, tổng tiền, phương thức giao hàng và thanh toán, tên và số điện thoại đã che, số điện thoại shop ở mọi Trạng thái, lối "Tra đơn". Thông tin chuyển khoản chỉ có khi đơn chuyển khoản còn Chờ xác nhận.
 
 **Không có:** địa chỉ đầy đủ, email, ghi chú, tên Nhân viên, lý do nội bộ, thao tác hủy hoặc sửa, câu khẳng định đã trả tiền hay sẽ được hoàn, `refund-flag-label`, kết quả xử lý hoàn tiền, ngày giao dự kiến.
 
@@ -162,12 +162,12 @@ Giọng thương hiệu nằm trong DESIGN.md. Câu chữ: tiếng Việt có d�
 | `store-header` | Khu Khách hàng | Giữ nguyên. Mục "Đơn hàng" dẫn tới Tra đơn. |
 | `store-footer` | Khu Khách hàng | Giữ nguyên. Không xuất hiện ở khu nhân viên. |
 | `price-tag` | Cửa hàng, đơn | Giữ nguyên. |
-| `quantity-input` | Sản phẩm, giỏ hàng | Giữ nguyên, giới hạn theo Tồn kho và `MAX_QUANTITY_PER_ITEM`. |
+| `quantity-input` | Sản phẩm, giỏ hàng | Giữ nguyên hình thức. Khi đã biết Tồn kho, chặn tăng vượt `min(Tồn kho, 10)` (10 là `MAX_QUANTITY_PER_ITEM`), tính cả số đã có trong giỏ; không tự giảm số đã có. Lỗi tải Tồn kho thì giới hạn 10. |
 | `rating-stars` | Cửa hàng | Giữ nguyên, chỉ hiển thị. |
 | `staff-header` | Khu nhân viên | Hiện tên người đăng nhập. `Đăng xuất` hủy phiên và về `/staff/login`. |
 | `order-search` | `/staff` | Tìm theo Mã đơn hoặc số điện thoại trên **mọi tab**. Gửi bằng Enter hoặc nút `Tìm`. Gửi ô rỗng thì trở về tab trước đó. Từ khóa chỉ giữ trong bộ nhớ, **không lên URL**, không lưu bền, mất khi tải lại trang. Khớp chính xác sau khi chuẩn hóa `0...` và `+84...`. `[ASSUMPTION: A5]` |
 | `order-tabs` | `/staff` | 4 cột trên một hàng ở 390px, không cuộn ngang. Kích hoạt thủ công: phím mũi tên chỉ di chuyển focus, `Enter` hoặc `Space` mới đổi tab. Đổi tab tải lại dữ liệu nhóm đó. Khi xem kết quả tìm kiếm, tab trước đó vẫn được đánh dấu (`aria-selected="true"`, `tabindex="0"`) và kết quả nằm trong vùng riêng có nhãn. Kích hoạt tab khác hoặc chính tab đang đánh dấu thì rời kết quả và xóa từ khóa. `[ASSUMPTION: A21]` |
-| `tab-count` | Tab Cần hoàn tiền | Đếm đơn có cờ chưa xử lý, không phụ thuộc từ khóa tìm kiếm, ẩn khi bằng 0, cập nhật sau thao tác hoặc khi tải trang. `[ASSUMPTION: A7]` |
+| `tab-count` | Tab Cần hoàn tiền | Đếm đơn có cờ chưa xử lý, không phụ thuộc từ khóa tìm kiếm, ẩn khi bằng 0, cập nhật sau thao tác hoặc khi tải trang. Nguồn: `refundPendingCount` trong response danh sách và tìm kiếm. `[ASSUMPTION: A7]` |
 | `order-row` | `/staff`, màn hẹp | Mã đơn là link thật, vùng bấm mở rộng ra cả thẻ bằng lớp phủ. `tel-link` nằm trên lớp phủ, là vùng bấm riêng, không mở Chi tiết đơn. Không đặt nút đổi Trạng thái trên dòng. |
 | `order-table` | `/staff`, màn rộng | Như `order-row`, lớp phủ tính trên cả dòng. |
 | `overdue-label` | Dòng, bảng, Chi tiết đơn | Chỉ cho đơn chuyển khoản Chờ xác nhận quá 24 giờ. Không tự hủy đơn. Mất nhãn khi đơn rời Chờ xác nhận. |
@@ -180,7 +180,7 @@ Giọng thương hiệu nằm trong DESIGN.md. Câu chữ: tiếng Việt có d�
 | `masked-recipient` | Trang xác nhận | Chỉ nhận dữ liệu đã che từ server. |
 | `stock-conflict-row` | `/checkout` | `Lấy N` đặt số lượng về N. `Bỏ` xóa dòng. Giỏ hàng và tổng tiền cập nhật ngay, gồm cả phí giao nếu đơn xuống dưới ngưỡng miễn phí. Khách không phải quay lại giỏ. N=0 chỉ có `Hết hàng` và `Bỏ`. |
 | `action-dialog` | Chi tiết đơn | Bẫy focus. `Quay lại` đóng ngay. `Esc` đóng ngay khi chưa nhập; nếu đã chọn lý do, chọn kết quả hoặc gõ chữ thì hỏi lại ngay trong hộp thoại, không mở hộp thoại thứ hai `[ASSUMPTION: A22]`. `Esc` lần hai tương đương `Tiếp tục nhập`. Khi đang gửi, khóa mọi cách đóng hộp thoại. Bấm nền không đóng khi đã nhập dữ liệu `[ASSUMPTION: A9]`. Đích focus theo [Accessibility Floor](#accessibility-floor). |
-| `reason-option` | Hộp thoại Hủy, Lùi đơn, Đã xử lý hoàn tiền | Không chọn sẵn khi mở hộp thoại. Chọn đúng một. Ô `Nhập lý do` chỉ hiện khi chọn `Khác`, bắt buộc có chữ; chuỗi chỉ có khoảng trắng không hợp lệ. Trong hộp thoại Hủy, ghi chú Tồn kho hiện sau khi chọn lý do và đổi theo lý do; chọn `Khác` hiện thêm câu nhắc chọn `Hết hàng`. Các thay đổi này đọc qua `aria-live`. |
+| `reason-option` | Hộp thoại Hủy, Lùi đơn, Đã xử lý hoàn tiền | Không chọn sẵn khi mở hộp thoại. Chọn đúng một. Ô `Nhập lý do` chỉ hiện khi chọn `Khác`, bắt buộc có chữ, tối đa 200 ký tự; chuỗi chỉ có khoảng trắng không hợp lệ; đổi lựa chọn thì xóa chữ đã nhập. Trong hộp thoại Hủy, ghi chú Tồn kho hiện sau khi chọn lý do và đổi theo lý do; chọn `Khác` hiện thêm câu nhắc chọn `Hết hàng`. Các thay đổi này đọc qua `aria-live`. |
 | `toast` | Khu nhân viên | Báo ngắn sau thao tác, tự ẩn, không chặn thao tác, đọc qua `aria-live`. `[ASSUMPTION: A19]` |
 | `history-list` | Chi tiết đơn | Theo thời gian, cũ trước. Chỉ đọc. Giữ cả dòng đã bị Lùi đơn sửa. Hiện người thực hiện, thời gian, Trạng thái cũ, Trạng thái mới, lý do. Dòng tạo đơn hiện `Tạo đơn` thay Trạng thái cũ. Dòng hoàn tiền hiện `Đã xử lý hoàn tiền: {kết quả}` thay cho cặp Trạng thái; ghi thêm kết quả là một dòng mới. |
 
@@ -209,7 +209,7 @@ Giọng thương hiệu nằm trong DESIGN.md. Câu chữ: tiếng Việt có d�
 | `/staff/login` | Đã đăng nhập | Chuyển về `/staff`. |
 | `/staff/login` | Sai, bị chặn | `error-banner`, giữ tên đăng nhập, xóa mật khẩu. `[ASSUMPTION: A14]` |
 | `/staff/login` | Lỗi mạng hoặc máy chủ | `error-banner` `Chưa thực hiện được. Vui lòng thử lại.`, giữ tên đăng nhập. `[ASSUMPTION: A14]` |
-| Khu nhân viên | Chưa đăng nhập, hết phiên | Về `/staff/login`. Đăng nhập lại thì về đúng trang đang xem, kể cả đơn ở `/staff/orders/:id`. Chỉ nhận đích nội bộ trong `/staff`. `[ASSUMPTION: A14]` cho câu báo |
+| Khu nhân viên | Chưa đăng nhập, hết phiên | Về `/staff/login`. Hết phiên dùng `/staff/login?next=<đích>&expired=1`; trang đăng nhập chỉ hiện câu hết phiên khi có `expired=1`. Đăng nhập lại thì về đúng trang đang xem, kể cả đơn ở `/staff/orders/:id`. Chỉ nhận đích nội bộ trong `/staff`. `[ASSUMPTION: A14]` cho câu báo |
 | Khu nhân viên | Sai vai (403) | Nút đã ẩn. Nếu vẫn gặp 403: đóng hộp thoại nếu đang mở, hiện `error-banner` đầu trang, tải lại đơn. `[ASSUMPTION: A14]` |
 | `/staff` | Đang tải | Khung chờ `{colors.surface-skeleton}`. `[ASSUMPTION: A18]` |
 | `/staff` | Lỗi tải danh sách hoặc kết quả tìm | `error-banner` `Chưa thực hiện được. Vui lòng thử lại.`, cho thử lại. `[ASSUMPTION: A14]` |
@@ -230,7 +230,8 @@ Giọng thương hiệu nằm trong DESIGN.md. Câu chữ: tiếng Việt có d�
 | `/staff/orders/:id` | Đã ghi `Khách chưa chuyển tiền`, vai Quản lý | Hiện `Ghi thêm: Đã hoàn tiền`; bấm mở `action-dialog` không cần chọn kết quả. `[ASSUMPTION: A23]` |
 | `/staff/orders/:id` | Thành công, ghi thêm `Đã hoàn tiền` | `toast` hoàn tiền, Lịch sử thêm dòng mới và giữ dòng cũ, nhãn giữ `Đã xử lý hoàn tiền`, nút đổi thành `Đính chính: Khách chưa chuyển tiền`. `[ASSUMPTION: A23]` |
 | `/staff/orders/:id` | Thành công, đính chính | Lịch sử thêm dòng đính chính kèm lý do và giữ dòng cũ, nhãn giữ `Đã xử lý hoàn tiền`, nút đổi thành `Ghi thêm: Đã hoàn tiền`. `[ASSUMPTION: A24]` |
-| `/staff/orders/:id` | Ghi kết quả hoàn tiền trùng | Server chỉ nhận lần ghi đầu và trả lỗi xung đột (không dùng `INVALID_STATUS_TRANSITION` vì Trạng thái không đổi). Giao diện xử lý như Xung đột đồng thời. |
+| `/staff/orders/:id` | Đính chính thiếu lý do | Báo lỗi tại trường, giữ hộp thoại và dữ liệu đã nhập. Không coi là xung đột. |
+| `/staff/orders/:id` | Ghi kết quả hoàn tiền trùng, lệch kết quả mới nhất hoặc đơn không đủ điều kiện | Server chỉ nhận lần ghi đầu và trả lỗi xung đột (không dùng `INVALID_STATUS_TRANSITION` vì Trạng thái không đổi). Giao diện xử lý như Xung đột đồng thời. |
 | `/staff/orders/:id` | Xung đột đồng thời | Đóng hộp thoại nếu đang mở, hiện `error-banner` đầu trang `Đơn vừa được người khác cập nhật`, tải lại Trạng thái mới nhất. Không ghi dòng Lịch sử cho bên thua. |
 | `/staff/orders/:id` | Lỗi mạng hoặc máy chủ | Trong hộp thoại: giữ hộp thoại và lý do đã chọn, hiện `error-banner` trong hộp thoại, cho thử lại. Thao tác một lần bấm: hiện `error-banner` đầu trang. `[ASSUMPTION: A14]` |
 | Hộp thoại lý do | Thiếu lý do | Báo lỗi tại trường, không gửi. `[ASSUMPTION: A14]` |
@@ -420,7 +421,7 @@ Ghi thêm và đính chính đều tạo một dòng Lịch sử mới, dòng c�
 | Đã hủy, COD | `Đơn đã hủy. Cần hỗ trợ, vui lòng liên hệ shop qua {số}.` | Số nằm trong câu | Không |
 | Đã hủy, chuyển khoản | `Đơn đã hủy. Nếu bạn đã chuyển khoản, vui lòng liên hệ shop qua {số}.` | Số nằm trong câu | Không |
 
-`{số}` lấy từ `SHOP_CONTACT_PHONE`. Số tài khoản cũng lấy từ biến cấu hình, giá trị thật chưa có và không chặn UX.
+`{số}` lấy từ `SHOP_CONTACT_PHONE`. Số tài khoản và tên ngân hàng lấy từ `BANK_ACCOUNT_NUMBER`, `BANK_NAME`. Thiếu biến thì server không khởi động. Giá trị thật chưa có và không chặn UX.
 
 ### Quy tắc mốc thời gian phía Khách hàng
 
@@ -440,12 +441,14 @@ Dạng hiển thị: `Ng***` và `090****001`. Việc che thực hiện ở serv
 
 ## Thay đổi cần cập nhật ở PRD
 
+Các thay đổi dưới đây đã được áp dụng vào PRD và addendum; bảng giữ lại làm dấu vết quyết định.
+
 | # | Vị trí trong PRD | PRD hiện ghi | Quyết định UX | Việc cần làm |
 |---|---|---|---|---|
 | 1 | Addendum, bản đồ route | Chỉ có `/staff`, `/staff/login` | Thêm **`/staff/orders/:id`** chứa thông tin đơn, thao tác, Lịch sử | Thêm route |
 | 2 | FR-9, mục 3 (Hàng đợi, Trang nhân viên) | Chỉ có Hàng đợi | Thêm **ô tìm** theo Mã đơn hoặc số điện thoại trên mọi tab, và **4 tab**: Cần xử lý, Đã giao, Đã hủy, Cần hoàn tiền | Thêm FR hoặc mở rộng FR-9; thêm `Danh sách đơn`, `Chi tiết đơn` và tên 4 tab vào Glossary; bổ sung API danh sách và tìm kiếm không đưa số điện thoại lên URL |
 | 3 | FR-7 | Số shop chỉ hiện ở Chờ xác nhận, Đã xác nhận, đơn chuyển khoản đã hủy | **Số shop hiện ở mọi Trạng thái**, câu hướng dẫn đổi theo Trạng thái | Sửa FR-7 và thêm câu chữ đã chốt |
-| 4 | Mục 3, FR-2, FR-5, FR-6 | Dữ liệu tối thiểu chỉ gồm Trạng thái, mốc, tên sản phẩm, tên và số đã che; mâu thuẫn với Trang xác nhận | **Định nghĩa lại Dữ liệu tối thiểu:** Trạng thái, mốc thời gian, sản phẩm, tổng tiền, phương thức, thông tin chuyển khoản khi còn Chờ xác nhận, tên và số đã che, số shop; không có địa chỉ đầy đủ. Tra đơn và Trang xác nhận dùng chung một trang | Sửa glossary và FR-2 |
+| 4 | Mục 3, FR-2, FR-5, FR-6 | Dữ liệu tối thiểu chỉ gồm Trạng thái, mốc, tên sản phẩm, tên và số đã che; mâu thuẫn với Trang xác nhận | **Định nghĩa lại Dữ liệu tối thiểu:** Trạng thái, giờ đặt, mốc thời gian, sản phẩm (ảnh, tên, số lượng, đơn giá, thành tiền), tạm tính, phí giao hàng, tổng tiền, phương thức, thông tin chuyển khoản khi còn Chờ xác nhận, tên và số đã che, số shop; không có địa chỉ đầy đủ. Tra đơn và Trang xác nhận dùng chung một trang | Sửa glossary và FR-2 |
 | 5 | FR-19 | Chỉ cho bỏ dòng thiếu | Thêm **giảm số lượng** bằng `Lấy N`; N=0 chỉ có `Hết hàng` và `Bỏ`; giỏ hàng cập nhật theo. **`INSUFFICIENT_STOCK` phải trả mọi dòng thiếu** kèm `productId`, số yêu cầu, số còn lại | **Bắt buộc** sửa FR-19. Code hiện dừng ở dòng thiếu đầu tiên (`src/features/orders/order-service.ts:70-75`), cần đổi khi build |
 | 6 | FR-21, FR-14, FR-7, §9 | "Đánh dấu đã xử lý, ghi Lịch sử"; "Hệ thống không lưu trạng thái đã thanh toán"; mốc lấy dòng Lịch sử mới nhất của Trạng thái | Thao tác **`Đã xử lý hoàn tiền`** với hai kết quả `Đã hoàn tiền` / `Khách chưa chuyển tiền`; chỉ Quản lý, nút ở Chi tiết đơn, có hộp xác nhận. Kết quả là **ghi chú xử lý trong Lịch sử, không phải trạng thái thanh toán**, Khách hàng không thấy, chỉ quyết định việc rời tab Cần hoàn tiền và ghi thêm. Sau `Khách chưa chuyển tiền`, Quản lý được ghi thêm `Đã hoàn tiền`, dòng cũ vẫn giữ. Nhãn `Cần hoàn tiền` / `Đã xử lý hoàn tiền` trên dòng, bảng và Chi tiết đơn; COD không có nhãn. **Dòng hoàn tiền không đổi mốc khách thấy** | **Bắt buộc** sửa FR-21, gồm câu thành: "Hệ thống không lưu trạng thái thanh toán và không chuyển tiền; kết quả xử lý hoàn tiền chỉ là ghi chú của Quản lý trong Lịch sử". FR-7 loại dòng này khi tính mốc; FR-14 nêu cách ghi dòng không đổi Trạng thái; cập nhật §9 |
 | 7 | FR-7 | Mỗi mốc lấy từ dòng Lịch sử mới nhất của Trạng thái đó | Sau Lùi đơn, **mốc Đang giao giữ giờ ban đầu**, không lấy giờ của dòng Lùi đơn | Thêm ngoại lệ vào FR-7 |
@@ -454,7 +457,7 @@ Dạng hiển thị: `Ng***` và `090****001`. Việc che thực hiện ở serv
 | 10 | FR-13 | Nhân viên gọi thao tác nhận 403 | Thêm: Nhân viên không thấy nút Lùi đơn | Bổ sung |
 | 11 | FR-10 | Bên thua nhận `INVALID_STATUS_TRANSITION` | Giữ mã lỗi; giao diện báo `Đơn vừa được người khác cập nhật` và tải lại | Bổ sung câu chữ |
 | 12 | FR-2 | Tên và số điện thoại được che | Chốt dạng `Ng***` và `090****001`; tên 1-2 ký tự giữ ký tự đầu; số chuẩn hóa về `0...` trước khi che | Bổ sung |
-| 13 | Addendum, `PATCH /api/orders/:id` | Theo FR-10, FR-12, FR-13 | Cần thêm đường cho `Đã xử lý hoàn tiền` và ghi thêm `Đã hoàn tiền` của Quản lý. Đính chính về `Khách chưa chuyển tiền` kèm lý do. Mỗi thao tác chỉ hợp lệ theo kết quả mới nhất, lần ghi trùng nhận lỗi xung đột | Kiến trúc chốt |
+| 13 | Addendum, `PATCH /api/orders/:id` | Theo FR-10, FR-12, FR-13 | Cần thêm đường cho `Đã xử lý hoàn tiền` và ghi thêm `Đã hoàn tiền` của Quản lý. Đính chính về `Khách chưa chuyển tiền` kèm lý do. Mỗi thao tác chỉ hợp lệ theo kết quả mới nhất, lần ghi trùng nhận lỗi xung đột | Đã chốt ở AD-14, AD-19: `POST /api/staff/orders/:id/refund-outcomes` |
 | 14 | FR-17 | Luôn hoàn Tồn kho đúng một lần khi hủy; Tồn kho sau khi hoàn bằng số trước khi đặt | Hủy với mã **`out_of_stock` không hoàn Tồn kho cho toàn bộ đơn**; mọi mã khác, kể cả `other`, vẫn hoàn đúng một lần | **Bắt buộc** thêm ngoại lệ theo mã vào FR-17 và consequence kiểm thử tương ứng |
 | 15 | §4.6, mô tả | Tồn kho "hoàn khi hủy" | Hoàn khi hủy, trừ mã `out_of_stock` | Sửa câu mô tả |
 | 16 | §4.8, Thay đổi có chủ đích | "Tồn kho trừ khi đặt và hoàn khi hủy" | Như dòng 15 | Sửa dòng bảng |
@@ -475,7 +478,7 @@ Các giả định dưới đây giữ thẻ `[ASSUMPTION]` để xem lại ở 
 |---|---|
 | A2 | Điểm chuyển bố cục danh sách, chi tiết và Lịch sử là `md` (768px) |
 | A3 | Mục tiêu WCAG 2.2 AA cho màn hình mới |
-| A4 | Thứ tự tab: Đã giao, Đã hủy theo thay đổi mới nhất trước; Cần hoàn tiền theo cũ nhất trước |
+| A4 | Thứ tự tab: Đã giao theo thay đổi mới nhất trước; Cần hoàn tiền theo cũ nhất trước. Thứ tự tab Đã hủy đã được landv duyệt nên không còn thuộc giả định này |
 | A5 | Tìm khớp chính xác Mã đơn (không phân biệt hoa thường) hoặc số điện thoại đã chuẩn hóa; kết quả gộp mọi nhóm, mới nhất trước; quay lại từ Chi tiết đơn giữ tab và từ khóa trong bộ nhớ |
 | A6 | Giữ hàng Ngân hàng trong `bank-transfer-card` như code và mock, dù FR-6 không liệt kê |
 | A7 | `tab-count` dạng viên thuốc, đếm đơn có cờ chưa xử lý, độc lập với tìm kiếm, ẩn khi bằng 0 |
@@ -499,11 +502,14 @@ Giả định từ memlog: số điện thoại shop và số tài khoản thậ
 
 ## Open Questions
 
-1. **Giá trị cấu hình:** số thật của `SHOP_CONTACT_PHONE` và số tài khoản là gì, tên biến cấu hình cho tài khoản ngân hàng là gì, và trang hiển thị thế nào nếu biến chưa được đặt?
+1. **Giá trị cấu hình:** số thật của `SHOP_CONTACT_PHONE` và `BANK_ACCOUNT_NUMBER` là gì?
 
-### Chuyển sang bước kiến trúc
+### Đã chốt ở bước kiến trúc
 
-- **Phân trang:** FR-9 chỉ nói Hàng đợi không phân trang. Tab Đã giao và Đã hủy sẽ dài dần; có cần giới hạn hoặc phân trang không?
-- **Cách lưu dòng hoàn tiền:** dòng Lịch sử này không đổi Trạng thái và phải giữ được kết quả, nên ghi Trạng thái cũ và mới giống nhau hay thêm loại sự kiện? Điều kiện: không đổi mốc khách thấy.
-- **Độ dài lý do `Khác`:** giới hạn bao nhiêu ký tự?
-- **Mã lý do:** tên mã của các lý do ngoài `out_of_stock` và `other`.
+- **Biến ngân hàng:** `BANK_NAME`, `BANK_ACCOUNT_NUMBER`.
+- **Thiếu biến cấu hình:** server không khởi động và chỉ log tên biến (AD-31).
+- **Phân trang:** Hàng đợi và tab Cần hoàn tiền không phân trang; tab Đã giao và Đã hủy tải 50 đơn mỗi lần (AD-19).
+- **Cách lưu dòng hoàn tiền:** dùng `event_type = refund_outcome_recorded`, không ghi Trạng thái cũ và mới giống nhau, không đổi mốc khách thấy (AD-12).
+- **Độ dài lý do:** `Khác` và đính chính hoàn tiền tối đa 200 ký tự.
+- **Mã lý do Hủy:** `customer_changed_mind`, `unreachable`, `duplicate`, `out_of_stock`, `other`.
+- **Mã lý do Lùi đơn:** `mistaken_delivery`, `customer_not_received`, `other`.
