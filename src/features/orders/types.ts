@@ -39,6 +39,17 @@ export interface OrderItem {
   lineTotal: number;
 }
 
+export type OrderActor = "customer" | "staff";
+export type OrderHistoryAction = "transition" | "restock";
+
+export interface OrderStatusEvent {
+  status: OrderStatus;
+  at: string;
+  actor: OrderActor;
+  action: OrderHistoryAction;
+  note?: string;
+}
+
 export interface Order {
   id: string;
   status: OrderStatus;
@@ -51,4 +62,6 @@ export interface Order {
   subtotal: number;
   shippingFee: number;
   total: number;
+  statusHistory?: OrderStatusEvent[];
+  inventoryRestocked?: boolean;
 }
