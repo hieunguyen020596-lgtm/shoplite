@@ -18,9 +18,13 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "db:migrate": "node --env-file-if-exists=.env --import ./scripts/ts-hooks.mjs scripts/db-migrate.ts",
+    "db:seed": "node --env-file-if-exists=.env --import ./scripts/ts-hooks.mjs scripts/db-seed.ts",
+    "db:test:prepare": "node --env-file-if-exists=.env --import ./scripts/ts-hooks.mjs scripts/db-test-prepare.ts",
+    "test:db": "vitest run --config vitest.db.config.mts",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
-    "check": "npm run lint && npm run typecheck && npm run test"
+    "check": "npm run lint && npm run typecheck && npm run test",
+    "check:full": "npm run check && npm run db:test:prepare && npm run test:db"
   },
   "dependencies": {
     "clsx": "^2.1.1",

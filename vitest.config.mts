@@ -14,6 +14,7 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: ["./vitest.setup.ts"],
     include: ["src/**/*.test.{ts,tsx}"],
+    exclude: ["**/node_modules/**", "**/*.db.test.*"],
     css: false,
     coverage: {
       provider: "v8",
