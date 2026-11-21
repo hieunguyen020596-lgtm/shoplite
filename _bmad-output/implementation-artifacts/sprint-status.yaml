@@ -1,0 +1,93 @@
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic not yet started
+#   - in-progress: Epic actively being worked on
+#   - done: All stories in epic completed
+
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - ready-for-dev: Story file created, ready for development
+#   - in-progress: Developer actively working on implementation
+#   - review: Implementation complete, ready for review
+#   - done: Story completed
+
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - done: Retrospective has been completed
+
+# Action Item Status:
+#   - open: Committed during a retrospective, not yet addressed
+#   - in-progress: Actively being worked on
+#   - done: Completed
+
+# WORKFLOW NOTES:
+# ===============
+# - Epic transitions to 'in-progress' automatically when its first story starts (via build's sprint sync)
+# - Stories can be worked in parallel if team capacity allows
+# - Developer typically creates the next story after the previous one is 'done' to incorporate learnings
+# - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
+# - Retrospective appends its action items to action_items; the status view surfaces open ones
+generated: 11-21-2026 14:03
+last_updated: 11-21-2026 14:03
+project: shoplite
+project_key: NOKEY
+tracking_system: file-system
+story_location: _bmad-output/implementation-artifacts
+# Sprint 1 (21/11 - 28/11): nang nen Next, chay thu Drizzle, dung nen cau hinh va schema PostgreSQL
+development_status:
+  epic-1: backlog
+  1-1-nâng-next-16-4-6-và-engines-node-22-18: ready-for-dev
+  1-2-cổng-spike-drizzle-trên-next-16-4-6: ready-for-dev
+  1-3-nền-cấu-hình-log-an-toàn-và-ranh-giới-lớp: ready-for-dev
+  1-4-schema-đơn-hàng-migration-và-trigger-lịch-sử: ready-for-dev
+  1-5-seed-tồn-kho-và-cổng-test-db-trên-postgresql-thật: backlog
+  1-6-tồn-kho-một-chủ-đọc-và-giỏ-hàng-theo-tồn-kho-thật: backlog
+  1-7-đặt-hàng-trừ-tồn-kho-nguyên-tử-trong-postgresql: backlog
+  1-8-chống-đơn-ảo-theo-ip-và-số-điện-thoại: backlog
+  1-9-giữ-form-khi-hết-hàng: backlog
+  epic-1-retrospective: optional
+
+  epic-2: backlog
+  2-1-quyền-xem-đơn-bằng-cookie-ký: backlog
+  2-2-projection-cho-khách-và-mốc-thời-gian: backlog
+  2-3-trang-xác-nhận-trạng-thái-mốc-và-bước-kế-tiếp: backlog
+  2-4-thông-tin-chuyển-khoản-và-mã-đơn: backlog
+  2-5-trạng-thái-tải-lỗi-và-không-có-quyền-của-trang-xác-nhận: backlog
+  epic-2-retrospective: optional
+
+  epic-3: backlog
+  3-1-dịch-vụ-và-api-tra-đơn-có-giới-hạn: backlog
+  3-2-trang-tra-đơn-và-lối-vào-từ-menu: backlog
+  3-3-chặn-dò-mã-đơn-và-link-đơn-cũ: backlog
+  epic-3-retrospective: optional
+
+  epic-4: backlog
+  4-1-tài-khoản-nhân-viên-phiên-và-api-đăng-nhập: backlog
+  4-2-guard-csrf-và-chuyển-hướng-cho-khu-nhân-viên: backlog
+  4-3-khung-khu-nhân-viên-và-trang-đăng-nhập: backlog
+  4-4-api-danh-sách-tìm-kiếm-và-chi-tiết-đơn-cho-nhân-viên: backlog
+  4-5-trang-hàng-đợi-và-danh-sách-đơn: backlog
+  4-6-chi-tiết-đơn-nhân-viên-và-lịch-sử-chỉ-đọc: backlog
+  epic-4-retrospective: optional
+
+  epic-5: backlog
+  5-1-máy-trạng-thái-thuần-và-mã-lý-do: backlog
+  5-2-ghi-chuyển-trạng-thái-nguyên-tử-và-api-patch-nhân-viên: backlog
+  5-3-hộp-thoại-thao-tác-và-quy-tắc-lý-do-khác: backlog
+  5-4-xác-nhận-đơn-chuyển-đang-giao-và-đã-giao-hai-lần: backlog
+  5-5-hủy-đơn-kèm-lý-do: backlog
+  5-6-lùi-đơn-của-quản-lý: backlog
+  epic-5-retrospective: optional
+
+  epic-6: backlog
+  6-1-ghi-kết-quả-hoàn-tiền-theo-kết-quả-mới-nhất: backlog
+  6-2-nhãn-hoàn-tiền-và-tab-cần-hoàn-tiền: backlog
+  6-3-hộp-thoại-hoàn-tiền-ghi-thêm-và-đính-chính: backlog
+  epic-6-retrospective: optional
+
+  epic-7: backlog
+  7-1-đóng-nốt-route-đọc-đơn-cũ: backlog
+  7-2-dọn-lưu-trữ-cũ-và-viết-lại-test-bị-ảnh-hưởng: backlog
+  7-3-e2e-toàn-tuyến-và-chốt-điều-kiện-phát-hành: backlog
+  epic-7-retrospective: optional

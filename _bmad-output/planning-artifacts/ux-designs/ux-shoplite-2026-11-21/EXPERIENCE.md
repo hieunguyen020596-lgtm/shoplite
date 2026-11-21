@@ -140,7 +140,7 @@ Giọng thương hiệu nằm trong DESIGN.md. Câu chữ: tiếng Việt có d�
 | Hỏi lại khi `Esc` | `Bỏ nội dung đã nhập?`, nút `Tiếp tục nhập`, `Bỏ` | `[ASSUMPTION: A22]` |
 | Nút ghi thêm kết quả hoàn tiền | `Ghi thêm: Đã hoàn tiền` | `[ASSUMPTION: A23]` |
 | Hộp thoại ghi thêm kết quả | Tiêu đề `Ghi thêm kết quả Đã hoàn tiền?`, Mã đơn, `Dòng Khách chưa chuyển tiền vẫn giữ trong Lịch sử. Hệ thống không chuyển tiền.`, nút `Quay lại`, `Xác nhận` | `[ASSUMPTION: A23]` |
-| Nút và hộp thoại đính chính | Nút `Đính chính: Khách chưa chuyển tiền`; hộp thoại có Mã đơn, ô `Nhập lý do` bắt buộc, `Dòng Đã hoàn tiền vẫn giữ trong Lịch sử.`, nút `Quay lại`, `Xác nhận` | `[ASSUMPTION: A24]` |
+| Nút và hộp thoại đính chính | Nút `Đính chính: Khách chưa chuyển tiền`; hộp thoại có Mã đơn, ô `Nhập lý do` bắt buộc (`maxlength="200"`, bộ đếm `x/200`, đếm `.length` sau `trim`), `Dòng Đã hoàn tiền vẫn giữ trong Lịch sử.`, nút `Quay lại`, `Xác nhận` | `[ASSUMPTION: A24]` |
 
 ## Component Patterns
 
@@ -180,7 +180,7 @@ Giọng thương hiệu nằm trong DESIGN.md. Câu chữ: tiếng Việt có d�
 | `masked-recipient` | Trang xác nhận | Chỉ nhận dữ liệu đã che từ server. |
 | `stock-conflict-row` | `/checkout` | `Lấy N` đặt số lượng về N. `Bỏ` xóa dòng. Giỏ hàng và tổng tiền cập nhật ngay, gồm cả phí giao nếu đơn xuống dưới ngưỡng miễn phí. Khách không phải quay lại giỏ. N=0 chỉ có `Hết hàng` và `Bỏ`. |
 | `action-dialog` | Chi tiết đơn | Bẫy focus. `Quay lại` đóng ngay. `Esc` đóng ngay khi chưa nhập; nếu đã chọn lý do, chọn kết quả hoặc gõ chữ thì hỏi lại ngay trong hộp thoại, không mở hộp thoại thứ hai `[ASSUMPTION: A22]`. `Esc` lần hai tương đương `Tiếp tục nhập`. Khi đang gửi, khóa mọi cách đóng hộp thoại. Bấm nền không đóng khi đã nhập dữ liệu `[ASSUMPTION: A9]`. Đích focus theo [Accessibility Floor](#accessibility-floor). |
-| `reason-option` | Hộp thoại Hủy, Lùi đơn, Đã xử lý hoàn tiền | Không chọn sẵn khi mở hộp thoại. Chọn đúng một. Ô `Nhập lý do` chỉ hiện khi chọn `Khác`, bắt buộc có chữ, tối đa 200 ký tự; chuỗi chỉ có khoảng trắng không hợp lệ; đổi lựa chọn thì xóa chữ đã nhập. Trong hộp thoại Hủy, ghi chú Tồn kho hiện sau khi chọn lý do và đổi theo lý do; chọn `Khác` hiện thêm câu nhắc chọn `Hết hàng`. Các thay đổi này đọc qua `aria-live`. |
+| `reason-option` | Hộp thoại Hủy, Lùi đơn, Đã xử lý hoàn tiền | Không chọn sẵn khi mở hộp thoại. Chọn đúng một. Ô `Nhập lý do` chỉ hiện khi chọn `Khác`, bắt buộc có chữ, tối đa 200 ký tự: chặn nhập ở 200 ký tự bằng `maxlength="200"`, luôn hiện bộ đếm `x/200`, đếm theo `.length` JavaScript (UTF-16) sau `trim` ở cả bộ đếm và server, server vẫn trả `VALIDATION_ERROR` nếu vượt; áp dụng cả ô lý do của hộp thoại đính chính hoàn tiền; chuỗi chỉ có khoảng trắng không hợp lệ; đổi lựa chọn thì xóa chữ đã nhập. Trong hộp thoại Hủy, ghi chú Tồn kho hiện sau khi chọn lý do và đổi theo lý do; chọn `Khác` hiện thêm câu nhắc chọn `Hết hàng`. Các thay đổi này đọc qua `aria-live`. |
 | `toast` | Khu nhân viên | Báo ngắn sau thao tác, tự ẩn, không chặn thao tác, đọc qua `aria-live`. `[ASSUMPTION: A19]` |
 | `history-list` | Chi tiết đơn | Theo thời gian, cũ trước. Chỉ đọc. Giữ cả dòng đã bị Lùi đơn sửa. Hiện người thực hiện, thời gian, Trạng thái cũ, Trạng thái mới, lý do. Dòng tạo đơn hiện `Tạo đơn` thay Trạng thái cũ. Dòng hoàn tiền hiện `Đã xử lý hoàn tiền: {kết quả}` thay cho cặp Trạng thái; ghi thêm kết quả là một dòng mới. |
 
@@ -193,14 +193,14 @@ Giọng thương hiệu nằm trong DESIGN.md. Câu chữ: tiếng Việt có d�
 | `/checkout` | Tồn kho đổi tiếp khi đặt lại | Hiện lại `stock-conflict-row` với N mới, form giữ nguyên. |
 | `/checkout` | Bỏ hết mọi dòng | Hiện trạng thái giỏ trống hiện có. `[ASSUMPTION: A17]` |
 | `/checkout` | `RATE_LIMITED` | `error-banner`, form giữ nguyên, không tạo đơn, không trừ kho. `[ASSUMPTION: A14]` |
-| `/orders` | Mặc định | Form trống hoặc Mã đơn điền sẵn. |
+| `/orders` | Mặc định | Form trống hoặc Mã đơn điền sẵn qua `/orders?orderId=<Mã đơn>`; số điện thoại không bao giờ ở URL. |
 | `/orders` | Đang gửi | Nút gửi disabled để chống bấm đúp. `[ASSUMPTION: A18]` |
 | `/orders` | Sai thông tin hoặc bị chặn | Cùng một câu `Thông tin không đúng`. Giữ Mã đơn. |
 | `/orders` | Đơn cũ không chuyển sang DB | Như sai thông tin. |
 | `/orders` | Lỗi mạng hoặc máy chủ | `error-banner` `Chưa thực hiện được. Vui lòng thử lại.`, giữ dữ liệu đã nhập. Không dùng `Thông tin không đúng`. `[ASSUMPTION: A14]` |
 | `/orders/:id` | Đang tải | Khung chờ `{colors.surface-skeleton}`. `[ASSUMPTION: A18]` |
 | `/orders/:id` | Lỗi tải | Báo `Chưa thực hiện được. Vui lòng thử lại.`, cho thử lại. `[ASSUMPTION: A14]` |
-| `/orders/:id` | Không có quyền, cookie sai hoặc hết hạn | Chuyển tới `/orders` với Mã đơn điền sẵn, không tự chuyển ngược lại. |
+| `/orders/:id` | Không có quyền, cookie sai hoặc hết hạn | Chuyển tới `/orders?orderId=<Mã đơn>` (Mã đơn điền sẵn), không tự chuyển ngược lại. |
 | `/orders/:id` | Vừa đặt | `success-banner` với `Đặt hàng thành công`. |
 | `/orders/:id` | Tải lại | Giữ nguyên nội dung nhờ Quyền xem đơn. |
 | `/orders/:id` | 5 Trạng thái | Theo bảng "Những gì Khách hàng thấy". |
@@ -510,6 +510,6 @@ Giả định từ memlog: số điện thoại shop và số tài khoản thậ
 - **Thiếu biến cấu hình:** server không khởi động và chỉ log tên biến (AD-31).
 - **Phân trang:** Hàng đợi và tab Cần hoàn tiền không phân trang; tab Đã giao và Đã hủy tải 50 đơn mỗi lần (AD-19).
 - **Cách lưu dòng hoàn tiền:** dùng `event_type = refund_outcome_recorded`, không ghi Trạng thái cũ và mới giống nhau, không đổi mốc khách thấy (AD-12).
-- **Độ dài lý do:** `Khác` và đính chính hoàn tiền tối đa 200 ký tự.
+- **Độ dài lý do:** `Khác` và đính chính hoàn tiền tối đa 200 ký tự, `maxlength="200"`, bộ đếm `x/200`, đếm `.length` JavaScript sau `trim`, server trả `VALIDATION_ERROR` nếu vượt.
 - **Mã lý do Hủy:** `customer_changed_mind`, `unreachable`, `duplicate`, `out_of_stock`, `other`.
 - **Mã lý do Lùi đơn:** `mistaken_delivery`, `customer_not_received`, `other`.

@@ -230,7 +230,7 @@ Nhân viên có thể hủy đơn Chờ xác nhận hoặc Đã xác nhận, b�
 
 **Consequences (testable):**
 - Hủy từ Đang giao, Đã giao hoặc Đã hủy bị từ chối.
-- Lý do chọn từ danh sách: `Khách đổi ý`, `Không liên lạc được`, `Đơn trùng`, `Hết hàng`, `Khác`. Chọn `Khác` thì bắt buộc nhập chữ, tối đa 200 ký tự.
+- Lý do chọn từ danh sách: `Khách đổi ý`, `Không liên lạc được`, `Đơn trùng`, `Hết hàng`, `Khác`. Chọn `Khác` thì bắt buộc nhập chữ, tối đa 200 ký tự: ô nhập chặn bằng `maxlength="200"`, luôn hiện bộ đếm `x/200`; độ dài đếm theo `.length` của JavaScript (đơn vị UTF-16, cùng đơn vị với `maxlength`) sau `trim`, ở cả bộ đếm và server; vượt 200 thì server trả `VALIDATION_ERROR`.
 - Lý do Hủy được lưu bằng mã cố định: `Hết hàng` là `out_of_stock`, `Khác` là `other` kèm chữ đã nhập.
 - Thiếu lý do, hoặc chọn `Khác` mà để trống hay chỉ có khoảng trắng, trả `VALIDATION_ERROR`.
 - Trạng thái, Lịch sử và thay đổi Tồn kho theo FR-17 diễn ra trong cùng một giao dịch; với `out_of_stock`, Tồn kho không đổi.
@@ -244,8 +244,8 @@ Nhân viên có thể hủy đơn Chờ xác nhận hoặc Đã xác nhận, b�
 Quản lý có thể Lùi đơn, bắt buộc có lý do. Realizes UJ-3.
 
 **Consequences (testable):**
-- Lý do chọn từ danh sách: `Bấm nhầm, hàng còn trên xe`, `Khách báo chưa nhận hàng`, `Khác`. Chọn `Khác` thì bắt buộc nhập chữ, tối đa 200 ký tự.
-- Nhân viên không thấy nút Lùi đơn, kể cả ở dạng vô hiệu; gọi thẳng thao tác này nhận 403.
+- Lý do chọn từ danh sách: `Bấm nhầm, hàng còn trên xe`, `Khách báo chưa nhận hàng`, `Khác`. Chọn `Khác` thì bắt buộc nhập chữ, tối đa 200 ký tự: ô nhập chặn bằng `maxlength="200"`, luôn hiện bộ đếm `x/200`; độ dài đếm theo `.length` của JavaScript (đơn vị UTF-16, cùng đơn vị với `maxlength`) sau `trim`, ở cả bộ đếm và server; vượt 200 thì server trả `VALIDATION_ERROR`.
+- Nhân viên không thấy nút Lùi đơn, kể cả ở dạng vô hiệu; gọi thẳng thao tác này nhận 403. Vai được kiểm trước tính hợp lệ của chuyển Trạng thái: Nhân viên gọi Lùi đơn luôn nhận 403, kể cả khi đơn không ở Đã giao.
 - Lùi đơn thêm dòng Lịch sử mới và không đổi Tồn kho.
 - Sau khi Lùi đơn, đơn có thể chuyển Đã giao lại theo FR-10 và FR-11.
 
@@ -336,7 +336,7 @@ Khi đơn chuyển khoản bị hủy, hệ thống bật Cờ cần hoàn tiề
 - Kết quả chỉ quyết định việc đơn rời tab Cần hoàn tiền và việc có được ghi thêm hay không.
 - Sau `Khách chưa chuyển tiền`, Quản lý được ghi thêm `Đã hoàn tiền`; dòng cũ vẫn giữ trong Lịch sử.
 - `Ghi thêm: Đã hoàn tiền` chỉ đi từ `Khách chưa chuyển tiền` sang `Đã hoàn tiền`; đơn không quay lại tab Cần hoàn tiền.
-- Nếu ghi nhầm `Đã hoàn tiền`, Quản lý ghi thêm một dòng đính chính về `Khách chưa chuyển tiền`, bắt buộc có lý do, tối đa 200 ký tự; dòng cũ vẫn giữ trong Lịch sử và Khách hàng không thấy.
+- Nếu ghi nhầm `Đã hoàn tiền`, Quản lý ghi thêm một dòng đính chính về `Khách chưa chuyển tiền`, bắt buộc có lý do, tối đa 200 ký tự (cùng quy tắc `maxlength="200"`, bộ đếm `x/200`, đếm `.length` sau `trim` và `VALIDATION_ERROR` khi vượt như FR-12); dòng cũ vẫn giữ trong Lịch sử và Khách hàng không thấy.
 - Mỗi thao tác chỉ hợp lệ theo kết quả mới nhất; lần ghi trùng nhận lỗi xung đột.
 - Quản lý kiêm chủ shop đối soát sao kê và hoàn tay trong 3 ngày làm việc, không thu phí. `[ASSUMPTION]`
 - Hệ thống không lưu trạng thái thanh toán và không chuyển tiền; kết quả xử lý hoàn tiền chỉ là ghi chú của Quản lý trong Lịch sử.
@@ -372,7 +372,7 @@ Khi đơn chuyển khoản bị hủy, hệ thống bật Cờ cần hoàn tiề
 - **Kiểm thử:** các ca đồng thời chạy trên PostgreSQL thật, không mock cơ sở dữ liệu. Cổng `npm run check:full` gồm test DB và race.
 - **Tiếng Việt:** toàn bộ nội dung giao diện và thông báo lỗi viết bằng tiếng Việt.
 - **Khả năng tiếp cận:** trạng thái không truyền đạt chỉ bằng màu sắc; form và hộp xác nhận dùng được bằng bàn phím.
-- **Phát hành:** chỉ phát hành khi đủ DB, Tồn kho, Trang xác nhận, Tra đơn và Trang nhân viên; đóng route cũ sau cùng.
+- **Phát hành:** chỉ phát hành khi đủ DB, Tồn kho, Trang xác nhận, Tra đơn và Trang nhân viên; đóng nốt route đọc cũ (`GET /api/orders`, kiểm quyền `GET /api/orders/:id`) sau cùng; `PATCH /api/orders/:id` và nút hủy của Khách hàng đóng sớm, ngay khi đơn chuyển sang PostgreSQL.
 
 ## 5. Non-Goals (Explicit)
 

@@ -45,8 +45,8 @@ Chi tiết cho kiến trúc và phát triển. Lý do chọn và phương án đ
 | `POST /api/staff/login`, `POST /api/staff/logout` | Mới, đăng nhập và đăng xuất |
 | `POST /api/orders/lookup` | Mới, Tra đơn |
 | `GET /api/inventory?ids=a,b` | Mới. Tồn kho cho `/cart` và `/checkout`, tối đa 50 id, `Cache-Control: no-store` |
-| `/orders` | Trang Tra đơn |
-| `/orders/:id` | Trang xác nhận khi có Quyền xem đơn; nếu không thì chuyển tới Tra đơn |
+| `/orders` | Trang Tra đơn; điền sẵn Mã đơn qua `/orders?orderId=<Mã đơn>`, không bao giờ có số điện thoại |
+| `/orders/:id` | Trang xác nhận khi có Quyền xem đơn; nếu không thì chuyển tới `/orders?orderId=<Mã đơn>` |
 | `/staff`, `/staff/login` | Mới, Danh sách đơn và đăng nhập |
 | `/staff/orders/:id` | Mới, Chi tiết đơn: thông tin đơn, thao tác và Lịch sử |
 
