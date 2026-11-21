@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { StockLedger } from "@/features/inventory/stock-ledger";
+import type { RateLimiter } from "@/features/rate-limit/rate-limiter";
 import type { RunInTransaction } from "@/lib/db-tx";
 import { OrderError } from "./order-errors";
 import type { OrderRepository } from "./order-repository";
@@ -17,7 +18,15 @@ const service = createOrderService({
     findById: mustNotRun,
   } as unknown as OrderRepository,
   stockLedger: { reserveStock: mustNotRun } as unknown as StockLedger,
+  rateLimiter: {
+    consume: mustNotRun,
+    release: mustNotRun,
+  } as unknown as RateLimiter,
+  shopContactPhone: () => "0900000000",
 });
+
+const place = (input: unknown) =>
+  service.placeOrder(input, { ip: "203.0.113.1" });
 
 const validInput = (overrides: Record<string, unknown> = {}) => ({
   customer: {
@@ -45,7 +54,7 @@ async function expectOrderError(
 describe("placeOrder: chặn trước transaction", () => {
   it("VALIDATION_ERROR kèm chi tiết từng field", async () => {
     const error = await expectOrderError(
-      service.placeOrder(
+      place(
         validInput({ customer: { fullName: "", phone: "123", address: "" } }),
       ),
       "VALIDATION_ERROR",
@@ -56,23 +65,21 @@ describe("placeOrder: chặn trước transaction", () => {
 
   it("từ chối giỏ hàng trống", async () => {
     await expectOrderError(
-      service.placeOrder(validInput({ items: [] })),
+      place(validInput({ items: [] })),
       "VALIDATION_ERROR",
     );
   });
 
   it("PRODUCT_NOT_FOUND khi sản phẩm không có trong catalog", async () => {
     await expectOrderError(
-      service.placeOrder(
-        validInput({ items: [{ productId: "p999", quantity: 1 }] }),
-      ),
+      place(validInput({ items: [{ productId: "p999", quantity: 1 }] })),
       "PRODUCT_NOT_FOUND",
     );
   });
 
   it("400 khi hai dòng cùng sản phẩm gộp lại quá 10", async () => {
     const error = await expectOrderError(
-      service.placeOrder(
+      place(
         validInput({
           items: [
             { productId: "p010", quantity: 6 },

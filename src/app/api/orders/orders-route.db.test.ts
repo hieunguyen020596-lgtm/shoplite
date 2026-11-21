@@ -1,6 +1,6 @@
 // @vitest-environment node
 import pg from "pg";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { assertTestDatabase } from "../../../../scripts/db-test-lib";
 import { readStock } from "@/features/inventory/server";
 import { PATCH } from "./[id]/route";
@@ -15,10 +15,17 @@ beforeAll(async () => {
   await client.connect();
   await assertTestDatabase(client);
   guardPassed = true;
-  await client.query(
-    "TRUNCATE TABLE order_status_history, order_items, orders RESTART IDENTITY CASCADE",
+  const { rows } = await client.query<{ stock: number }>(
+    "SELECT stock FROM inventory WHERE product_id = 'p006'",
   );
-  await client.query(
+  originalStock = rows[0]?.stock;
+});
+
+beforeEach(async () => {
+  await client!.query(
+    "TRUNCATE TABLE order_status_history, order_items, orders, rate_limits RESTART IDENTITY CASCADE",
+  );
+  await client!.query(
     "UPDATE inventory SET stock = 1 WHERE product_id = 'p006'",
   );
 });
@@ -27,8 +34,14 @@ afterAll(async () => {
   try {
     if (guardPassed) {
       await client?.query(
-        "TRUNCATE TABLE order_status_history, order_items, orders RESTART IDENTITY CASCADE",
+        "TRUNCATE TABLE order_status_history, order_items, orders, rate_limits RESTART IDENTITY CASCADE",
       );
+      if (originalStock !== undefined) {
+        await client?.query(
+          "UPDATE inventory SET stock = $1 WHERE product_id = 'p006'",
+          [originalStock],
+        );
+      }
     }
   } finally {
     await client?.end().catch(() => {});
@@ -75,8 +88,28 @@ describe("API đơn hàng trên PostgreSQL", () => {
   });
 
   it("GET đọc từ PostgreSQL; PATCH luôn 401", async () => {
+    expect((await post()).status).toBe(201);
     const { orders } = await (await GET()).json();
     expect(orders).toHaveLength(1);
     expect((await PATCH()).status).toBe(401);
+  });
+});
+
+describe("giới hạn đơn ảo qua API", () => {
+  it("đơn pending thứ 4 cùng SĐT: 429 RATE_LIMITED, tồn không đổi", async () => {
+    await client!.query(
+      "UPDATE inventory SET stock = 10 WHERE product_id = 'p006'",
+    );
+    expect((await post()).status).toBe(201);
+    expect((await post()).status).toBe(201);
+    expect((await post()).status).toBe(201);
+    const response = await post();
+    expect(response.status).toBe(429);
+    const body = await response.json();
+    expect(body.error.code).toBe("RATE_LIMITED");
+    expect(body.error.message).toBe(
+      `Bạn đã đặt quá nhiều đơn. Vui lòng thử lại sau hoặc liên hệ shop qua ${process.env.SHOP_CONTACT_PHONE}.`,
+    );
+    expect((await readStock(["p006"])).p006).toBe(7);
   });
 });

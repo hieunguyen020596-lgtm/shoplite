@@ -8,6 +8,10 @@ const orderService = vi.hoisted(() => ({
 }));
 vi.mock("@/features/orders/server", () => ({ orderService }));
 
+vi.mock("@/lib/env", () => ({
+  getServerEnv: () => ({ TRUSTED_PROXY_HOPS: 1 }),
+}));
+
 import { PATCH } from "./[id]/route";
 import { POST } from "./route";
 
@@ -24,6 +28,20 @@ describe("POST /api/orders (không chạm DB)", () => {
     expect(response.status).toBe(400);
     expect((await response.json()).error.code).toBe("VALIDATION_ERROR");
     expect(orderService.placeOrder).not.toHaveBeenCalled();
+  });
+});
+
+describe("POST /api/orders: IP", () => {
+  it("truyền IP theo hops vào service", async () => {
+    orderService.placeOrder.mockResolvedValue({ id: "x" });
+    await POST(
+      new Request("http://localhost/api/orders", {
+        method: "POST",
+        headers: { "x-forwarded-for": "9.9.9.9, 1.2.3.4" },
+        body: "{}",
+      }),
+    );
+    expect(orderService.placeOrder).toHaveBeenCalledWith({}, { ip: "1.2.3.4" });
   });
 });
 

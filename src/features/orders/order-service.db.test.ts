@@ -4,6 +4,7 @@ import { assertTestDatabase } from "../../../scripts/db-test-lib";
 import { runInTransaction } from "@/db/transaction";
 import type { Product } from "@/features/catalog/types";
 import { pgStockLedger } from "@/features/inventory/stock-ledger.pg";
+import { pgRateLimiter } from "@/features/rate-limit/rate-limiter.pg";
 import { OrderError } from "./order-errors";
 import { pgOrderRepository } from "./order-repository.pg";
 import { createOrderService } from "./order-service";
@@ -13,15 +14,28 @@ let guardPassed = false;
 const originalStock = new Map<string, number>();
 const TOUCHED = ["p006", "p010", "p011"];
 
-const service = createOrderService({
+const deps = {
   runInTransaction,
   repository: pgOrderRepository,
   stockLedger: pgStockLedger,
-});
+  rateLimiter: pgRateLimiter,
+  shopContactPhone: () => "0900000000",
+};
+const service = createOrderService(deps);
+
+// Mỗi lần đặt dùng IP riêng và (mặc định) SĐT riêng để không chạm ngưỡng của test khác.
+let seq = 0;
+const nextIp = () => `198.51.100.${(seq++ % 250) + 1}`;
+const uniquePhone = () => `09${String(10_000_000 + ++seq).slice(-8)}`;
+const place = (
+  svc: ReturnType<typeof createOrderService>,
+  payload: unknown,
+  ip = nextIp(),
+) => svc.placeOrder(payload, { ip });
 
 const input = (
   items: { productId: string; quantity: number }[],
-  phone = "0987654321",
+  phone = uniquePhone(),
 ) => ({
   customer: {
     fullName: "Trần Thị B",
@@ -63,7 +77,7 @@ beforeAll(async () => {
 
 beforeEach(async () => {
   await client!.query(
-    "TRUNCATE TABLE order_status_history, order_items, orders RESTART IDENTITY CASCADE",
+    "TRUNCATE TABLE order_status_history, order_items, orders, rate_limits RESTART IDENTITY CASCADE",
   );
   await setStock("p010", 20);
   await setStock("p011", 3);
@@ -73,7 +87,7 @@ afterAll(async () => {
   try {
     if (guardPassed) {
       await client?.query(
-        "TRUNCATE TABLE order_status_history, order_items, orders RESTART IDENTITY CASCADE",
+        "TRUNCATE TABLE order_status_history, order_items, orders, rate_limits RESTART IDENTITY CASCADE",
       );
     }
   } finally {
@@ -83,7 +97,8 @@ afterAll(async () => {
 
 describe("placeOrder trên PostgreSQL thật", () => {
   it("đặt đơn hợp lệ: trừ tồn, có đơn, dòng hàng và đúng một dòng order_created", async () => {
-    const order = await service.placeOrder(
+    const order = await place(
+      service,
       input([{ productId: "p010", quantity: 2 }]),
     );
     expect(order).toMatchObject({
@@ -120,7 +135,8 @@ describe("placeOrder trên PostgreSQL thật", () => {
   });
 
   it("SĐT +84 lưu thành 0...", async () => {
-    const order = await service.placeOrder(
+    const order = await place(
+      service,
       input([{ productId: "p010", quantity: 1 }], "+84912345678"),
     );
     const row = (
@@ -133,7 +149,8 @@ describe("placeOrder trên PostgreSQL thật", () => {
   });
 
   it("gộp các dòng trùng sản phẩm", async () => {
-    const order = await service.placeOrder(
+    const order = await place(
+      service,
       input([
         { productId: "p010", quantity: 1 },
         { productId: "p010", quantity: 2 },
@@ -148,7 +165,7 @@ describe("placeOrder trên PostgreSQL thật", () => {
     await setStock("p011", 1);
     const results = await Promise.allSettled(
       Array.from({ length: 8 }, () =>
-        service.placeOrder(input([{ productId: "p011", quantity: 1 }])),
+        place(service, input([{ productId: "p011", quantity: 1 }])),
       ),
     );
     const ok = results.filter((r) => r.status === "fulfilled");
@@ -167,14 +184,13 @@ describe("placeOrder trên PostgreSQL thật", () => {
   });
 
   it("thiếu một dòng: không tạo đơn, không trừ dòng nào, details.lines đủ", async () => {
-    const error = await service
-      .placeOrder(
-        input([
-          { productId: "p010", quantity: 2 },
-          { productId: "p011", quantity: 5 },
-        ]),
-      )
-      .catch((e: unknown) => e);
+    const error = await place(
+      service,
+      input([
+        { productId: "p010", quantity: 2 },
+        { productId: "p011", quantity: 5 },
+      ]),
+    ).catch((e: unknown) => e);
     expect(error).toBeInstanceOf(OrderError);
     expect((error as OrderError).code).toBe("INSUFFICIENT_STOCK");
     expect((error as OrderError).details?.lines).toEqual([
@@ -194,14 +210,13 @@ describe("placeOrder trên PostgreSQL thật", () => {
       id: "x-no-inv",
     };
     const ghostService = createOrderService({
-      runInTransaction,
-      repository: pgOrderRepository,
-      stockLedger: pgStockLedger,
+      ...deps,
       findProduct: (id) => (id === "x-no-inv" ? ghost : undefined),
     });
-    const error = (await ghostService
-      .placeOrder(input([{ productId: "x-no-inv", quantity: 2 }]))
-      .catch((e: unknown) => e)) as OrderError;
+    const error = (await place(
+      ghostService,
+      input([{ productId: "x-no-inv", quantity: 2 }]),
+    ).catch((e: unknown) => e)) as OrderError;
     expect(error.code).toBe("INSUFFICIENT_STOCK");
     expect(error.details?.lines).toEqual([
       { productId: "x-no-inv", requested: 2, available: 0 },
@@ -212,18 +227,17 @@ describe("placeOrder trên PostgreSQL thật", () => {
   it("lỗi DB giữa transaction: DbFailure, đơn, tồn kho, lịch sử giữ nguyên", async () => {
     const fixedId = "SL-DUP-000001";
     const dupService = createOrderService({
-      runInTransaction,
-      repository: pgOrderRepository,
-      stockLedger: pgStockLedger,
+      ...deps,
       generateId: () => fixedId,
     });
-    await dupService.placeOrder(input([{ productId: "p010", quantity: 1 }]));
+    await place(dupService, input([{ productId: "p010", quantity: 1 }]));
     expect(await stockOf("p010")).toBe(19);
 
     // Lần hai: reserveStock thành công rồi insertOrder đụng khóa chính.
-    const error = (await dupService
-      .placeOrder(input([{ productId: "p010", quantity: 1 }]))
-      .catch((e: unknown) => e)) as Error;
+    const error = (await place(
+      dupService,
+      input([{ productId: "p010", quantity: 1 }]),
+    ).catch((e: unknown) => e)) as Error;
     expect(error.name).toBe("DbFailure");
     expect((error as Error & { sqlState?: string }).sqlState).toBe("23505");
     expect(await stockOf("p010")).toBe(19);
@@ -232,7 +246,8 @@ describe("placeOrder trên PostgreSQL thật", () => {
   });
 
   it("đơn hai sản phẩm: lineTotal đúng, trừ từng dòng, getOrder trả cùng dòng hàng", async () => {
-    const order = await service.placeOrder(
+    const order = await place(
+      service,
       input([
         { productId: "p011", quantity: 2 },
         { productId: "p010", quantity: 3 },
@@ -250,10 +265,12 @@ describe("placeOrder trên PostgreSQL thật", () => {
   });
 
   it("hai đơn tuần tự: listOrders mới nhất trước, mỗi đơn đúng dòng hàng", async () => {
-    const first = await service.placeOrder(
+    const first = await place(
+      service,
       input([{ productId: "p010", quantity: 1 }]),
     );
-    const second = await service.placeOrder(
+    const second = await place(
+      service,
       input([
         { productId: "p011", quantity: 1 },
         { productId: "p010", quantity: 2 },
@@ -269,7 +286,7 @@ describe("placeOrder trên PostgreSQL thật", () => {
   it("bỏ qua giá client gửi lên", async () => {
     const payload = input([{ productId: "p010", quantity: 1 }]);
     payload.items = [{ productId: "p010", quantity: 1, price: 1 } as never];
-    const order = await service.placeOrder(payload);
+    const order = await place(service, payload);
     expect(order.items[0].unitPrice).toBe(150_000);
     expect(order.subtotal).toBe(150_000);
   });
@@ -280,10 +297,8 @@ describe("placeOrder trên PostgreSQL thật", () => {
       email: "a@b.vn",
       note: "Giao giờ hành chính",
     });
-    const a = await service.placeOrder(withExtra);
-    const b = await service.placeOrder(
-      input([{ productId: "p010", quantity: 1 }]),
-    );
+    const a = await place(service, withExtra);
+    const b = await place(service, input([{ productId: "p010", quantity: 1 }]));
     expect((await service.getOrder(a.id)).customer).toMatchObject({
       email: "a@b.vn",
       note: "Giao giờ hành chính",
@@ -299,7 +314,8 @@ describe("placeOrder trên PostgreSQL thật", () => {
     const n = 8;
     const results = await Promise.allSettled(
       Array.from({ length: n }, (_, i) =>
-        service.placeOrder(
+        place(
+          service,
           input(
             i % 2 === 0
               ? [
@@ -327,7 +343,116 @@ describe("placeOrder trên PostgreSQL thật", () => {
 
   it("đơn cuối: đặt hết tồn thì tồn về 0", async () => {
     await setStock("p011", 2);
-    await service.placeOrder(input([{ productId: "p011", quantity: 2 }]));
+    await place(service, input([{ productId: "p011", quantity: 2 }]));
     expect(await stockOf("p011")).toBe(0);
+  });
+});
+
+describe("chống đơn ảo", () => {
+  const item = [{ productId: "p010", quantity: 1 }];
+  const counterOf = async (ip: string) =>
+    (
+      await client!.query("SELECT count FROM rate_limits WHERE key = $1", [
+        `order:ip:${encodeURIComponent(ip)}`,
+      ])
+    ).rows[0]?.count;
+  const codeOf = async (work: Promise<unknown>) => {
+    const error = await work.catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(OrderError);
+    return error as OrderError;
+  };
+
+  it("đơn thứ 11 trong 1 giờ từ cùng IP: 429, không tạo đơn, không trừ kho", async () => {
+    const ip = "203.0.113.50";
+    for (let i = 0; i < 10; i++) await place(service, input(item), ip);
+    expect(await stockOf("p010")).toBe(10);
+    const error = await codeOf(place(service, input(item), ip));
+    expect(error.code).toBe("RATE_LIMITED");
+    expect(error.httpStatus).toBe(429);
+    expect(error.message).toBe(
+      "Bạn đã đặt quá nhiều đơn. Vui lòng thử lại sau hoặc liên hệ shop qua 0900000000.",
+    );
+    expect(await stockOf("p010")).toBe(10);
+    expect(await count("orders")).toBe(10);
+    expect(await counterOf(ip)).toBe(10);
+  });
+
+  it("hết cửa sổ: đếm lại từ 1", async () => {
+    const ip = "203.0.113.51";
+    for (let i = 0; i < 10; i++) await place(service, input(item), ip);
+    await client!.query(
+      "UPDATE rate_limits SET window_started_at = now() - interval '2 hours'",
+    );
+    await place(service, input(item), ip);
+    expect(await counterOf(ip)).toBe(1);
+  });
+
+  it("đơn lỗi (thiếu hàng, lỗi DB) không làm tăng bộ đếm IP", async () => {
+    const ip = "203.0.113.52";
+    const out = await codeOf(
+      place(service, input([{ productId: "p011", quantity: 5 }]), ip),
+    );
+    expect(out.code).toBe("INSUFFICIENT_STOCK");
+    expect(await counterOf(ip)).toBeUndefined();
+
+    const dup = createOrderService({ ...deps, generateId: () => "SL-DUP-1" });
+    await place(dup, input(item), nextIp());
+    const error = (await place(dup, input(item), ip).catch(
+      (e: unknown) => e,
+    )) as Error & { sqlState?: string };
+    expect(error.name).toBe("DbFailure");
+    expect(error.sqlState).toBe("23505");
+    expect(await counterOf(ip)).toBeUndefined();
+  });
+
+  it("3 đơn pending cùng SĐT (kể cả +84): đơn thứ 4 bị 429, không trừ kho", async () => {
+    await place(service, input(item, "0912345670"));
+    await place(service, input(item, "+84912345670"));
+    await place(service, input(item, "0912345670"));
+    expect(await stockOf("p010")).toBe(17);
+    const ip = "203.0.113.53";
+    const error = await codeOf(place(service, input(item, "+84912345670"), ip));
+    expect(error.code).toBe("RATE_LIMITED");
+    expect(await stockOf("p010")).toBe(17);
+    expect(await count("orders")).toBe(3);
+    expect(await counterOf(ip)).toBeUndefined();
+  });
+
+  it("đơn không còn pending thì không tính vào giới hạn SĐT", async () => {
+    for (let i = 0; i < 3; i++) await place(service, input(item, "0912345671"));
+    await client!.query(
+      "UPDATE orders SET status = 'cancelled' WHERE id IN (SELECT id FROM orders LIMIT 1)",
+    );
+    await place(service, input(item, "0912345671"));
+    expect(await count("orders")).toBe(4);
+  });
+
+  it("race: 10 request cùng SĐT khác IP, tối đa 3 đơn pending", async () => {
+    const results = await Promise.allSettled(
+      Array.from({ length: 10 }, () =>
+        place(service, input(item, "0912345672")),
+      ),
+    );
+    const failed = results.filter(
+      (r): r is PromiseRejectedResult => r.status === "rejected",
+    );
+    expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(3);
+    for (const f of failed) {
+      expect((f.reason as OrderError).code).toBe("RATE_LIMITED");
+    }
+    expect(await count("orders")).toBe(3);
+    expect(await stockOf("p010")).toBe(17);
+  });
+
+  it("race: 15 request cùng IP khác SĐT, đúng 10 đơn, bộ đếm = 10", async () => {
+    await setStock("p010", 50);
+    const ip = "203.0.113.54";
+    const results = await Promise.allSettled(
+      Array.from({ length: 15 }, () => place(service, input(item), ip)),
+    );
+    expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(10);
+    expect(await count("orders")).toBe(10);
+    expect(await counterOf(ip)).toBe(10);
+    expect(await stockOf("p010")).toBe(40);
   });
 });

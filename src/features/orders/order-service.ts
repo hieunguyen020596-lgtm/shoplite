@@ -11,6 +11,11 @@ import {
   compareProductId,
   type StockLedger,
 } from "@/features/inventory/stock-ledger";
+import {
+  MAX_PENDING_ORDERS_PER_PHONE,
+  orderIpPolicy,
+} from "@/features/rate-limit/policies";
+import type { RateLimiter } from "@/features/rate-limit/rate-limiter";
 import type { RunInTransaction } from "@/lib/db-tx";
 import { OrderError } from "./order-errors";
 import type { NewOrder, OrderRepository } from "./order-repository";
@@ -20,6 +25,9 @@ export interface OrderServiceDeps {
   runInTransaction: RunInTransaction;
   repository: OrderRepository;
   stockLedger: StockLedger;
+  rateLimiter: RateLimiter;
+  /** Số liên hệ của shop, đọc lazy để không đọc env lúc import. */
+  shopContactPhone: () => string;
   findProduct?: (id: string) => Product | undefined;
   generateId?: (date: Date) => string;
 }
@@ -54,16 +62,25 @@ export function createOrderService({
   runInTransaction,
   repository,
   stockLedger,
+  rateLimiter,
+  shopContactPhone,
   findProduct = getProductById,
   generateId = generateOrderId,
 }: OrderServiceDeps) {
+  const rateLimited = () =>
+    new OrderError(
+      "RATE_LIMITED",
+      `Bạn đã đặt quá nhiều đơn. Vui lòng thử lại sau hoặc liên hệ shop qua ${shopContactPhone()}.`,
+    );
+
   return {
     /**
      * Tạo đơn hàng mới từ payload của client.
      * Zod, gộp dòng, kiểm giới hạn và tính tiền xong trước khi mở transaction.
-     * Trong đúng một transaction: `reserveStock` rồi `insertOrder` (kèm Lịch sử `order_created`).
+     * Trong đúng một transaction: `consume` IP, `lockPhone`, `countPendingByPhone`,
+     * `reserveStock`, `insertOrder` (kèm Lịch sử `order_created`). Mọi lỗi rollback cả bộ đếm.
      */
-    async placeOrder(input: unknown): Promise<Order> {
+    async placeOrder(input: unknown, { ip }: { ip: string }): Promise<Order> {
       const parsed = placeOrderSchema.safeParse(input);
       if (!parsed.success) {
         throw new OrderError(
@@ -133,6 +150,17 @@ export function createOrderService({
       };
 
       return runInTransaction(async (tx) => {
+        try {
+          await rateLimiter.consume(tx, [orderIpPolicy(ip)]);
+        } catch (error) {
+          if (error instanceof OrderError && error.code === "RATE_LIMITED") {
+            throw rateLimited();
+          }
+          throw error;
+        }
+        await repository.lockPhone(tx, phone);
+        const pending = await repository.countPendingByPhone(tx, phone);
+        if (pending >= MAX_PENDING_ORDERS_PER_PHONE) throw rateLimited();
         await stockLedger.reserveStock(
           tx,
           orderItems.map(({ productId, quantity }) => ({

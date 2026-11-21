@@ -17,7 +17,8 @@ import {
 // Giá trị trong CHECK phải khớp: ORDER_STATUSES (orders/types.ts),
 // PAYMENT_METHODS (checkout/checkout-schema.ts), SHIPPING_METHODS (checkout/pricing.ts).
 
-const timestamptz3 = (name: string) => timestamp(name, { withTimezone: true, precision: 3 });
+const timestamptz3 = (name: string) =>
+  timestamp(name, { withTimezone: true, precision: 3 });
 
 export const inventory = pgTable(
   "inventory",
@@ -53,15 +54,25 @@ export const orders = pgTable(
       "orders_status_valid",
       sql`${table.status} IN ('pending', 'confirmed', 'shipping', 'delivered', 'cancelled')`,
     ),
-    check("orders_shipping_method_valid", sql`${table.shippingMethod} IN ('standard', 'express')`),
-    check("orders_payment_method_valid", sql`${table.paymentMethod} IN ('cod', 'bank_transfer')`),
+    check(
+      "orders_shipping_method_valid",
+      sql`${table.shippingMethod} IN ('standard', 'express')`,
+    ),
+    check(
+      "orders_payment_method_valid",
+      sql`${table.paymentMethod} IN ('cod', 'bank_transfer')`,
+    ),
     check(
       "orders_refund_required_valid",
       sql`NOT ${table.refundRequired} OR (${table.status} = 'cancelled' AND ${table.paymentMethod} = 'bank_transfer')`,
     ),
     index("orders_phone_status_idx").on(table.phoneNormalized, table.status),
     index("orders_status_created_idx").on(table.status, table.createdAt),
-    index("orders_status_updated_id_idx").on(table.status, table.updatedAt.desc(), table.id.desc()),
+    index("orders_status_updated_id_idx").on(
+      table.status,
+      table.updatedAt.desc(),
+      table.id.desc(),
+    ),
     index("orders_refund_created_idx")
       .on(table.createdAt)
       .where(sql`${table.refundRequired}`),
@@ -99,7 +110,9 @@ export const orderItems = pgTable(
 export const orderStatusHistory = pgTable(
   "order_status_history",
   {
-    id: bigint("id", { mode: "number" }).primaryKey().generatedAlwaysAsIdentity(),
+    id: bigint("id", { mode: "number" })
+      .primaryKey()
+      .generatedAlwaysAsIdentity(),
     orderId: text("order_id")
       .notNull()
       .references(() => orders.id),
@@ -123,7 +136,10 @@ export const orderStatusHistory = pgTable(
       "osh_event_type_valid",
       sql`${table.eventType} IN ('order_created', 'status_changed', 'refund_outcome_recorded')`,
     ),
-    check("osh_actor_type_valid", sql`${table.actorType} IN ('customer', 'staff')`),
+    check(
+      "osh_actor_type_valid",
+      sql`${table.actorType} IN ('customer', 'staff')`,
+    ),
     check(
       "osh_from_status_valid",
       sql`${table.fromStatus} IS NULL OR ${table.fromStatus} IN ('pending', 'confirmed', 'shipping', 'delivered', 'cancelled')`,
@@ -169,3 +185,9 @@ export const orderStatusHistory = pgTable(
     ),
   ],
 );
+
+export const rateLimits = pgTable("rate_limits", {
+  key: text("key").primaryKey(),
+  windowStartedAt: timestamptz3("window_started_at").notNull(),
+  count: integer("count").notNull(),
+});

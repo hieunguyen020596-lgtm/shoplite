@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { orderService } from "@/features/orders/server";
+import { getClientIp } from "@/lib/client-ip";
+import { getServerEnv } from "@/lib/env";
 import { handleRouteError, jsonError, readJsonBody } from "@/lib/http";
 
 /** GET /api/orders - danh sách đơn hàng, mới nhất trước. */
@@ -20,7 +22,8 @@ export async function POST(request: Request) {
   }
 
   try {
-    const order = await orderService.placeOrder(body);
+    const ip = getClientIp(request.headers, getServerEnv().TRUSTED_PROXY_HOPS);
+    const order = await orderService.placeOrder(body, { ip });
     return NextResponse.json(order, { status: 201 });
   } catch (error) {
     return handleRouteError(error);

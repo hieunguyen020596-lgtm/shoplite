@@ -55,7 +55,7 @@ export async function migrateDb(client: pg.Client): Promise<void> {
 
 export async function truncateAll(client: pg.Client): Promise<void> {
   await client.query(
-    "TRUNCATE TABLE order_status_history, order_items, orders, inventory RESTART IDENTITY CASCADE",
+    "TRUNCATE TABLE order_status_history, order_items, orders, inventory, rate_limits RESTART IDENTITY CASCADE",
   );
 }
 

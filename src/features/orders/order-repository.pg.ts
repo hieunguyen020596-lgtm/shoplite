@@ -1,4 +1,4 @@
-import { desc, eq, inArray } from "drizzle-orm";
+import { and, count, desc, eq, inArray, sql } from "drizzle-orm";
 import { orderItems, orders, orderStatusHistory } from "@/db/schema";
 import { toDrizzleTx, withDb } from "@/db/transaction";
 import type { ProductImage } from "@/features/catalog/types";
@@ -49,6 +49,25 @@ function toOrder(row: OrderRow, items: ItemRow[]): Order {
     shippingFee: row.shippingFee,
     total: row.total,
   };
+}
+
+export async function lockPhone(tx: DbTx, phone: string): Promise<void> {
+  await toDrizzleTx(tx).execute(
+    sql`SELECT pg_advisory_xact_lock(hashtextextended(${`shoplite:phone:${phone}`}, 0))`,
+  );
+}
+
+export async function countPendingByPhone(
+  tx: DbTx,
+  phone: string,
+): Promise<number> {
+  const [row] = await toDrizzleTx(tx)
+    .select({ n: count() })
+    .from(orders)
+    .where(
+      and(eq(orders.phoneNormalized, phone), eq(orders.status, "pending")),
+    );
+  return row.n;
 }
 
 export async function insertOrder(tx: DbTx, order: NewOrder): Promise<Order> {
@@ -140,6 +159,8 @@ async function findAll(): Promise<Order[]> {
 }
 
 export const pgOrderRepository: OrderRepository = {
+  lockPhone,
+  countPendingByPhone,
   insertOrder,
   findById,
   findAll,
