@@ -138,29 +138,26 @@ flowchart TD
 | **Cấu trúc sự kiện lịch sử (`OrderStatusEvent`)** | Mỗi phần tử trong `order.statusHistory` gồm: `status` (`OrderStatus`), `at` (ISO 8601), `actor` (`"customer" \| "staff"`), `action` (`"transition" \| "restock"`), và `note?` (chuỗi đã `.trim()`, dài `1..200` ký tự, chỉ có mặt khi khác rỗng).                                                                                                                                                                                                                                                               |
 | **Hợp đồng HTTP & Parse Body**                         | Mọi đọc body JSON trong Route Handler đi qua `readJsonBody(request)` (`src/lib/http.ts`). `POST /api/admin/auth/login` và `PATCH /api/admin/orders/:id/status` bắt buộc có body JSON hợp lệ (`400 VALIDATION_ERROR` nếu `undefined`); `POST /api/admin/orders/:id/restock` chấp nhận body rỗng (`request.text()` rỗng) **hoặc** JSON hợp lệ có `note?: string` (`<= 200` ký tự); `POST /api/admin/auth/logout` không đọc body.                                                                  |
 | **UI, Trợ năng & Xử lý lỗi Client**                  | Tuân thủ đúng token Tailwind v4 và quy tắc hành vi trong `DESIGN.md` & `EXPERIENCE.md`: vùng chạm tối thiểu `min-h-11` (`44px`), không tràn ngang ở `390px`, ghép đủ **màu + icon `lucide-react` + văn bản** cho mọi trạng thái. Khi `/checkout` nhận `409 INSUFFICIENT_STOCK`, giữ nguyên state form địa chỉ và giỏ hàng. Khi `/admin/orders` nhận `401`, điều hướng sang `/admin/login?expired=1`; khi nhận `409`, hiện `role="alert"` và tự tải lại danh sách đơn. |
-| **Biến môi trường & Chạy Local** | Toàn bộ hệ thống chạy độc lập 100% trên máy local (`http://localhost:3000` qua `npm run dev` hoặc `npm run build && npm run start`), không phụ thuộc DB hay dịch vụ đám mây. Cấu hình qua `.env.local` hoặc biến môi trường shell: `ORDERS_FILE` (mặc định `storage/orders.json`), `INVENTORY_FILE` (mặc định `storage/inventory.json`), `ADMIN_PASSCODE` (bắt buộc phải khác rỗng để mở cổng `/admin/*` và `/api/admin/*`, không có giá trị fallback trong code). |
-| **Test Seam & Cô lập dữ liệu** | Unit test của service/state-machine dùng `InMemoryOrderRepository` + `InMemoryInventoryRepository`; test của `JsonFile*Repository` và route test tạo thư mục tạm riêng trong `os.tmpdir()` hoặc truyền `ORDERS_FILE` / `INVENTORY_FILE` riêng, không ghi bẩn vào `storage/` thật. |
+| **Biến môi trường**                                   | `ORDERS_FILE` (mặc định `storage/orders.json`), `INVENTORY_FILE` (mặc định `storage/inventory.json`), `ADMIN_PASSCODE` (bắt buộc phải khác rỗng để mở cổng `/admin/*` và `/api/admin/*`, không có giá trị fallback trong code).                                                                                                                                                                                                                                                                                   |
+| **Test Seam & Cô lập dữ liệu**                        | Unit test của service/state-machine dùng `InMemoryOrderRepository` + `InMemoryInventoryRepository`; test của `JsonFile*Repository` và route test tạo thư mục tạm riêng trong `os.tmpdir()` hoặc truyền `ORDERS_FILE` / `INVENTORY_FILE` riêng, không ghi bẩn vào `storage/` thật.                                                                                                                                                                                                                                     |
 
 ## Stack
 
-| Name | Version |
-| --- | --- |
-| Local Execution Environment (Single-Node `localhost:3000`, zero external DB/cloud) | `Node.js 22.23.4` (`>=22.12.0`) |
-| Local Persistence (`node:fs/promises` + atomic UUID `.tmp` JSON files in `storage/`) | `Node.js 22.23.4 built-in` |
-| Concurrency & Re-entrant Mutex (`node:async_hooks` `AsyncLocalStorage` + FIFO Queue) | `Node.js 22.23.4 built-in` |
-| Auth & Cryptography (`node:crypto` `SHA-256`, `HMAC-SHA256`, `timingSafeEqual`) | `Node.js 22.23.4 built-in` |
-| TypeScript | `5.9.3` |
-| Next.js (App Router + `src/proxy.ts` Node Runtime) | `16.4.2` |
-| React / React DOM | `19.3.0` |
-| Tailwind CSS (`@tailwindcss/turbopack`) | `4.3.3` |
-| Zod | `4.6.7` |
-| Lucide React | `1.61.0` |
-| clsx | `2.1.1` |
-| Vitest / `@vitest/coverage-v8` | `5.0.5` |
-| Testing Library (`@testing-library/react`) | `16.3.3` |
-| Playwright (`@playwright/test` — Local Chromium E2E) | `1.64.1` |
-| ESLint / `eslint-config-next` | `9.x` / `16.4.2` |
-| Prettier / `prettier-plugin-tailwindcss` | `3.9.10` / `0.8.1` |
+| Name                                         | Version                     |
+| -------------------------------------------- | --------------------------- |
+| Node.js Runtime                              | `22.23.4` (`>=22.12.0`) |
+| TypeScript                                   | `5.9.3`                   |
+| Next.js (App Router)                         | `16.4.2`                  |
+| React / React DOM                            | `19.3.0`                  |
+| Tailwind CSS (`@tailwindcss/turbopack`)    | `4.3.3`                   |
+| Zod                                          | `4.6.7`                   |
+| Lucide React                                 | `1.61.0`                  |
+| clsx                                         | `2.1.1`                   |
+| Vitest / `@vitest/coverage-v8`             | `5.0.5`                   |
+| Testing Library (`@testing-library/react`) | `16.3.3`                  |
+| Playwright (`@playwright/test`)            | `1.64.1`                  |
+| ESLint / `eslint-config-next`              | `9.x` / `16.4.2`        |
+| Prettier / `prettier-plugin-tailwindcss`   | `3.9.10` / `0.8.1`      |
 
 ## Structural Seed
 
