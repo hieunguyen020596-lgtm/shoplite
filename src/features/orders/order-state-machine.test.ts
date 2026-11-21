@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { OrderError } from "./order-errors";
-import { ALLOWED_TRANSITIONS, canTransition, transitionOrder } from "./order-state-machine";
+import { canTransition, transitionOrder } from "./order-state-machine";
 import { ORDER_STATUSES, type Order, type OrderStatus } from "./types";
 
 const CREATED_AT = "2026-11-20T01:00:00.000Z";
@@ -93,23 +93,40 @@ describe("transitionOrder", () => {
       transitionOrder(makeOrder("confirmed"), "cancelled", { actor: "customer", at: AT }),
     );
     expect(error.code).toBe("INVALID_STATUS_TRANSITION");
+    expect(error.message).toBe("Chỉ có thể hủy đơn hàng đang ở trạng thái Chờ xác nhận");
   });
 });
 
+// Bảng kỳ vọng viết tay theo PRD (FR-1, FR-2) - KHÔNG suy ra từ ALLOWED_TRANSITIONS,
+// để test bắt được khi ai đó thêm nhầm một bước chuyển vào bảng của code.
+const EXPECTED_ALLOWED: Record<"staff" | "customer", ReadonlySet<string>> = {
+  staff: new Set([
+    "pending→confirmed",
+    "pending→cancelled",
+    "confirmed→shipping",
+    "confirmed→cancelled",
+    "shipping→delivered",
+  ]),
+  customer: new Set(["pending→cancelled"]),
+};
+
 describe("ma trận chuyển trạng thái", () => {
-  for (const from of ORDER_STATUSES) {
-    for (const to of ORDER_STATUSES) {
-      // Bảng kỳ vọng cho nhân viên và khách hàng
-      const staffAllowed = ALLOWED_TRANSITIONS[from].includes(to);
-      const customerAllowed = from === "pending" && to === "cancelled";
+  for (const actor of ["staff", "customer"] as const) {
+    for (const from of ORDER_STATUSES) {
+      for (const to of ORDER_STATUSES) {
+        const allowed = EXPECTED_ALLOWED[actor].has(`${from}→${to}`);
 
-      it(`nhân viên: ${from} → ${to} ${staffAllowed ? "hợp lệ" : "bị từ chối"}`, () => {
-        expect(canTransition(from, to, "staff")).toBe(staffAllowed);
-      });
-
-      it(`khách hàng: ${from} → ${to} ${customerAllowed ? "hợp lệ" : "bị từ chối"}`, () => {
-        expect(canTransition(from, to, "customer")).toBe(customerAllowed);
-      });
+        it(`${actor}: ${from} → ${to} ${allowed ? "hợp lệ" : "bị từ chối"}`, () => {
+          expect(canTransition(from, to, actor)).toBe(allowed);
+          if (allowed) {
+            expect(transitionOrder(makeOrder(from), to, { actor, at: AT }).status).toBe(to);
+          } else {
+            const error = catchError(() => transitionOrder(makeOrder(from), to, { actor, at: AT }));
+            expect(error.code).toBe("INVALID_STATUS_TRANSITION");
+            expect(error.details).toEqual({ currentStatus: from });
+          }
+        });
+      }
     }
   }
 });

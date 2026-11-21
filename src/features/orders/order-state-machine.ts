@@ -11,6 +11,9 @@ export const ALLOWED_TRANSITIONS: Record<OrderStatus, readonly OrderStatus[]> = 
   cancelled: [],
 };
 
+/** Thông báo khách đã thấy từ trước khi có máy trạng thái - nút Hủy đơn hiển thị nguyên văn. */
+const CUSTOMER_CANCEL_REJECTED = "Chỉ có thể hủy đơn hàng đang ở trạng thái Chờ xác nhận";
+
 /** Khách hàng chỉ có một thao tác: hủy đơn đang chờ xác nhận. */
 export function canTransition(from: OrderStatus, to: OrderStatus, actor: OrderActor): boolean {
   if (actor === "customer") return from === "pending" && to === "cancelled";
@@ -35,7 +38,9 @@ export function transitionOrder(
   if (!canTransition(order.status, to, actor)) {
     throw new OrderError(
       "INVALID_STATUS_TRANSITION",
-      `Không thể chuyển đơn từ "${ORDER_STATUS_LABELS[order.status]}" sang "${ORDER_STATUS_LABELS[to]}"`,
+      actor === "customer"
+        ? CUSTOMER_CANCEL_REJECTED
+        : `Không thể chuyển đơn từ "${ORDER_STATUS_LABELS[order.status]}" sang "${ORDER_STATUS_LABELS[to]}"`,
       { currentStatus: order.status },
     );
   }

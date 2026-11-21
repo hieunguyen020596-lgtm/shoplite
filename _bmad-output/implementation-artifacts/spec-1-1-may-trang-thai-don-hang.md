@@ -71,6 +71,18 @@ context:
 - Given `npm run check`, when chạy sau thay đổi, then lint, typecheck và toàn bộ test pass, kể cả test `cancelOrder` cũ không sửa.
 - Given khách bấm "Hủy đơn hàng" từ trang đã mở trước khi đơn được xác nhận, when server từ chối, then giao diện hiện đúng câu "Chỉ có thể hủy đơn hàng đang ở trạng thái Chờ xác nhận".
 
+### Review Findings
+
+- [x] [Review][Patch] Khách bị từ chối hủy đơn nhận thông báo mới thay vì câu cũ "Chỉ có thể hủy đơn hàng đang ở trạng thái Chờ xác nhận" - vi phạm Boundaries/Always, nút Hủy đơn của khách hiển thị nguyên văn [src/features/orders/order-state-machine.ts:36]
+- [x] [Review][Patch] Test ma trận lấy `ALLOWED_TRANSITIONS` làm đáp án nên không bắt được bước chuyển sai (thêm `confirmed → delivered` vào bảng, toàn bộ test vẫn xanh) - vi phạm Boundaries/Never [src/features/orders/order-state-machine.test.ts:103]
+- [x] [Review][Defer] File tạm `orders.json.tmp` có tên cố định, hai lần ghi đồng thời có thể đè nhau [src/features/orders/order-repository.ts:30] — deferred: có từ trước story này; AD-7 (Story 1.3) tuần tự hóa mọi lần ghi trong tiến trình
+
+**Rejected**
+
+- `false` — "`transitionOrder` không kiểm tra quyền nhân viên": xác thực thuộc route (Story 1.3, AD-8); lõi thuần không biết request.
+- `false` — "`cancelOrder` mất kiểm tra `status !== "pending"`": kiểm tra đã chuyển vào `canTransition` với `actor: "customer"`; test "không cho hủy đơn đã hủy hoặc đã xác nhận" vẫn pass.
+- `low` — "Nên `Object.freeze(ALLOWED_TRANSITIONS)`": mảng đã `readonly`, sửa lúc chạy cần ép kiểu; thêm freeze không đáng.
+
 ## Implementation Notes
 
 - `OrderActor` thêm vào `types.ts` (không phải `order-state-machine.ts`) để component client dùng được mà không kéo theo `order-errors`.

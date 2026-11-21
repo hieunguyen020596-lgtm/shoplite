@@ -377,7 +377,13 @@ describe("orderService", () => {
     it("không cho hủy đơn đã hủy hoặc đã xác nhận", async () => {
       const order = await service.placeOrder(validInput());
       await repository.save({ ...order, status: "confirmed" });
-      await expectOrderError(service.cancelOrder(order.id), "INVALID_STATUS_TRANSITION");
+      const error = await expectOrderError(
+        service.cancelOrder(order.id),
+        "INVALID_STATUS_TRANSITION",
+      );
+      // Nút "Hủy đơn hàng" của khách hiển thị nguyên văn thông báo này - không được đổi
+      expect(error.message).toBe("Chỉ có thể hủy đơn hàng đang ở trạng thái Chờ xác nhận");
+      expect(error.httpStatus).toBe(409);
     });
 
     it("không cho hủy lại đơn đã hủy và không ghi đè thời điểm hủy", async () => {
