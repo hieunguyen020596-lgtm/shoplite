@@ -1,9 +1,9 @@
 # Brainstorm Intent: ShopLite Ops — Vận hành đơn hàng & Tiến trình đơn
 
 - **Ngày:** 2026-11-21
-- **Chế độ:** Creative Partner (`bmad-brainstorming` v6.12.4)
-- **Nguồn:** `.memlog.md` (**73 ý tưởng** qua 6 nhóm: *Role Playing*, *How Might We*, *Reverse Brainstorming*, *SCAMPER Method*, *Assumption Reversal*, và *4 Câu hỏi trọng tâm từ người dùng*)
-- **Mục tiêu:** Xác định phạm vi MVP khả thi trên codebase ShopLite (Next.js 16, không dịch vụ ngoài) và nhận diện rủi ro/câu hỏi mở trước khi bước sang Party Mode (4.3), Product Brief & PRD (4.4).
+- **Trạng thái:** Đã qua phản biện Party Mode (`--mode subagent`, 5 vai trò) & Pre-mortem / Assumption Audit (`bmad-advanced-elicitation`)
+- **Nguồn:** `.memlog.md` (**73 ý tưởng**) + `phan-bien.md` (4 quyết định chốt từ chủ sản phẩm `nab`)
+- **Mục tiêu:** Chốt phạm vi MVP sắc nét trên codebase ShopLite (Next.js 16, không dịch vụ ngoài) cùng danh mục rủi ro & biện pháp phòng ngừa sẵn sàng cho Product Brief & PRD (Bài 4.4).
 
 ---
 
@@ -11,55 +11,71 @@
 
 | Phát hiện trong code thật | Vị trí file | Tác động tới thiết kế |
 | :--- | :--- | :--- |
-| `ORDER_STATUSES` đã có đủ `pending`, `confirmed`, `shipping`, `delivered`, `cancelled` nhưng chưa có luồng chuyển trạng thái | `src/features/orders/types.ts` | Cần máy trạng thái thuần túy kiểm soát hợp lệ các bước chuyển. |
-| `PATCH /api/orders/:id` hiện chỉ chấp nhận `{ "status": "cancelled" }` | `src/app/api/orders/[id]/route.ts` | Giữ nguyên cho khách hủy `pending`; cần API có xác thực riêng cho nhân viên. |
-| `placeOrder()` kiểm tra `quantity > product.stock` từ `products.ts` tĩnh nhưng **không trừ tồn kho** | `src/features/orders/order-service.ts`, `src/data/products.ts` | Cần lớp lưu tồn kho ghi được (`storage/inventory.json`) và thống nhất nguồn đọc với catalog & màn hình duyệt đơn. |
-| `createJsonFileOrderRepository` dùng chung một file `${filePath}.tmp` không có khóa tuần tự | `src/features/orders/order-repository.ts` | Ghi đồng thời có thể gây mất đơn hoặc bán vượt tồn kho → cần mutex + tên file `.tmp` theo UUID. |
-| `Order` chỉ có `createdAt`, `updatedAt`, chưa có `statusHistory` và chưa có bảo vệ route admin | `src/features/orders/types.ts`, `src/app/orders/` | Thêm `statusHistory?: OrderStatusEvent[]` (tương thích ngược đơn cũ) và bảo vệ `/admin/*` + `/api/admin/*`. |
+| `ORDER_STATUSES` đã có đủ `pending`, `confirmed`, `shipping`, `delivered`, `cancelled` nhưng chưa có luồng chuyển trạng thái | `src/features/orders/types.ts` | Cần máy trạng thái thuần túy kiểm soát ma trận chuyển đổi 5×5. |
+| `PATCH /api/orders/:id` hiện chỉ chấp nhận `{ "status": "cancelled" }` | `src/app/api/orders/[id]/route.ts` | Giữ nguyên hợp đồng khách hủy `pending` để không vỡ E2E; tách API `/api/admin/orders/:id/status` cho nhân viên. |
+| `placeOrder()` kiểm tra `quantity > product.stock` từ `products.ts` tĩnh nhưng **không trừ tồn kho** | `src/features/orders/order-service.ts`, `src/data/products.ts` | Cần `storage/inventory.json` (khởi tạo từ `products.ts`), trừ ngay khi đặt (`pending`) trong khóa tuần tự. |
+| `/products/[slug]/page.tsx` dùng `generateStaticParams()` đọc dữ liệu tĩnh lúc build | `src/app/products/[slug]/page.tsx` | Phải chuyển sang đọc động (`force-dynamic`) tồn kho thực từ `inventoryRepository` để hết hàng hiển thị ngay. |
+| `createJsonFileOrderRepository` dùng chung một file `${filePath}.tmp` không có khóa tuần tự | `src/features/orders/order-repository.ts` | Ghi đồng thời dễ mất đơn hoặc lỗi `ENOENT` → cần in-process async mutex + tên file tạm theo UUID. |
+| `Order` chỉ có `createdAt`, `updatedAt`, chưa có `statusHistory` và chưa có bảo vệ route admin | `src/features/orders/types.ts`, `src/app/orders/` | Thêm `statusHistory?: OrderStatusEvent[]` (tương thích ngược đơn cũ) và dựng `src/proxy.ts` + xác thực HMAC cho `/admin/*` & `/api/admin/*`. |
 
 ---
 
-## 2. Phạm vi MVP hội tụ theo MoSCoW
+## 2. Quyết định nghiệp vụ đã chốt (từ Party Mode — `nab`)
 
-### MUST (Tối đa 5 mục — triển khai được ngay trên stack hiện có)
-1. **Máy trạng thái & lịch sử đơn hàng**: Hàm thuần quản lý vòng đời `pending → confirmed → shipping → delivered` (và `cancelled` có điều kiện) kèm `statusHistory` (trạng thái, thời gian, người thực hiện `customer`/`staff`, ghi chú/mã vận đơn), tương thích ngược 100% với đơn cũ trong `storage/orders.json`.
-2. **Trang vận hành `/admin/orders` kèm tồn kho inline khi duyệt**: Danh sách đơn ưu tiên hàng chờ cần xử lý, lọc theo trạng thái (lưu trên URL query), tìm kiếm theo mã đơn/SĐT/tên khách, **hiển thị số lượng tồn kho thực tế inline kèm cảnh báo màu ngay cạnh từng món hàng** để nhân viên quyết định duyệt, nút chuyển đúng 1 bước kế tiếp hợp lệ, bắt buộc nhập lý do (kèm chip chọn nhanh) khi nhân viên hủy đơn, responsive tốt trên mobile 390px.
-3. **Bảo vệ truy cập quản trị (không dịch vụ ngoài)**: Trang `/admin/login` với mật khẩu quản trị từ biến môi trường (`ADMIN_PASSCODE`) + cookie `HttpOnly` ký `HMAC-SHA256` (so sánh `timingSafeEqual`, thời hạn 1 ca 8 giờ, có nút Đăng xuất), kiểm tra tại `src/proxy.ts` và bắt buộc kiểm tra lại ở mọi API `/api/admin/*`.
-4. **Tồn kho thực tế & an toàn đồng thời**: Lưu tồn kho tại `storage/inventory.json` (khởi tạo từ `products.ts`), trừ kho khi đặt và hoàn kho idempotent khi hủy; bổ sung khóa tuần tự + file tạm duy nhất theo UUID cho cả order và inventory repository; đồng bộ tồn kho hiển thị lên catalog (`ProductCard`, chi tiết sản phẩm) và màn hình duyệt đơn.
-5. **Timeline tiến trình & cập nhật trạng thái cho khách**: Nâng cấp `/orders/[id]` hiển thị tiến trình 4 bước kèm mốc thời gian (và lý do nếu bị hủy), tự động làm mới nhẹ (`visibilitychange` / nút Làm mới) để khách thấy trạng thái mới ngay; giữ nguyên quy tắc khách chỉ tự hủy được khi trạng thái là `pending`.
+1. **Trừ tồn kho ngay khi khách đặt (`pending`)**: Chống bán lố tuyệt đối ngay trong `placeOrder()`. Màn duyệt `/admin/orders` hiển thị rõ `"Đã giữ X cho đơn này · Còn cho đơn mới: Y"` để tránh ảo giác hết hàng.
+2. **Phạm vi hủy & hoàn kho của nhân viên**:
+   - Khách hàng: chỉ được hủy khi `pending` (giữ nguyên quy tắc cũ) $\rightarrow$ tự động hoàn kho.
+   - Nhân viên: được hủy ở `pending`, `confirmed` (**tự động hoàn kho idempotent**) VÀ `shipping` (giao thất bại — **KHÔNG tự động hoàn kho**, ghi cờ `restocked: false` trong `statusHistory` chờ kiểm kê hàng hoàn thực tế). Không được hủy `delivered`.
+3. **Phạm vi MVP tinh gọn**: Giữ đủ 5 mục MUST (bao gồm Timeline 4 bước đơn giản cho khách, **không polling 30s**), đẩy `"tra cứu SĐT + rate limit"` và `"polling 30s"` ra ngoài MVP, giữ nguyên `/orders` công khai để không gãy `e2e/shopping-flow.spec.ts`.
+4. **Bảo vệ `/admin` nghiêm ngặt (Fail-Closed)**: Khi thiếu biến môi trường `ADMIN_PASSCODE`, khóa cứng truy cập và trả `503 Service Unavailable` (tuyệt đối không fallback passcode mặc định).
+
+---
+
+## 3. Phạm vi MVP hội tụ theo MoSCoW
+
+### MUST (5 mục cốt lõi — triển khai 100% trên stack hiện có, không dịch vụ ngoài)
+1. **Máy trạng thái & lịch sử đơn hàng**: Hàm thuần kiểm soát vòng đời `pending → confirmed → shipping → delivered` và `cancelled` (phân biệt `customer` vs `staff`, cờ hoàn kho `restocked`), lưu `statusHistory?: OrderStatusEvent[]` tương thích ngược 100% với đơn cũ trong `storage/orders.json`.
+2. **Trang vận hành `/admin/orders` kèm tồn kho inline rõ ràng**: Danh sách ưu tiên hàng chờ xử lý, lọc theo trạng thái (lưu trên URL query), tìm kiếm theo mã đơn/SĐT/tên khách, hiển thị rõ tồn kho giữ chỗ (`Đã giữ X · Còn cho đơn mới: Y`) kèm mã màu cảnh báo, nút chuyển đúng 1 bước hợp lệ, bắt buộc nhập lý do (có chip chọn nhanh) khi nhân viên hủy, responsive mobile 390px.
+3. **Bảo vệ truy cập quản trị (Fail-Closed)**: Trang `/admin/login` xác thực `ADMIN_PASSCODE` từ biến môi trường (trả `503` nếu chưa cấu hình), phát cookie `HttpOnly` ký `HMAC-SHA256` (so sánh `timingSafeEqual`, thời hạn 8 giờ + nút Đăng xuất), kiểm tra ở `src/proxy.ts` và bắt buộc kiểm tra lại ở mọi route `/api/admin/*`.
+4. **Tồn kho thực tế & an toàn đồng thời**: Lưu tồn kho tại `storage/inventory.json`, bọc chuỗi *đọc kho → kiểm tra all-or-nothing → trừ kho → lưu đơn* trong async mutex (kèm rollback nếu lưu đơn lỗi) và file tạm UUID; hoàn kho idempotent khi hủy `pending`/`confirmed` (không hoàn khi hủy `shipping`); đồng bộ hiển thị động lên catalog (`/products`, `/products/[slug]`).
+5. **Timeline tiến trình đơn hàng cho khách (đơn giản, không polling)**: Nâng cấp `/orders/[id]` hiển thị tiến trình 4 bước kèm mốc thời gian, lý do hủy (nếu có) và nút "Làm mới trạng thái" thủ công; giữ nguyên quy tắc khách chỉ tự hủy được khi `pending`.
 
 ### SHOULD (Ưu tiên ngay sau Must)
-- **Hỗ trợ khách quên mã đơn**: Tự lưu danh sách mã đơn gần đây vào `localStorage["shoplite:my-orders"]`, thêm nút "Sao chép link theo dõi" trên màn hình đặt hàng thành công, và cân nhắc tra cứu bằng SĐT (che mờ thông tin nhạy cảm + rate limit + thông báo trung lập chống dò).
-- **Thông báo cập nhật trạng thái không cần SMS/Email**: Chấm đỏ / badge "Cập nhật mới" trên mục "Đơn hàng" ở Header khi trạng thái đơn trên thiết bị thay đổi so với lần xem gần nhất; nút "Copy mẫu tin nhắn báo khách" cho nhân viên dán vào Zalo/SMS sau khi đổi trạng thái.
-- **Hỗ trợ duyệt đơn & quản trị nhanh**: Thẻ KPI đầu trang `/admin/orders`, cảnh báo đơn chờ quá 2 giờ, hiển thị tách `Tồn thực tế / Đang chờ duyệt / Còn khả dụng`, tab xem nhanh tồn kho 16 sản phẩm, và chống xung đột `expectedStatus` (`409 Conflict`).
+- Thẻ KPI nhanh đầu trang `/admin/orders` (số đơn từng trạng thái, doanh thu đơn đã giao) & cảnh báo đơn chờ quá 2 giờ.
+- Kiểm tra xung đột cập nhật đồng thời (`expectedStatus` → trả `409 Conflict` nếu 2 nhân viên thao tác cùng lúc).
+- Cho phép gắn ghi chú tùy chọn (VD: mã vận đơn) khi chuyển `shipping` và nút "Copy mẫu tin nhắn báo khách" cho nhân viên dán vào Zalo/SMS.
+- Tự lưu mã đơn gần đây vào `localStorage["shoplite:my-orders"]` + nút "Sao chép link theo dõi" trên màn đặt hàng thành công.
 
-### COULD (Mở rộng nếu còn thời gian)
-- Xác nhận hàng loạt nhiều đơn `pending` (Bulk Confirm) vào giờ cao điểm.
-- Tùy chọn **Browser Notification API** khi tab `/orders/[id]` đang mở và phát hiện trạng thái thay đổi.
-- Nút "Đặt lại các sản phẩm này" trên đơn đã hủy; thao tác "Nhập thêm kho (`+N`)" trong `/admin`; in phiếu nhặt hàng.
+### COULD (Mở rộng về sau)
+- Xác nhận hàng loạt nhiều đơn `pending` (Bulk Confirm).
+- Tab "Tồn kho" trong `/admin` cho phép xem biến động & nhập thêm kho (`+N`) hoặc xác nhận hoàn kho tay cho đơn hủy từ `shipping`.
+- Nút "Đặt lại các sản phẩm này" cho đơn hủy; in phiếu nhặt hàng.
 
 ### WON'T (Ngoài phạm vi MVP)
-- Phân quyền đa vai trò phức tạp (RBAC), quản lý nhiều tài khoản nhân viên.
-- Gửi email/SMS/Zalo tự động qua dịch vụ bên thứ ba.
-- Tích hợp API hãng vận chuyển ngoài (GHN, GHTK, Viettel Post).
-- Chuyển sang cơ sở dữ liệu ngoài (PostgreSQL/MongoDB).
+- Polling 30s tự động trên `/orders/[id]` (tránh tranh chấp I/O JSON & flaky E2E).
+- Tra cứu đơn theo SĐT + rate-limit trong RAM & khóa danh sách công khai `/orders` (tách sang initiative bảo mật riêng để giữ nguyên `e2e/shopping-flow.spec.ts`).
+- Phân quyền đa vai trò (RBAC), gửi email/SMS/Zalo tự động, tích hợp hãng vận chuyển ngoài, cơ sở dữ liệu ngoài.
 
 ---
 
-## 3. Giải pháp chốt sơ bộ cho 4 câu hỏi trọng tâm người dùng đặt ra
+## 4. Rủi ro đã nhận diện (Pre-mortem Analysis & Assumption Audit)
 
-| Bài toán | Hướng giải quyết khả thi không cần dịch vụ ngoài |
-| :--- | :--- |
-| **1. Khách tra cứu đơn khi quên mã?** | (a) Tự lưu lịch sử mã đơn trên trình duyệt (`localStorage`) để mở `/orders` thấy ngay; (b) Nút copy link / in phiếu ở màn hình đặt hàng thành công; (c) Tra cứu theo SĐT + xác minh phụ kèm che thông tin (`091****678`) & rate limit; (d) Dự phòng gọi CSKH tra cứu theo SĐT trên `/admin/orders`. |
-| **2. Nhân viên biết tồn kho của món để duyệt đơn?** | (a) Hiện tồn kho thực tế inline ngay cạnh từng dòng sản phẩm trong đơn (`Đặt: 2 · Còn kho: 5`) đọc từ `storage/inventory.json`; (b) Mã màu cảnh báo (xanh > 5, vàng 1–5, đỏ = 0 / thiếu hàng); (c) Hiển thị số lượng đang chờ duyệt ở các đơn `pending` khác; (d) Ngăn kéo/tab xem nhanh tồn kho toàn bộ 16 sản phẩm. |
-| **3. Khách biết đơn đã đổi trạng thái?** | (a) Chấm thông báo trên mục "Đơn hàng" ở Header so sánh `updatedAt`/`status` với lần xem cuối; (b) Auto-refresh nhẹ trên `/orders/[id]` (`visibilitychange` + polling 30s) kèm highlight mốc vừa cập nhật; (c) Tùy chọn Browser Notification API miễn phí; (d) Nút "Copy mẫu tin nhắn" để nhân viên gửi nhanh qua Zalo/SMS. |
-| **4. Món hàng chỉ còn 1, 2 khách đặt cùng lúc thì sao?** | (a) **Async Mutex tuần tự** bao trọn đọc kho → kiểm tra & trừ kho → lưu đơn: khách đến trước thành công (`201`), khách sau nhận `INSUFFICIENT_STOCK` (tồn kho = `0`, không bao giờ âm); (b) **File tạm UUID** thay `orders.json.tmp` dùng chung; (c) **All-or-nothing & rollback** cho đơn nhiều món hoặc khi lưu đơn lỗi; (d) **UX rõ ràng** báo đúng món vừa hết, giữ nguyên thông tin form tại `/checkout`; (e) **Test đồng thời bắt buộc** bằng `Promise.allSettled()`. |
+### A. Pre-mortem Analysis (*"6 tháng sau ShopLite Ops thất bại — vì sao?"*)
 
----
+| # | Kịch bản thất bại (6 tháng sau) | Nguyên nhân gốc | Biện pháp phòng ngừa bắt buộc |
+| :---: | :--- | :--- | :--- |
+| **PM-1** | **Kho bị lệch/âm số lượng không thể đối soát** | Trừ kho xong nhưng `orderRepository.save()` lỗi không rollback; hoặc retry API hủy cộng tồn kho 2 lần; hoặc hủy `shipping` cộng nhầm kho ảo. | (1) Kiểm tra đủ tất cả món trước khi trừ (*all-or-nothing*) + rollback kho trong `catch`; (2) Ghi cờ `inventoryRestocked?: boolean` trên `Order` để hoàn kho tuyệt đối idempotent; (3) Hủy từ `shipping` giữ `inventoryRestocked = false` và hiển thị nhãn *"Chờ kiểm kê hàng hoàn"*. |
+| **PM-2** | **Mất đơn hàng giờ cao điểm / hỏng file JSON** | `order-repository.ts` và `inventory-repository.ts` ghi đồng thời bằng tên file `.tmp` cố định hoặc không chung một hàng đợi khóa. | Dùng 1 bộ khóa tuần tự dùng chung (`storage-lock.ts`) cho toàn bộ thao tác ghi `orders.json` + `inventory.json`, kết hợp tên file tạm duy nhất theo `crypto.randomUUID()` trước khi `fs.rename()` và test song song bằng `Promise.allSettled()`. |
+| **PM-3** | **Khách đặt hết hàng nhưng web vẫn cho bấm "Thêm vào giỏ" rồi báo lỗi ở bước cuối** | `/products` và `/products/[slug]` vẫn dùng `generateStaticParams()` / dữ liệu `products.ts` đóng băng lúc build thay vì đọc tồn kho thực. | Gỡ prerender tĩnh phụ thuộc tồn kho (chuyển `force-dynamic`), hợp nhất hàm `catalog-service` đọc tồn kho động từ `inventoryRepository`, và giữ nguyên form `/checkout` kèm thông báo đúng món vừa hết nếu có race ở giây cuối. |
+| **PM-4** | **Nhân viên hủy oan đơn của khách hoặc nhầm trạng thái** | Màn duyệt hiển thị `Còn kho: 0` sau khi đã trừ lúc `pending` (ảo giác hết hàng), hoặc bấm nhầm nút Hủy không có xác nhận. | Ghi rõ nhãn `"Đã giữ X cho đơn này · Còn cho đơn mới: Y"` trên từng dòng đơn; tách riêng nút chuyển trạng thái chính với nút Hủy (bắt buộc mở hộp xác nhận + nhập lý do). |
+| **PM-5** | **Lỗ hổng bảo mật: khách tự duyệt/hủy đơn người khác qua API** | Chỉ chặn truy cập trang `/admin/orders` ở `src/proxy.ts` nhưng quên kiểm tra cookie HMAC trong route handler `/api/admin/*`, hoặc để passcode mặc định khi deploy quên env. | Tạo helper `requireAdminSession(request)` bắt buộc gọi ở đầu mọi route `/api/admin/*` (trả `401`), kiểm tra chữ ký HMAC bằng `crypto.timingSafeEqual`, trả `503` khi thiếu `ADMIN_PASSCODE`, và viết route test xác nhận request không cookie luôn bị chặn `401`. |
+| **PM-6** | **Vỡ đơn hàng lịch sử & gãy bộ test E2E hiện có** | Code mới giả định mọi `Order` đều có `statusHistory` mảng khác rỗng, hoặc đổi cấu trúc response của `/api/orders`. | Khai báo `statusHistory?: OrderStatusEvent[]` là optional + hàm helper `getOrderTimeline(order)` tự tổng hợp fallback cho đơn cũ; giữ nguyên hợp đồng `POST/GET /api/orders` và `PATCH /api/orders/:id` phía khách; kiểm chứng `npm run check` & `npm run test:e2e`. |
 
-## 4. Rủi ro trọng yếu cần phòng thủ & Câu hỏi mở cần chốt ở 4.3 / 4.4
+### B. Assumption Audit (Kiểm toán các giả định cốt lõi)
 
-1. **Thời điểm trừ tồn kho:** Trừ ngay khi khách đặt (`pending` — giữ hàng) hay chỉ trừ khi nhân viên xác nhận (`confirmed`)? *(Quyết định này ảnh hưởng trực tiếp tới việc màn hình duyệt đơn hiển thị "Còn kho" trước hay sau khi trừ đơn đang duyệt!)*
-2. **Phạm vi hủy của nhân viên:** Nhân viên được hủy đơn ở `pending` + `confirmed`, hay được hủy cả khi đang `shipping`?
-3. **Tra cứu bằng SĐT vs. Quyền riêng tư:** Nếu thêm tra cứu khi quên mã bằng SĐT, cần yêu cầu xác minh thêm gì (4 số cuối, email hay ngày đặt) để không lộ dữ liệu khách hàng khác?
-4. **Chính sách `ADMIN_PASSCODE` ở local dev & đọc động Catalog:** Cách khóa mặc định khi thiếu biến môi trường và cách đồng bộ tồn kho từ `storage/inventory.json` lên `/products` & `/products/[slug]`.
+| Giả định | Độ tin cậy | Tác động nếu sai | Biện pháp gia cố (Shore Up) |
+| :--- | :---: | :---: | :--- |
+| **A1:** ShopLite chỉ chạy **1 tiến trình Node.js** (single-instance) nên async mutex trong RAM đủ chống race condition. | Cao *(môi trường học tập/shop nhỏ)* | **Cao** *(nếu chạy đa instance sẽ vẫn race)* | Ghi rõ giới hạn single-node vào Architecture; thiết kế interface `OrderRepository` & `InventoryRepository` tách biệt để dễ thay bằng DB transaction khi mở rộng. |
+| **A2:** Chỉ cần **1 mật khẩu quản trị chung (`ADMIN_PASSCODE`)** là đủ, chưa cần phân biệt nhân viên A hay B bấm duyệt. | Trung bình | **Trung bình** | Cho phép tùy chọn nhập tên ngắn/ghi chú trong `statusHistory` khi cần, giữ kiến trúc session tách riêng (`admin-auth.ts`) để dễ nâng lên tài khoản cá nhân sau này. |
+| **A3:** Khách hàng đặt COD ảo/không nghe máy sẽ được nhân viên chủ động hủy thủ công thay vì tự động hết hạn đơn `pending`. | Trung bình | **Trung bình** *(có thể giữ hàng tạm thời)* | Hiển thị rõ thời gian đơn đã chờ (cảnh báo > 2 giờ ở SHOULD) giúp nhân viên phát hiện sớm và hủy đơn ảo để giải phóng tồn kho. |
+| **A4:** File `storage/inventory.json` luôn khớp danh sách 16 sản phẩm trong `src/data/products.ts`. | Cao | **Trung bình** *(thêm sản phẩm mới bị thiếu key)* | Khi đọc tồn kho cho một `productId`, nếu chưa có key trong `inventory.json` thì tự fallback lấy `product.stock` mặc định từ `products.ts`. |
