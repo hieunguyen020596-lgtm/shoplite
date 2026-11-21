@@ -1,0 +1,49 @@
+# Epic 3 Context: Cổng vận hành đơn hàng `/admin/orders` (Desktop & Mobile 390px)
+
+<!-- Generated from planning artifacts. Regenerate with compile-epic-context if planning docs change. -->
+
+## Goal
+
+Cho phép nhân viên vận hành đăng nhập an toàn qua `/admin/login` (Fail-Closed khi thiếu `ADMIN_PASSCODE`) và xử lý trọn hàng chờ đơn hàng tại `/admin/orders` trên cả desktop (`>= 1024px`) lẫn điện thoại kho (`390px`): lọc theo trạng thái trên URL, tìm kiếm không dấu, nhìn rõ hàng đã giữ chỗ và tồn kho khả dụng để duyệt đơn 1 bước, hủy đơn có lý do hoặc xác nhận hàng hoàn trong `< 30 giây` mà không hủy oan đơn hay tràn ngang màn hình.
+
+## Stories
+
+- Story 3.1: Trang đăng nhập `/admin/login`, Nâng cấp `OrderStatusBadge` & API danh sách hàng chờ quản trị
+- Story 3.2: Giao diện hàng chờ `/admin/orders`, tồn kho giữ chỗ inline & thao tác đơn hàng
+
+## Requirements & Constraints
+
+- **Đăng nhập Fail-Closed (`/admin/login`):** Server Component kiểm tra sẵn `isAdminConfigured()`. Nếu thiếu `ADMIN_PASSCODE`, hiển thị ngay khung `role="alert"` *"Hệ thống chưa cấu hình mật khẩu quản trị (`ADMIN_PASSCODE`)"* và vô hiệu hóa (`disabled`) ô nhập lẫn nút gửi. Khi URL có `?expired=1`, hiển thị thông báo `role="status"` màu vàng nhắc phiên làm việc 8 giờ đã hết hạn. Nhập đúng mật khẩu và bấm `"Đăng nhập vận hành"` (hoặc nhấn `Enter`) gửi `POST /api/admin/auth/login` để nhận cookie `shoplite_admin` và chuyển hướng `/admin/orders`; sai mật khẩu hoặc thiếu input (`400`/`401`) hiện `role="alert"` tiếng Việt và giữ focus tại ô nhập.
+- **API hàng chờ (`GET /api/admin/orders?status=&q=`):** Chạy `assertAdminRequest(request)` ở đầu handler theo thứ tự ưu tiên `503 ADMIN_NOT_CONFIGURED → 401 UNAUTHORIZED`, sau đó trả HTTP `200` với `{ orders, counts, availableStockByProductId }`.
+- **Lọc, đếm tab & sắp xếp:** Tìm kiếm không phân biệt hoa/thường và không dấu qua `normalizeText` trên mã đơn (`SL-...`), SĐT và tên khách. `counts` chứa số lượng đơn cho cả 5 `OrderStatus` cộng `"all"`, tính trên tập đơn đã khớp `q` trước khi cắt theo `status`. Giá trị `status` ngoài danh sách hợp lệ tự fallback về `"all"`. Tab `pending` sắp xếp FIFO (`createdAt` tăng dần — đơn cũ nhất lên đầu); các tab khác sắp xếp `createdAt` giảm dần. Quy mô MVP `<= 500` đơn không phân trang, độ trễ API cục bộ p95 `< 200ms`.
+- **Khóa lạc quan & xử lý lỗi phiên/xung đột:** Mọi lệnh `PATCH /api/admin/orders/:id/status` từ `/admin/orders` bắt buộc gửi kèm `expectedStatus: order.status`. Bất kỳ request nào trả `401` phải chuyển hướng ngay sang `/admin/login?expired=1`. Khi nhận `409`, hiển thị banner `role="alert"` *"Đơn hàng vừa được cập nhật bởi thao tác khác. Danh sách đã được làm mới."* và tự gọi lại `GET /api/admin/orders`. Lỗi mạng hoặc `500` giữ nguyên form/hộp thoại đang mở và báo `role="alert"`.
+- **Trợ năng WCAG 2.2 AA & Mobile `390px`:** Dùng danh sách thẻ 1 cột (`AdminOrderCard`), không dùng `<table>` nhiều cột; `scrollWidth <= innerWidth` (0 tràn ngang). Mọi nút hành động chính, nút hủy, nút `"Đăng xuất"`, tab lọc, chip chọn nhanh, ô tìm kiếm, ô nhập mã vận đơn và ô passcode đạt chiều cao tối thiểu `min-h-11` (`44px`). Mọi `<input>` và `<textarea>` có `<label htmlFor="...">` (hoặc `aria-label` cho ô tìm kiếm); hỗ trợ `Tab`, `Enter` và `Escape` (đóng dialog và trả focus về nút mở).
+
+## Technical Decisions
+
+- **Hợp đồng module & biên tầng:** Logic miền thuần nằm trong `src/features/orders/` (không import `next/*` hay `react`). `orderService.listAdminOrders(filter?: AdminOrderListFilter): Promise<AdminOrderListResult>` với `AdminOrderListFilter = { status?: string; q?: string }` và `AdminOrderListResult = { orders: Order[]; counts: Record<OrderStatus | "all", number>; availableStockByProductId: Record<string, number> }`. Route Handler `src/app/api/admin/orders/route.ts` dùng `assertAdminRequest()` và `handleRouteError()`.
+- **Cấu trúc tệp Epic 3:** `src/app/admin/login/page.tsx`, `src/features/orders/components/admin-login-card.tsx`, `src/features/orders/components/admin-header-bar.tsx`, nâng cấp `src/features/orders/components/order-status-badge.tsx`, `src/app/api/admin/orders/route.ts`, `src/app/admin/orders/page.tsx`, và `src/features/orders/components/admin-orders-view.tsx` (tổ chức `OrderFilterTabs`, `AdminOrderSearchBar`, `AdminOrderCard`, `ReservedStockIndicator`, `RestockStatusBadge`, `CancelOrderDialog`).
+- **Đồng bộ URL & Đăng xuất:** `OrderFilterTabs` và `AdminOrderSearchBar` đồng bộ 2 chiều với `?status=...&q=...` để F5 giữ nguyên kết quả; nút xóa nhanh (`✕`) xóa `?q=` mà giữ nguyên `?status=`. Nút `"Đăng xuất"` trên `AdminHeaderBar` gọi `POST /api/admin/auth/logout` (luôn trả `200` xóa cookie) rồi chuyển hướng về `/admin/login`.
+- **Hoàn kho & tương thích đơn cũ:** Chỉ hiển thị nút `"Xác nhận đã nhận hàng hoàn (+kho)"` (`POST /api/admin/orders/:id/restock`) khi `order.status === "cancelled" && order.inventoryRestocked === false`; sau khi xác nhận thành công, nút biến mất và đổi thành `RestockStatusBadge` *"Đã hoàn kho"*. Đơn `cancelled` cũ có `inventoryRestocked === undefined` ẩn cả badge chờ hàng hoàn lẫn nút hoàn kho.
+
+## UX & Interaction Patterns
+
+- **Hệ thống token màu Tailwind v4 (light mode, font `Be Vietnam Pro`, `tabular-nums` cho tiền và số lượng):**
+  - `primary` `#4F39F6` (`indigo-600`, hover `#615FFF`), `primary-soft` `#EEF2FF` (`indigo-50`), `primary-text` `#432DD7` (`indigo-700`), `primary-ring` `#C6D2FF` (`indigo-200`).
+  - `bg-page` `#F8FAFC` (`slate-50`), `bg-surface` `#FFFFFF`, `bg-subtle` `#F1F5F9` (`slate-100`), `border-default` `#E2E8F0` (`slate-200`), `border-strong` `#CAD5E2` (`slate-300`), `text-primary` `#0F172B` (`slate-900`), `text-secondary` `#45556C` (`slate-600`), `text-muted` `#62748E` (`slate-500`).
+  - `success` `#009966` (`emerald-600`) / `-soft` `#ECFDF5` / `-text` `#007A55` / `-ring` `#A4F4CF`; `warning-soft` `#FFFBEB` / `-text` `#BB4D00` / `-strong` `#973C00` / `-ring` `#FEE685`; `danger` `#EC003F` (hover `#FF2056`) / `-soft` `#FFF1F2` / `-text` `#C70036` / `-ring` `#FFCCD3`; `info-soft` `#F0F9FF` / `-text` `#0069A8` / `-ring` `#B8E6FE`.
+- **Bố cục & Hình khối:** `/admin/orders` dùng `max-w-6xl` (`1152px`), `/admin/login` căn giữa thẻ tối đa `400px`. Thẻ và hộp thoại bo `rounded-2xl` (`16px`); nút, input, tab, banner lỗi bo `rounded-xl` (`12px`); `ReservedStockIndicator` và logo bo `rounded-lg` (`8px`); badge, chip và bộ đếm tab bo `rounded-full`. `AdminHeaderBar` (`sticky top-0 z-30`) hiện `"ShopLite"` + pill `"Vận hành đơn hàng"` trên desktop và rút gọn thành `"Vận hành"` trên `< 640px`. `OrderFilterTabs` cuộn ngang 1 hàng (`overflow-x-auto`) trên `390px`; chân thẻ `AdminOrderCard` xếp dọc nút toàn chiều rộng (`w-full`) trên `< 640px`.
+- **`OrderStatusBadge` (3 tín hiệu màu + `size-3` icon `lucide-react` + nhãn tiếng Việt):** `pending` (`Clock`), `confirmed` (`CheckCircle2`), `shipping` (`Truck`), `delivered` (`PackageCheck`), `cancelled` (`XCircle`, bắt buộc dùng `text-slate-600` trên `bg-slate-100` đạt tương phản `6.92:1`).
+- **`ReservedStockIndicator` (chống "ảo giác hết hàng"):** Chỉ render trên đơn `pending`, `confirmed`, `shipping`; ẩn trên `delivered` và `cancelled`. Luôn tách biệt 2 phần inline: chip nền trắng `#FFFFFF` ghi **`✓ Đã giữ {quantity} cho đơn này`** và nhãn `Còn cho đơn mới: {availableStock}` theo 3 ngưỡng: `> 5` (`CheckCircle2`, `success`), `1–5` (`AlertTriangle`, `warning`), `0` (`XCircle`, `danger` — không tô đỏ toàn dòng sản phẩm).
+- **`RestockStatusBadge`:** Trên đơn `cancelled`: `inventoryRestocked === false` → `data-testid="restock-pending-badge"` (`Clock`, vàng cam, `"Chờ nhận hàng hoàn"`); `inventoryRestocked === true` → `data-testid="restocked-badge"` (`PackageCheck`, xanh lá, `"Đã hoàn kho"`).
+- **Chuyển 1 bước & `CancelOrderDialog`:** Trên mỗi thẻ chỉ có đúng 1 nút chính (`"Xác nhận đơn"`, `"Bàn giao giao hàng"`, `"Đánh dấu đã giao"` — cấm `<select>` tự do và cấm thao tác ẩn chỉ hiện khi hover). Ở trạng thái `confirmed`, đặt ô `<input>` tùy chọn `maxLength={200}` với `<label>` *"Ghi chú vận chuyển / mã vận đơn (tùy chọn)"* và placeholder `"VD: Mã vận đơn GHN-882910"` ngay trước nút `"Bàn giao giao hàng"`. Nút `"Hủy đơn"` (`secondary` viền `#FFCCD3` chữ `#C70036`) mở `CancelOrderDialog` (`role="dialog"`, `aria-modal="true"`, tối đa `440px`, không chồng modal):
+  - Hiển thị 3 chip chọn nhanh (*"Hết hàng thực tế"*, *"Khách yêu cầu hủy qua điện thoại"*, *"Giao hàng thất bại / Khách không nhận"*) — chạm chip điền vào `<textarea>` để sửa tiếp, không tự submit.
+  - Hiện bộ đếm `{len}/200`, validate `1..200` ký tự bằng lỗi `role="alert"` inline không xóa nội dung đã gõ; hiển thị hộp cảnh báo vàng `role="alert"` *"Hủy đơn đang giao sẽ không tự động cộng lại tồn kho"* khi `order.status === "shipping"`; gồm 2 nút `"Quay lại"` (`secondary`) và `"Xác nhận hủy đơn"` (`danger`).
+- **Trạng thái tải & Rỗng:** Hiển thị 3 thẻ skeleton `animate-pulse` khi đang tải; khóa nút theo `pendingOrderId` (`Đang xác nhận…`, `Đang hủy…`, `Đang xử lý…`) chống bấm đúp. Khi 0 kết quả, render `EmptyState` (*"Chưa có đơn hàng nào trong hệ thống"* hoặc thông điệp theo bộ lọc/từ khóa) kèm nút `"Xóa bộ lọc"` đặt lại về `/admin/orders?status=all`.
+
+## Cross-Story Dependencies
+
+- **Phụ thuộc Epic 1:** Dùng chung `admin-auth.ts`, `src/proxy.ts`, `POST /api/admin/auth/login`, `POST /api/admin/auth/logout`, `PATCH /api/admin/orders/:id/status`, `OrderStatusEvent`, quy tắc `expectedStatus` và mã lỗi `OrderError` (`400`/`401`/`404`/`409`/`503`).
+- **Phụ thuộc Epic 2:** Đọc `availableStockByProductId` từ `InventoryRepository` và gọi `POST /api/admin/orders/:id/restock` cho đơn hủy từ `shipping`.
+- **Trong nội bộ Epic 3:** Story 3.2 phụ thuộc API `GET /api/admin/orders`, `AdminHeaderBar` và `OrderStatusBadge` đã nâng cấp từ Story 3.1.
+- **Phục vụ Epic 4:** `OrderStatusBadge` nâng cấp (màu `cancelled` + icon `lucide-react`) được dùng lại trên `/orders` và `/orders/[id]`.
