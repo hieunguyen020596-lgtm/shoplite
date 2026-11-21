@@ -25,9 +25,9 @@
 1. **Trừ tồn kho ngay khi khách đặt (`pending`)**: Chống bán lố tuyệt đối ngay trong `placeOrder()`. Màn duyệt `/admin/orders` hiển thị rõ `"Đã giữ X cho đơn này · Còn cho đơn mới: Y"` để tránh ảo giác hết hàng.
 2. **Phạm vi hủy & hoàn kho của nhân viên**:
    - Khách hàng: chỉ được hủy khi `pending` (giữ nguyên quy tắc cũ) $\rightarrow$ tự động hoàn kho.
-   - Nhân viên: được hủy ở `pending`, `confirmed` (**tự động hoàn kho idempotent**) VÀ `shipping` (giao thất bại — **KHÔNG tự động hoàn kho**, ghi cờ `restocked: false` trong `statusHistory` chờ kiểm kê hàng hoàn thực tế). Không được hủy `delivered`.
+   - Nhân viên: được hủy ở `pending`, `confirmed` (**tự động hoàn kho idempotent**) VÀ `shipping` (giao thất bại — **KHÔNG tự động hoàn kho**, ghi cờ `inventoryRestocked: false` trong `statusHistory`, kèm nút **"Xác nhận đã nhận hàng hoàn (+kho)"** chạy idempotent đúng 1 lần trong MVP để đóng ngõ cụt tồn kho). Không được hủy `delivered`.
 3. **Phạm vi MVP tinh gọn**: Giữ đủ 5 mục MUST (bao gồm Timeline 4 bước đơn giản cho khách, **không polling 30s**), đẩy `"tra cứu SĐT + rate limit"` và `"polling 30s"` ra ngoài MVP, giữ nguyên `/orders` công khai để không gãy `e2e/shopping-flow.spec.ts`.
-4. **Bảo vệ `/admin` nghiêm ngặt (Fail-Closed)**: Khi thiếu biến môi trường `ADMIN_PASSCODE`, khóa cứng truy cập và trả `503 Service Unavailable` (tuyệt đối không fallback passcode mặc định).
+4. **Bảo vệ `/admin` nghiêm ngặt (Fail-Closed)**: Khi thiếu biến môi trường `ADMIN_PASSCODE`, khóa cứng truy cập và trả `503 Service Unavailable` (tuyệt đối không fallback passcode mặc định); cookie siết chặt `HttpOnly; SameSite=Lax; Path=/; Max-Age=28800` (+ `Secure` ở production). Chấp nhận có kiểm soát rủi ro đơn COD ảo ở MVP (xử lý bằng hủy nhanh trên hàng chờ).
 
 ---
 

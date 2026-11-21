@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Forge Report — ShopLite Ops [HARDENED]</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --paper: #162033;
+      --paper-2: #1c2942;
+      --border: #2c3e5e;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --emerald: #10b981;
+      --amber: #f59e0b;
+      --rose: #f43f5e;
+      --sky: #38bdf8;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: radial-gradient(circle at 15% 10%, #1d2d4a 0%, var(--bg) 60%);
+      color: var(--text);
+      line-height: 1.65;
+      padding: 36px 20px 64px;
+    }
+    .sheet {
+      max-width: 960px;
+      margin: 0 auto;
+      background: var(--paper);
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      padding: 36px;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+      position: relative;
+      overflow: hidden;
+    }
+    .top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 24px;
+      flex-wrap: wrap;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 24px;
+    }
+    .kicker {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--sky);
+    }
+    h1 { margin: 8px 0 8px; font-size: 30px; letter-spacing: -0.02em; }
+    .meta { color: var(--muted); font-size: 14px; margin: 0; max-width: 580px; }
+    .seal {
+      flex-shrink: 0;
+      width: 148px;
+      height: 148px;
+      transform: rotate(-8deg);
+      filter: drop-shadow(0 8px 18px rgba(16, 185, 129, 0.28));
+    }
+    h2 {
+      font-size: 18px;
+      margin: 28px 0 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 14px;
+    }
+    .card {
+      background: var(--paper-2);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px 18px;
+      font-size: 14px;
+    }
+    .card.lock { border-left: 4px solid var(--emerald); }
+    .card.reject { border-left: 4px solid var(--rose); }
+    .card.limit { border-left: 4px solid var(--amber); }
+    .card strong { display: block; margin-bottom: 6px; color: #fff; }
+    .personas {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 12px;
+    }
+    .persona {
+      background: rgba(15, 23, 42, 0.65);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px;
+      font-size: 13px;
+    }
+    .persona-head {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 6px;
+    }
+    .persona span.role { font-size: 11px; color: var(--sky); display: block; margin-bottom: 4px; }
+    code {
+      font-size: 12px;
+      color: var(--sky);
+      background: rgba(56, 189, 248, 0.1);
+      padding: 1px 6px;
+      border-radius: 5px;
+    }
+    footer {
+      margin-top: 32px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+      font-size: 12px;
+      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+  </style>
+</head>
+<body>
+  <main class="sheet">
+    <header class="top">
+      <div>
+        <div class="kicker">BMAD Forge Idea Report · 2026-11-21</div>
+        <h1>ShopLite Ops — Vận Hành Đơn Hàng &amp; Tồn Kho</h1>
+        <p class="meta">
+          Ý tưởng đã vượt qua các vòng thử lửa từ Party Mode (5 vai trò) và 2 lượt đấu áp lực trực diện trong
+          <code>/bmad-forge-idea</code> (bịt kín ngõ cụt hàng hoàn từ <code>shipping</code> và chốt biên bảo mật phiên admin).
+          Đủ độ cứng cáp để chuyển tiếp sang <code>bmad-product-brief</code> &amp; <code>bmad-prd</code>.
+        </p>
+      </div>
+      <!-- Inline SVG Wax Seal Stamp: HARDENED -->
+      <svg class="seal" viewBox="0 0 160 160" role="img" aria-label="Phán quyết: HARDENED">
+        <defs>
+          <radialGradient id="wax" cx="35%" cy="30%" r="70%">
+            <stop offset="0%" stop-color="#34d399" />
+            <stop offset="60%" stop-color="#059669" />
+            <stop offset="100%" stop-color="#065f46" />
+          </radialGradient>
+        </defs>
+        <path d="M80 6 L92 16 L108 11 L115 25 L132 25 L134 41 L149 48 L145 64 L156 76 L146 90 L151 106 L136 114 L135 130 L118 133 L111 148 L95 144 L80 154 L65 144 L49 148 L42 133 L25 130 L24 114 L9 106 L14 90 L4 76 L15 64 L11 48 L26 41 L28 25 L45 25 L52 11 L68 16 Z"
+              fill="url(#wax)" stroke="#a7f3d0" stroke-width="2" />
+        <circle cx="80" cy="80" r="56" fill="none" stroke="#d1fae5" stroke-width="2" stroke-dasharray="4 3" />
+        <circle cx="80" cy="80" r="48" fill="none" stroke="#ecfdf5" stroke-width="1.2" opacity="0.7" />
+        <text x="80" y="74" text-anchor="middle" fill="#ffffff" font-size="16" font-weight="800" letter-spacing="1.5">HARDENED</text>
+        <text x="80" y="95" text-anchor="middle" fill="#d1fae5" font-size="9.5" font-weight="700" letter-spacing="1">BMAD FORGE</text>
+        <text x="80" y="110" text-anchor="middle" fill="#a7f3d0" font-size="8.5">2026-11-21</text>
+      </svg>
+    </header>
+
+    <section>
+      <h2>🔒 Các Quyết Định Đã Khóa (Locked Decisions)</h2>
+      <div class="grid">
+        <div class="card lock">
+          <strong>1. Trừ kho ngay khi đặt (pending) + Chống ảo giác hết hàng</strong>
+          Kiểm tra all-or-nothing &amp; trừ kho trong async mutex dùng chung + file tạm UUID. Màn duyệt hiện rõ
+          <code>Đã giữ X cho đơn này · Còn cho đơn mới: Y</code>; catalog đọc tồn kho động từ <code>storage/inventory.json</code>.
+        </div>
+        <div class="card lock">
+          <strong>2. Hủy đơn &amp; Hoàn kho phân tách rõ</strong>
+          Khách chỉ hủy <code>pending</code> (tự hoàn kho). Nhân viên hủy <code>pending</code>/<code>confirmed</code> tự hoàn kho idempotent; hủy <code>shipping</code> không tự hoàn kho (<code>inventoryRestocked = false</code>). Không hủy <code>delivered</code>.
+        </div>
+        <div class="card lock">
+          <strong>3. Đóng ngõ cụt hàng hoàn từ shipping (Bổ sung mới từ Forge)</strong>
+          Kéo nút <strong>"Xác nhận đã nhận hàng hoàn (+kho)"</strong> vào MVP cho đơn hủy từ <code>shipping</code> có <code>inventoryRestocked = false</code> — chạy idempotent đúng 1 lần và ghi mốc vào <code>statusHistory</code>.
+        </div>
+        <div class="card lock">
+          <strong>4. Bảo vệ Admin Fail-Closed &amp; Chống CSRF</strong>
+          Thiếu <code>ADMIN_PASSCODE</code> trả <code>503</code> (cấm fallback). Cookie <code>HttpOnly; SameSite=Lax; Path=/; Max-Age=28800</code> (+ <code>Secure</code> production) ký <code>HMAC-SHA256</code>; verify bằng <code>timingSafeEqual</code> ở <code>src/proxy.ts</code> và mọi <code>/api/admin/*</code>.
+        </div>
+        <div class="card lock">
+          <strong>5. Timeline 4 bước gọn nhẹ &amp; Tương thích ngược</strong>
+          <code>/orders/[id]</code> có timeline 4 bước + nút Làm mới thủ công; <code>statusHistory</code> là optional để không crash đơn cũ; giữ nguyên <code>/orders</code> công khai để pass <code>e2e/shopping-flow.spec.ts</code>.
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>✂️ Phương Án Đã Loại Bỏ &amp; Lý Do (Rejected)</h2>
+      <div class="grid">
+        <div class="card reject">
+          <strong>Trừ kho ở bước confirmed</strong>
+          Bị loại vì vẫn để lọt bán vượt tồn kho (overselling) khi 2 khách đặt đồng thời món còn 1 chiếc.
+        </div>
+        <div class="card reject">
+          <strong>Tự động hoàn kho khi hủy shipping</strong>
+          Bị loại vì tạo tồn kho ảo bán cho khách khác trước khi hàng hoàn thực tế về kho.
+        </div>
+        <div class="card reject">
+          <strong>Đẩy hoàn kho tay sang COULD</strong>
+          Bị phát hiện trong Forge tạo ngõ cụt kẹt hàng hoàn vĩnh viễn nếu không sửa tay file JSON.
+        </div>
+        <div class="card reject">
+          <strong>Polling 30s &amp; Tra cứu SĐT + Rate-limit RAM</strong>
+          Bị loại khỏi MVP vì polling tranh chấp I/O JSON &amp; flaky E2E; rate-limit RAM mất khi restart và mâu thuẫn với <code>/orders</code> công khai.
+        </div>
+        <div class="card reject">
+          <strong>Passcode dev mặc định &amp; CAPTCHA/OTP</strong>
+          Cấm fallback passcode vì lỗ hổng bảo mật; bỏ CAPTCHA/OTP để không kéo dịch vụ ngoài vào MVP.
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>⚠️ Điểm Yếu Sống Sót Được Chấp Nhận Có Kiểm Soát</h2>
+      <div class="grid">
+        <div class="card limit">
+          <strong>Khóa mutex chỉ áp dụng cho single-node</strong>
+          Phù hợp kiến trúc file JSON của ShopLite; tách interface Repository để dễ nâng lên DB transaction khi mở rộng đa instance.
+        </div>
+        <div class="card limit">
+          <strong>Đơn COD ảo khóa kho tạm thời</strong>
+          Không dùng OTP/CAPTCHA trong MVP; nhân viên phát hiện qua hàng chờ <code>pending</code> (cảnh báo chờ lâu) và hủy nhanh để giải phóng kho.
+        </div>
+        <div class="card limit">
+          <strong><code>/orders</code> vẫn công khai toàn bộ đơn</strong>
+          Giữ nguyên trong MVP để không vỡ hợp đồng <code>e2e/shopping-flow.spec.ts</code>; tách sang initiative riêng tư hóa đơn hàng sau MVP.
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>🎙️ Các Persona Đã Thử Lửa Ý Tưởng</h2>
+      <div class="personas">
+        <div class="persona">
+          <div class="persona-head">🌶️ Boundary</div>
+          <span class="role">Edge-Case Hunter · BMAD Custom</span>
+          Truy vết kịch bản hủy đơn <code>shipping</code> (<code>restocked=false</code>) phát hiện ngõ cụt không có nút nhập lại hàng hoàn trong MVP.
+        </div>
+        <div class="persona">
+          <div class="persona-head">📦 Anh Tuấn</div>
+          <span class="role">Chủ shop thực tế (50 đơn/ngày) · Outside Voice</span>
+          Phản biện thực tế vận hành: 3–4 đơn bom hàng/tuần sẽ làm web báo hết hàng sạch nếu không có nút nhận hàng hoàn ngay trên giao diện.
+        </div>
+        <div class="persona">
+          <div class="persona-head">🔒 Vex</div>
+          <span class="role">Security Engineer · BMAD Custom</span>
+          Chỉ rõ 2 đường tấn công: Inventory DoS qua đơn COD ảo và CSRF/thiếu cờ <code>SameSite</code> trên cookie phiên admin.
+        </div>
+        <div class="persona">
+          <div class="persona-head">🚢 Dana</div>
+          <span class="role">The Pragmatist · BMAD Custom</span>
+          Cân bằng phạm vi MVP: chốt siết cookie + fail-closed <code>503</code> (chi phí thấp, hiệu quả cao) và gạt bỏ CAPTCHA/OTP khỏi MVP.
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <span>Nguồn sự thật: <code>_bmad-output/forge/shoplite-ops/.memlog.md</code></span>
+      <span>Đầu ra kế tiếp: <code>forged-idea.md</code> → <code>bmad-product-brief</code> / <code>bmad-prd</code></span>
+    </footer>
+  </main>
+</body>
+</html>
