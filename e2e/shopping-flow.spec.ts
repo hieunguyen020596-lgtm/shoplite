@@ -1,5 +1,12 @@
 import { expect, test } from "@playwright/test";
 
+// Mỗi test dùng một IP riêng để không chạm giới hạn đơn theo IP (AD-30).
+test.beforeEach(async ({ page }, testInfo) => {
+  await page.setExtraHTTPHeaders({
+    "x-forwarded-for": `10.77.0.${(testInfo.line % 254) + 1}`,
+  });
+});
+
 test("khách hàng tìm sản phẩm, thêm vào giỏ và đặt hàng thành công", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("link", { name: "Mua sắm ngay" }).click();
