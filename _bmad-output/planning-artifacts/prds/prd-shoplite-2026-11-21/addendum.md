@@ -17,22 +17,28 @@ Chi tiết cho kiến trúc và phát triển. Lý do chọn và phương án đ
 |---|---|
 | `orders` | Thông tin đơn, Trạng thái, số điện thoại đã chuẩn hóa, Cờ cần hoàn tiền |
 | `order_items` | Dòng sản phẩm với giá tại thời điểm đặt |
-| `order_status_history` | Người thực hiện, thời gian, Trạng thái cũ, Trạng thái mới, lý do |
+| `order_status_history` | Người thực hiện, thời gian, Trạng thái cũ, Trạng thái mới, mã lý do Hủy, lý do dạng chữ |
 | `inventory` | `product_id`, `stock`, `CHECK (stock >= 0)`, seed từ `src/data/products.ts` |
 | `rate_limits` | Bộ đếm tra đơn, đăng nhập và đặt đơn theo khóa và cửa sổ thời gian |
+
+- **Mã lý do Hủy:** lưu ở cột riêng. Đã chốt `out_of_stock` (`Hết hàng`) và `other` (`Khác`, kèm chữ đã nhập). Tên mã của các lý do còn lại do bước kiến trúc chốt.
+- **Dòng kết quả xử lý hoàn tiền:** bước kiến trúc chốt ghi Trạng thái cũ và mới giống nhau hay thêm loại sự kiện. Điều kiện: giữ được kết quả và không đổi mốc Khách hàng thấy (FR-7).
 
 ## Bản đồ route đề xuất
 
 | Route | Sau thay đổi |
 |---|---|
 | `POST /api/orders` | Giữ, thêm giới hạn và cấp Quyền xem đơn |
-| `GET /api/orders` | Chỉ Nhân viên và Quản lý |
+| `GET /api/orders` | Chỉ Nhân viên và Quản lý, trả danh sách theo tab của FR-9 |
+| `POST /api/orders/search` | Mới, đề xuất. Chỉ Nhân viên và Quản lý, tìm theo Mã đơn hoặc số điện thoại; từ khóa nằm trong body, không lên URL |
 | `GET /api/orders/:id` | Nhân viên, Quản lý, hoặc Quyền xem đơn với Dữ liệu tối thiểu |
 | `PATCH /api/orders/:id` | Chỉ Nhân viên và Quản lý, theo FR-10, FR-12 và FR-13 |
+| Đường ghi kết quả xử lý hoàn tiền | Kiến trúc chốt. Chỉ Quản lý, gồm `Đã xử lý hoàn tiền` và ghi thêm `Đã hoàn tiền`, đính chính về `Khách chưa chuyển tiền` kèm lý do (FR-21). Mỗi thao tác chỉ hợp lệ theo kết quả mới nhất; lần ghi trùng nhận lỗi xung đột, không dùng `INVALID_STATUS_TRANSITION` vì Trạng thái không đổi |
 | `POST /api/orders/lookup` | Mới, Tra đơn |
 | `/orders` | Trang Tra đơn |
 | `/orders/:id` | Trang xác nhận khi có Quyền xem đơn; nếu không thì chuyển tới Tra đơn |
-| `/staff`, `/staff/login` | Mới, Trang nhân viên và đăng nhập |
+| `/staff`, `/staff/login` | Mới, Danh sách đơn và đăng nhập |
+| `/staff/orders/:id` | Mới, Chi tiết đơn: thông tin đơn, thao tác và Lịch sử |
 
 Giữ URL `/orders/:id?placed=1` giúp giảm thay đổi ở checkout và e2e.
 
@@ -41,10 +47,11 @@ Giữ URL `/orders/:id?placed=1` giúp giảm thay đổi ở checkout và e2e.
 | Vị trí | Hiện trạng | Việc cần làm |
 |---|---|---|
 | `src/features/orders/order-service.ts:70` | Kiểm tồn từ catalog tĩnh | Thay bằng trừ kho nguyên tử |
+| `src/features/orders/order-service.ts:70-75` | Dừng ở dòng thiếu đầu tiên | `INSUFFICIENT_STOCK` trả mọi dòng thiếu kèm `productId`, số yêu cầu, số còn lại (FR-19) |
 | `src/features/orders/order-service.ts:108` | Lưu đơn tách khỏi kiểm tồn | Gộp vào một giao dịch |
-| `src/features/orders/order-service.ts:121` | Hủy chỉ từ `pending`, không hoàn kho | Thay bằng chuyển trạng thái có hoàn kho |
+| `src/features/orders/order-service.ts:121` | Hủy chỉ từ `pending`, không hoàn kho | Thay bằng chuyển trạng thái, hoàn kho theo mã lý do: `out_of_stock` không hoàn, mọi mã khác hoàn đúng một lần |
 | `src/features/orders/order-repository.ts:6` | `findAll/findById/save` | Thay `save` bằng thao tác nguyên tử |
-| `src/features/orders/order-errors.ts:1` | 5 mã lỗi | Thêm lỗi cho 401, 403, 429 |
+| `src/features/orders/order-errors.ts:1` | 5 mã lỗi, `details` là `Record<string, string>` | Thêm lỗi cho 401, 403, 429 và lỗi xung đột khi ghi trùng kết quả hoàn tiền; mở rộng kiểu `details` để chứa danh sách dòng thiếu |
 | `src/app/api/orders/route.ts:6` | `GET` không kiểm tra quyền | Chặn theo vai |
 | `src/app/api/orders/[id]/route.ts:6` | `GET` và `PATCH` không kiểm tra quyền | Chặn theo vai và Quyền xem đơn |
 | `src/app/orders/[id]/page.tsx:69` | Nút hủy của khách | Gỡ |
