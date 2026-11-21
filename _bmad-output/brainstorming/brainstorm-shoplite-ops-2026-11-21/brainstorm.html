@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ShopLite Ops — Brainstorm Control Room (68 Ý Tưởng)</title>
+  <title>ShopLite Ops — Brainstorm Control Room (73 Ý Tưởng)</title>
   <style>
     :root {
       --bg: #0b1120;
@@ -199,14 +199,14 @@
       <span class="eyebrow">BMAD Creative Partner · 2026-11-21 · ShopLite Ops</span>
       <h1>Phòng Điều Hành Đơn Hàng ShopLite Ops</h1>
       <p class="subtitle">
-        68 ý tưởng phân kỳ qua 6 nhóm góc nhìn — kết hợp khảo sát codebase Next.js 16 thực tế cùng 3 bài toán
-        trọng tâm do người dùng đặt ra (tra cứu khi quên mã, xem tồn kho khi duyệt đơn, thông báo trạng thái cho khách).
+        73 ý tưởng phân kỳ qua 6 nhóm góc nhìn — kết hợp khảo sát codebase Next.js 16 thực tế cùng 4 bài toán
+        trọng tâm do người dùng đặt ra (tra cứu khi quên mã, xem tồn kho khi duyệt đơn, thông báo trạng thái cho khách, và 2 khách đặt cùng lúc món hàng chỉ còn 1 cái).
       </p>
       <div class="stats">
-        <div class="stat"><strong>68</strong><span>Ý tưởng đã ghi .memlog.md</span></div>
+        <div class="stat"><strong>73</strong><span>Ý tưởng đã ghi .memlog.md</span></div>
         <div class="stat"><strong>6</strong><span>Nhóm kỹ thuật &amp; Deep-Dive</span></div>
         <div class="stat"><strong>5 / 5</strong><span>Mục MUST cho MVP</span></div>
-        <div class="stat"><strong>3</strong><span>Bài toán trọng tâm từ user</span></div>
+        <div class="stat"><strong>4</strong><span>Bài toán trọng tâm từ user</span></div>
       </div>
       <div class="pipeline">
         <span class="step done">Pending</span><span>→</span>
@@ -218,7 +218,7 @@
     </header>
 
     <section class="section">
-      <h2>🎯 3 Bài Toán Trọng Tâm Do Bạn Đặt Ra</h2>
+      <h2>🎯 4 Bài Toán Trọng Tâm Do Bạn Đặt Ra</h2>
       <div class="radar-grid">
         <div class="focus-card">
           <strong>1. Khách quên mã đơn thì tra cứu thế nào?</strong>
@@ -238,14 +238,20 @@
             Chấm thông báo trên Header mục "Đơn hàng", auto-refresh nhẹ (<code>visibilitychange</code> + polling 30s), Browser Notification tùy chọn &amp; nút Copy tin nhắn báo khách cho nhân viên.
           </p>
         </div>
+        <div class="focus-card">
+          <strong>4. Còn 1 sản phẩm, 2 khách đặt cùng lúc thì sao?</strong>
+          <p style="margin:6px 0 0;font-size:13px;color:var(--muted)">
+            <strong>Async Mutex tuần tự</strong> + file tạm UUID + <em>all-or-nothing rollback</em>: đúng 1 khách thắng (<code>201</code>), khách sau nhận <code>INSUFFICIENT_STOCK</code> kèm UX gỡ món gọn, bắt buộc test song song bằng <code>Promise.allSettled()</code>.
+          </p>
+        </div>
       </div>
     </section>
 
     <section class="section">
-      <h2>💡 Kho 68 Ý Tưởng Theo 6 Nhóm</h2>
+      <h2>💡 Kho 73 Ý Tưởng Theo 6 Nhóm</h2>
       <div class="tabs">
-        <button class="tab-btn active" onclick="filterIdeas('all', this)">Tất cả (68)</button>
-        <button class="tab-btn" onclick="filterIdeas('userq', this)">🎯 3 Câu Hỏi Trọng Tâm (14)</button>
+        <button class="tab-btn active" onclick="filterIdeas('all', this)">Tất cả (73)</button>
+        <button class="tab-btn" onclick="filterIdeas('userq', this)">🎯 4 Câu Hỏi Trọng Tâm (19)</button>
         <button class="tab-btn" onclick="filterIdeas('role', this)">🎭 Role Playing (12)</button>
         <button class="tab-btn" onclick="filterIdeas('hmw', this)">❓ How Might We (11)</button>
         <button class="tab-btn" onclick="filterIdeas('rev', this)">💥 Reverse (11)</button>
@@ -297,12 +303,17 @@
     </section>
 
     <footer>
-      Sinh từ <code>.memlog.md</code> (68 ý tưởng) bởi BMAD Method v6.12.4 (Antigravity) · Sẵn sàng sang Bài 4.3 (Party Mode) &amp; Bài 4.4 (Brief / PRD).
+      Sinh từ <code>.memlog.md</code> (73 ý tưởng) bởi BMAD Method v6.12.4 (Antigravity) · Sẵn sàng sang Bài 4.3 (Party Mode) &amp; Bài 4.4 (Brief / PRD).
     </footer>
   </div>
 
   <script>
     const ideas = [
+      { cat: "userq", tag: "Còn 1 SP · 2 khách đặt", cls: "b-userq", text: "[Còn 1 SP, 2 khách đặt #1 — Mutex tuần tự] Bọc trọn đọc kho → kiểm tra & trừ kho → lưu đơn trong async promise mutex: đúng 1 khách thắng (201), khách sau nhận INSUFFICIENT_STOCK." },
+      { cat: "userq", tag: "Còn 1 SP · 2 khách đặt", cls: "b-userq", text: "[Còn 1 SP, 2 khách đặt #2 — File tạm UUID nguyên tử] Sửa order-repository.ts thay orders.json.tmp dùng chung sang file tạm randomUUID() cùng lock với storage/inventory.json." },
+      { cat: "userq", tag: "Còn 1 SP · 2 khách đặt", cls: "b-userq", text: "[Còn 1 SP, 2 khách đặt #3 — All-or-nothing & Rollback] Đơn nhiều món kiểm tra đủ toàn bộ trước khi trừ; hoàn lại kho ngay nếu bước lưu đơn lỗi để không bao giờ âm kho." },
+      { cat: "userq", tag: "Còn 1 SP · 2 khách đặt", cls: "b-userq", text: "[Còn 1 SP, 2 khách đặt #4 — UX cho khách đến sau] Trả INSUFFICIENT_STOCK kèm tên món & tồn = 0 để /checkout báo rõ món vừa hết, giữ nguyên thông tin form đã điền." },
+      { cat: "userq", tag: "Còn 1 SP · 2 khách đặt", cls: "b-userq", text: "[Còn 1 SP, 2 khách đặt #5 — Test đồng thời] Bắt buộc test tích hợp Promise.allSettled() trên sản phẩm stock=1: đúng 1 đơn thành công, tồn kho cuối = 0." },
       { cat: "userq", tag: "Quên mã đơn", cls: "b-userq", text: "[Quên mã đơn #1] Tự lưu lịch sử mã đơn gần đây vào localStorage['shoplite:my-orders'] để vào /orders thấy ngay không cần nhớ mã." },
       { cat: "userq", tag: "Quên mã đơn", cls: "b-userq", text: "[Quên mã đơn #2] Tra cứu theo SĐT + xác minh phụ (email/ngày đặt), che mờ SĐT (091****678), ẩn địa chỉ chi tiết và giới hạn tần suất (rate limit)." },
       { cat: "userq", tag: "Quên mã đơn", cls: "b-userq", text: "[Quên mã đơn #3] Trên màn hình 'Đặt hàng thành công!', thêm nút 1 chạm 'Sao chép link theo dõi' và 'In / Lưu phiếu đơn'." },

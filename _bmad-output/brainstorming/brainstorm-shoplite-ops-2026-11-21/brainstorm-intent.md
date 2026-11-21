@@ -2,7 +2,7 @@
 
 - **Ngày:** 2026-11-21
 - **Chế độ:** Creative Partner (`bmad-brainstorming` v6.12.4)
-- **Nguồn:** `.memlog.md` (**68 ý tưởng** qua 6 nhóm: *Role Playing*, *How Might We*, *Reverse Brainstorming*, *SCAMPER Method*, *Assumption Reversal*, và *3 Câu hỏi trọng tâm từ người dùng*)
+- **Nguồn:** `.memlog.md` (**73 ý tưởng** qua 6 nhóm: *Role Playing*, *How Might We*, *Reverse Brainstorming*, *SCAMPER Method*, *Assumption Reversal*, và *4 Câu hỏi trọng tâm từ người dùng*)
 - **Mục tiêu:** Xác định phạm vi MVP khả thi trên codebase ShopLite (Next.js 16, không dịch vụ ngoài) và nhận diện rủi ro/câu hỏi mở trước khi bước sang Party Mode (4.3), Product Brief & PRD (4.4).
 
 ---
@@ -46,13 +46,14 @@
 
 ---
 
-## 3. Giải pháp chốt sơ bộ cho 3 câu hỏi trọng tâm người dùng đặt ra
+## 3. Giải pháp chốt sơ bộ cho 4 câu hỏi trọng tâm người dùng đặt ra
 
 | Bài toán | Hướng giải quyết khả thi không cần dịch vụ ngoài |
 | :--- | :--- |
 | **1. Khách tra cứu đơn khi quên mã?** | (a) Tự lưu lịch sử mã đơn trên trình duyệt (`localStorage`) để mở `/orders` thấy ngay; (b) Nút copy link / in phiếu ở màn hình đặt hàng thành công; (c) Tra cứu theo SĐT + xác minh phụ kèm che thông tin (`091****678`) & rate limit; (d) Dự phòng gọi CSKH tra cứu theo SĐT trên `/admin/orders`. |
 | **2. Nhân viên biết tồn kho của món để duyệt đơn?** | (a) Hiện tồn kho thực tế inline ngay cạnh từng dòng sản phẩm trong đơn (`Đặt: 2 · Còn kho: 5`) đọc từ `storage/inventory.json`; (b) Mã màu cảnh báo (xanh > 5, vàng 1–5, đỏ = 0 / thiếu hàng); (c) Hiển thị số lượng đang chờ duyệt ở các đơn `pending` khác; (d) Ngăn kéo/tab xem nhanh tồn kho toàn bộ 16 sản phẩm. |
 | **3. Khách biết đơn đã đổi trạng thái?** | (a) Chấm thông báo trên mục "Đơn hàng" ở Header so sánh `updatedAt`/`status` với lần xem cuối; (b) Auto-refresh nhẹ trên `/orders/[id]` (`visibilitychange` + polling 30s) kèm highlight mốc vừa cập nhật; (c) Tùy chọn Browser Notification API miễn phí; (d) Nút "Copy mẫu tin nhắn" để nhân viên gửi nhanh qua Zalo/SMS. |
+| **4. Món hàng chỉ còn 1, 2 khách đặt cùng lúc thì sao?** | (a) **Async Mutex tuần tự** bao trọn đọc kho → kiểm tra & trừ kho → lưu đơn: khách đến trước thành công (`201`), khách sau nhận `INSUFFICIENT_STOCK` (tồn kho = `0`, không bao giờ âm); (b) **File tạm UUID** thay `orders.json.tmp` dùng chung; (c) **All-or-nothing & rollback** cho đơn nhiều món hoặc khi lưu đơn lỗi; (d) **UX rõ ràng** báo đúng món vừa hết, giữ nguyên thông tin form tại `/checkout`; (e) **Test đồng thời bắt buộc** bằng `Promise.allSettled()`. |
 
 ---
 
