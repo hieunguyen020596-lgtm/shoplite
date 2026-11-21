@@ -1,4 +1,6 @@
 import { ProductImage } from "@/features/catalog/components/product-image";
+import { cardClass } from "@/components/ui/card";
+import { cn } from "@/lib/cn";
 import type { CartItem } from "@/features/cart/types";
 import { calculateOrderTotals, type ShippingMethod } from "@/features/checkout/pricing";
 import { formatCurrency } from "@/lib/format";
@@ -15,7 +17,7 @@ export function CheckoutSummary({ items, shippingMethod }: CheckoutSummaryProps)
   );
 
   return (
-    <aside className="flex h-fit flex-col gap-4 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+    <aside className={cn("flex h-fit flex-col gap-4", cardClass)}>
       <h2 className="text-lg font-semibold">Đơn hàng của bạn</h2>
       <ul className="flex flex-col gap-3">
         {items.map((item) => (

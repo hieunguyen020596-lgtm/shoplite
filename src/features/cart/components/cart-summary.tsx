@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { Truck } from "lucide-react";
 import { buttonStyles } from "@/components/ui/button";
+import { cardClass } from "@/components/ui/card";
+import { cn } from "@/lib/cn";
 import {
   amountUntilFreeShipping,
   calculateShippingFee,
@@ -14,7 +16,7 @@ export function CartSummary({ subtotal }: { subtotal: number }) {
   const progress = Math.min(100, Math.round((subtotal / FREE_SHIPPING_THRESHOLD) * 100));
 
   return (
-    <aside className="flex flex-col gap-4 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+    <aside className={cn("flex flex-col gap-4", cardClass)}>
       <h2 className="text-lg font-semibold">Tóm tắt đơn hàng</h2>
 
       <div className="rounded-xl bg-indigo-50 p-3 text-sm text-indigo-900">

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, CircleCheck } from "lucide-react";
 import { ProductImage } from "@/features/catalog/components/product-image";
+import { cardClass } from "@/components/ui/card";
 import { PAYMENT_OPTIONS } from "@/features/checkout/checkout-schema";
 import { SHIPPING_OPTIONS } from "@/features/checkout/pricing";
 import { OrderStatusBadge } from "@/features/orders/components/order-status-badge";
@@ -67,7 +68,7 @@ export default async function OrderDetailPage({ params, searchParams }: PageProp
         </div>
       </header>
 
-      <section className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+      <section className={cardClass}>
         <h2 className="mb-2 text-lg font-semibold">Sản phẩm</h2>
         <ul className="divide-y divide-slate-100">
           {order.items.map((item) => (
