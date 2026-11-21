@@ -8,6 +8,7 @@ import { ProductPurchasePanel } from "@/features/cart/components/product-purchas
 import { ProductGrid } from "@/features/catalog/components/product-grid";
 import { ProductImage } from "@/features/catalog/components/product-image";
 import { StockBadge } from "@/features/catalog/components/stock-badge";
+import { WishlistButton } from "@/features/wishlist/components/wishlist-button";
 import {
   buildCatalogHref,
   DEFAULT_CATALOG_QUERY,
@@ -53,7 +54,10 @@ export default async function ProductDetailPage({ params }: PageProps<"/products
           <>
             <ChevronRight className="size-4" />
             <Link
-              href={buildCatalogHref({ ...DEFAULT_CATALOG_QUERY, category: category.slug })}
+              href={buildCatalogHref({
+                ...DEFAULT_CATALOG_QUERY,
+                category: category.slug,
+              })}
               className="hover:text-indigo-600"
             >
               {category.name}
@@ -81,7 +85,11 @@ export default async function ProductDetailPage({ params }: PageProps<"/products
           <p className="text-sm font-semibold tracking-wide text-indigo-600 uppercase">
             {product.brand}
           </p>
-          <h1 className="text-3xl font-bold tracking-tight">{product.name}</h1>
+          <div className="flex items-start justify-between gap-3">
+            <h1 className="text-3xl font-bold tracking-tight">{product.name}</h1>
+            {/* Đặt ngoài ProductPurchasePanel vì panel không hiển thị gì khi hết hàng */}
+            <WishlistButton product={product} className="shrink-0" />
+          </div>
           <div className="flex flex-wrap items-center gap-3">
             <RatingStars rating={product.rating} reviewCount={product.reviewCount} />
             <StockBadge product={product} />
