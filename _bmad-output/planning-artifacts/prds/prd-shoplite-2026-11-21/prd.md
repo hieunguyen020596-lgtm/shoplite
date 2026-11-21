@@ -128,7 +128,7 @@ Nhân viên vận hành có thể chuyển Trạng thái đơn hàng sang đúng
 - Nếu `:id` không tồn tại trong `storage/orders.json`, trả về HTTP `404` (`ORDER_NOT_FOUND`).
 - Mọi chuyển đổi nhảy bước (`pending → shipping`, `pending → delivered`), đi lùi (`confirmed → pending`, `delivered → shipping`), chuyển từ trạng thái kết thúc (`delivered → cancelled`, `cancelled → pending`), hoặc khi `expectedStatus` gửi kèm khác `order.status` hiện tại đều bị từ chối với HTTP `409` (`INVALID_STATUS_TRANSITION`).
 
-> `[NOTE FOR PM: Trường expectedStatus là tùy chọn trên API để dễ tích hợp/test trực tiếp, nhưng giao diện /admin/orders (FR-14) BẮT BUỘC luôn gửi kèm expectedStatus để ngăn hai tab nhân viên ghi đè trạng thái của nhau trong im lặng.]`
+- **Quyết định đã chốt (Optimistic Locking):** Trường `expectedStatus` là tùy chọn ở tầng API để dễ tích hợp/kiểm thử trực tiếp, nhưng giao diện `/admin/orders` (FR-14) **bắt buộc luôn gửi kèm `expectedStatus`** nhằm ngăn hai tab Nhân viên vận hành ghi đè trạng thái của nhau trong im lặng.
 
 #### FR-2: Nhân viên vận hành hủy Đơn hàng kèm lý do bắt buộc
 Nhân viên vận hành có thể hủy Đơn hàng đang ở `pending`, `confirmed` hoặc `shipping` qua `PATCH /api/admin/orders/:id/status` với `{ status: "cancelled", note }` có lý do hủy hợp lệ. Realizes UJ-1, UJ-3.
@@ -240,7 +240,7 @@ Nhân viên vận hành có thể đăng xuất khỏi `/admin/orders` qua `POST
 - Bấm nút **"Đăng xuất"** gọi `POST /api/admin/auth/logout`: endpoint luôn trả HTTP `200` kèm `Set-Cookie` xóa cookie (`Max-Age=0; HttpOnly; SameSite=Lax; Path=/`, kể cả khi phiên đã hết hạn trước đó), sau đó chuyển hướng trình duyệt về `/admin/login`.
 - Ngay sau khi đăng xuất, trình duyệt không còn lưu hay gửi cookie Phiên quản trị nữa; mọi lượt mở lại `/admin/orders` từ trình duyệt đều bị chuyển hướng (`307`) về `/admin/login` và mọi yêu cầu từ trình duyệt tới `/api/admin/orders` nhận HTTP `401` (`UNAUTHORIZED`).
 
-> `[NOTE FOR PM: Do v1 dùng cookie HMAC-SHA256 không trạng thái (stateless) và không có cơ sở dữ liệu phiên, việc đổi ADMIN_PASSCODE sẽ làm hết hiệu lực ngay lập tức mọi phiên đang mở, còn thao tác Đăng xuất chỉ xóa cookie phía trình duyệt chứ không thu hồi được một chuỗi Cookie đã bị sao chép ra ngoài trước hạn 8 giờ. Đánh đổi này được chấp nhận cho MVP nội bộ 1 cửa hàng; nếu cần thu hồi phiên phía server sẽ bổ sung khi nâng cấp cơ sở dữ liệu ở v2.]`
+- **Quyết định đã chốt (Stateless HMAC Trade-off):** Chấp nhận mô hình cookie `HMAC-SHA256` không trạng thái cho MVP nội bộ 1 cửa hàng — đổi `ADMIN_PASSCODE` làm hết hiệu lực ngay mọi phiên đang mở, còn thao tác Đăng xuất xóa cookie phía trình duyệt (không xây bảng thu hồi phiên phía server cho tới khi nâng cấp cơ sở dữ liệu ở v2).
 
 ---
 
@@ -325,8 +325,7 @@ Các quy tắc nghiệp vụ hiện đang chạy trong ShopLite (`README.md` và
 1. **Không xây dựng hệ thống tài khoản / phân quyền nhiều vai trò (RBAC):** v1 chỉ có một cổng mật khẩu quản trị chung (`ADMIN_PASSCODE`).
 2. **Không thêm cơ sở dữ liệu ngoài hoặc dịch vụ bên thứ ba:** Toàn bộ lưu trữ dùng file JSON trong `storage/` và thư viện chuẩn Node.js (`node:crypto`, `node:fs`).
 3. **Không chạy polling tự động 30 giây hay WebSocket/SSE trên `/orders/[id]`:** Tránh tranh chấp đọc/ghi file JSON và gây flaky E2E test.
-4. **Không khóa danh sách công khai `/orders` và không xây tra cứu bằng SĐT + rate-limit RAM trong v1:** Tách sang một initiative riêng tư hóa Đơn hàng độc lập sau MVP để không phá vỡ `e2e/shopping-flow.spec.ts` và tránh rate-limit giả mất khi restart.
-   > `[NOTE FOR PM: Giữ /orders và GET /api/orders công khai ở v1 đồng nghĩa thông tin tên, SĐT và địa chỉ giao hàng trên các Đơn hàng hiện có vẫn xem được công khai như hành vi gốc của ShopLite. Rủi ro quyền riêng tư này được chấp nhận rõ ràng cho phạm vi ứng dụng nội bộ/demo ở v1 và sẽ giải quyết trong initiative riêng tư hóa đơn hàng sau MVP.]`
+4. **Không khóa danh sách công khai `/orders` và không xây tra cứu bằng SĐT + rate-limit RAM trong v1:** Tách sang một initiative riêng tư hóa Đơn hàng độc lập sau MVP để không phá vỡ `e2e/shopping-flow.spec.ts` và tránh rate-limit giả mất khi restart *(Quyết định đã chốt: chấp nhận giữ hành vi công khai gốc của `/orders` và `GET /api/orders` cho phạm vi nội bộ/demo ở v1; bảo mật PII khách hàng được xử lý trong initiative riêng tư hóa đơn hàng sau MVP)*.
 5. **Không gửi thông báo SMS/Email/Zalo tự động, không tích hợp hãng vận chuyển ngoài (GHN/GHTK), và không thêm CAPTCHA/OTP chống đơn COD ảo.** `[ASSUMPTION: Ở quy mô MVP nội bộ, Nhân viên vận hành xử lý đơn COD ảo bằng hủy thủ công trên hàng chờ pending mà chưa cần CAPTCHA/OTP.]`
 
 ---
@@ -341,7 +340,7 @@ Các quy tắc nghiệp vụ hiện đang chạy trong ShopLite (`README.md` và
 - Timeline tiến trình 4 bước + nút Làm mới thủ công trên `/orders/[id]`, bảo toàn toàn bộ hành vi Khách hàng hiện có (**FR-15** & **§4.6**).
 
 ### 6.2 Out of Scope for MVP
-- **Thẻ KPI tổng quan & cảnh báo đơn chờ quá 2 giờ trên `/admin/orders`** *(chuyển sang v1.1)* — hữu ích nhưng không chặn luồng xử lý đơn cốt lõi. `[NOTE FOR PM: Rà soát bổ sung ngay ở v1.1 nếu số đơn chờ tăng làm Nhân viên vận hành khó quét bằng mắt.]`
+- **Thẻ KPI tổng quan & cảnh báo đơn chờ quá 2 giờ trên `/admin/orders`** *(chuyển sang v1.1 — đã chốt: chỉ kích hoạt khi lượng đơn chờ vượt ~30 đơn/ngày khiến Nhân viên vận hành khó quét bằng mắt)*.
 - **Nút "Copy mẫu tin nhắn báo khách" & lưu `localStorage["shoplite:my-orders"]`** *(chuyển sang v1.1)* — tiện ích phụ trợ giao tiếp, tách khỏi lõi MVP để giữ phạm vi tinh gọn.
 - **Xác nhận hàng loạt (Bulk Confirm), phân trang danh sách đơn (`> 500` đơn) & màn hình nhập kho tự do (`+N`)** *(chuyển sang v1.1/v2)* — chưa cần ở quy mô cửa hàng hiện tại.
 - **Bảo mật riêng tư `/orders` & tra cứu đơn khi quên mã** *(chuyển sang initiative riêng sau MVP)* — cần thiết kế độc lập cùng cập nhật hợp đồng E2E.
@@ -364,10 +363,10 @@ Các quy tắc nghiệp vụ hiện đang chạy trong ShopLite (`README.md` và
 
 ---
 
-## 8. Open Questions
+## 8. Open Questions (Resolved)
 
-1. **Hiển thị tên riêng của Nhân viên vận hành trong Lịch sử trạng thái** *(Non-blocker — Owner: PM / UX, rà soát tại `bmad-ux`)*: Vì v1 dùng chung 1 `ADMIN_PASSCODE`, `actor` được khóa cứng là `"staff"`. Có cần thêm trường tùy chọn `actorName?` để nhân viên nhập tên khi thao tác không? **Phương án mặc định:** *Không thêm ô nhập tên ở MVP* để bảo đảm `SM-2` (`<= 2` thao tác bấm, `< 30 giây`); chỉ bổ sung `actorName?` nếu `bmad-ux` xác nhận cần thiết.
-2. **Ngưỡng cảnh báo đơn COD chờ lâu ở v1.1** *(Non-blocker — Owner: Chủ cửa hàng, rà soát sau khi chạy MVP)*: Ngưỡng cảnh báo nên là `2 giờ` hay `24 giờ` tùy theo khung giờ làm việc thực tế của cửa hàng?
+1. **Hiển thị tên riêng của Nhân viên vận hành trong Lịch sử trạng thái** *(Đã chốt cho MVP)*: Giữ `actor: "staff"` và **không thêm ô nhập tên nhân viên ở v1** để bảo toàn mục tiêu tốc độ `SM-2` (`<= 2` thao tác bấm, `< 30 giây`). Chỉ bổ sung trường tùy chọn `actorName?` ở v1.1 nếu cửa hàng tách nhiều ca nhân viên cần truy vết từng cá nhân.
+2. **Ngưỡng cảnh báo đơn COD chờ lâu ở v1.1** *(Đã chốt mặc định cho v1.1 — không chặn MVP)*: Đặt ngưỡng mặc định **`2 giờ`** cho cảnh báo đơn `pending` quá hạn khi triển khai v1.1 (cấu hình được theo khung giờ hoạt động cửa hàng).
 
 ---
 
