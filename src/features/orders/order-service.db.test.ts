@@ -89,6 +89,7 @@ afterAll(async () => {
       await client?.query(
         "TRUNCATE TABLE order_status_history, order_items, orders, rate_limits RESTART IDENTITY CASCADE",
       );
+      for (const [id, stock] of originalStock) await setStock(id, stock);
     }
   } finally {
     await client?.end().catch(() => {});
