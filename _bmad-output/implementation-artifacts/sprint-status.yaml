@@ -48,9 +48,9 @@ development_status:
   2-2-đồng-bộ-tồn-kho-động-lên-mặt-tiền-bán-hàng-xử-lý-hết-hàng-tạ: done
   epic-2-retrospective: optional
 
-  epic-3: in-progress
+  epic-3: done
   3-1-trang-đăng-nhập-admin-login-nâng-cấp-orderstatusbadge-api-da: done
-  3-2-giao-diện-hàng-chờ-admin-orders-tồn-kho-giữ-chỗ-inline-thao: backlog
+  3-2-giao-diện-hàng-chờ-admin-orders-tồn-kho-giữ-chỗ-inline-thao: done
   epic-3-retrospective: optional
 
   epic-4: backlog

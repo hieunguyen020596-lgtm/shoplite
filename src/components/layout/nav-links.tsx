@@ -10,7 +10,8 @@ const LINKS = [
   { href: "/orders", label: "Đơn hàng" },
 ];
 
-function isActive(pathname: string, href: string): boolean {
+function isActive(pathname: string | null, href: string): boolean {
+  if (!pathname) return false;
   return href === "/" ? pathname === "/" : pathname.startsWith(href);
 }
 

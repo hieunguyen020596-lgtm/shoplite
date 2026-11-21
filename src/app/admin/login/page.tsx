@@ -17,8 +17,8 @@ export default async function AdminLoginPage({
   const configured = isAdminConfigured();
 
   return (
-    <div className="flex min-h-[calc(100vh-8rem)] items-center justify-center bg-slate-50 px-4 py-12">
+    <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-12">
       <AdminLoginCard configured={configured} expired={expired === "1"} />
-    </div>
+    </main>
   );
 }
