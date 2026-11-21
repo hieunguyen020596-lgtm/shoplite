@@ -20,7 +20,7 @@ Dự án dùng làm mẫu cho các bài thực hành phát triển phần mềm:
 
 ## Yêu cầu
 
-- Node.js **22.12** trở lên (`node -v`)
+- Node.js **22.18** trở lên (`node -v`); `npm install` sẽ cảnh báo `EBADENGINE` nếu Node thấp hơn. Khuyến nghị **22.22.2** trở lên để không có cảnh báo từ dev dependency
 - npm 10+
 
 ## Bắt đầu
