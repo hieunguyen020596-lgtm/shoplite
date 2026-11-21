@@ -1,16 +1,16 @@
 import { NextResponse } from "next/server";
 import { logServerError } from "@/lib/safe-log";
-import { OrderError } from "@/features/orders/order-errors";
+import { OrderError, type OrderErrorDetails } from "@/features/orders/order-errors";
 
 export interface ApiErrorBody {
-  error: { code: string; message: string; details?: Record<string, string> };
+  error: { code: string; message: string; details?: OrderErrorDetails };
 }
 
 export function jsonError(
   status: number,
   code: string,
   message: string,
-  details?: Record<string, string>,
+  details?: OrderErrorDetails,
 ): NextResponse<ApiErrorBody> {
   return NextResponse.json({ error: { code, message, details } }, { status });
 }

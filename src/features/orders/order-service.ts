@@ -4,17 +4,23 @@ import {
   placeOrderSchema,
   toFieldErrors,
 } from "@/features/checkout/checkout-schema";
+import { MAX_QUANTITY_PER_ITEM } from "@/features/cart/cart-reducer";
 import { calculateOrderTotals } from "@/features/checkout/pricing";
+import { normalizePhone } from "@/features/checkout/phone";
+import {
+  compareProductId,
+  type StockLedger,
+} from "@/features/inventory/stock-ledger";
+import type { RunInTransaction } from "@/lib/db-tx";
 import { OrderError } from "./order-errors";
-import type { OrderRepository } from "./order-repository";
+import type { NewOrder, OrderRepository } from "./order-repository";
 import type { Order, OrderItem } from "./types";
 
 export interface OrderServiceDeps {
+  runInTransaction: RunInTransaction;
   repository: OrderRepository;
-  /** Đọc Tồn kho (tạm đến Story 1.7, khi `reserveStock` thay thế). Id thiếu dòng trả 0. */
-  readStock: (ids: readonly string[]) => Promise<Record<string, number>>;
+  stockLedger: StockLedger;
   findProduct?: (id: string) => Product | undefined;
-  now?: () => Date;
   generateId?: (date: Date) => string;
 }
 
@@ -45,29 +51,17 @@ function mergeItems(items: { productId: string; quantity: number }[]) {
 }
 
 export function createOrderService({
+  runInTransaction,
   repository,
-  readStock,
+  stockLedger,
   findProduct = getProductById,
-  now = () => new Date(),
   generateId = generateOrderId,
 }: OrderServiceDeps) {
-  async function getOrder(id: string): Promise<Order> {
-    const order = await repository.findById(id);
-    if (!order) {
-      throw new OrderError(
-        "ORDER_NOT_FOUND",
-        `Không tìm thấy đơn hàng "${id}"`,
-      );
-    }
-    return order;
-  }
-
   return {
     /**
      * Tạo đơn hàng mới từ payload của client.
-     * - Validate dữ liệu bằng placeOrderSchema
-     * - Lấy giá từ catalog (bỏ qua mọi giá client gửi lên)
-     * - Kiểm tra tồn kho
+     * Zod, gộp dòng, kiểm giới hạn và tính tiền xong trước khi mở transaction.
+     * Trong đúng một transaction: `reserveStock` rồi `insertOrder` (kèm Lịch sử `order_created`).
      */
     async placeOrder(input: unknown): Promise<Order> {
       const parsed = placeOrderSchema.safeParse(input);
@@ -81,8 +75,27 @@ export function createOrderService({
 
       const { customer, items, shippingMethod, paymentMethod } = parsed.data;
 
-      const merged = mergeItems(items);
-      const stockById = await readStock(merged.map((item) => item.productId));
+      const phone = normalizePhone(customer.phone);
+      if (phone === null) {
+        throw new OrderError(
+          "VALIDATION_ERROR",
+          "Thông tin đơn hàng không hợp lệ",
+          { "customer.phone": "Số điện thoại không hợp lệ" },
+        );
+      }
+
+      const merged = mergeItems(items).sort((a, b) =>
+        compareProductId(a.productId, b.productId),
+      );
+      if (merged.some((item) => item.quantity > MAX_QUANTITY_PER_ITEM)) {
+        throw new OrderError(
+          "VALIDATION_ERROR",
+          "Thông tin đơn hàng không hợp lệ",
+          {
+            items: `Mỗi sản phẩm tối đa ${MAX_QUANTITY_PER_ITEM} sản phẩm mỗi đơn`,
+          },
+        );
+      }
 
       const orderItems: OrderItem[] = merged.map(({ productId, quantity }) => {
         const product = findProduct(productId);
@@ -90,15 +103,6 @@ export function createOrderService({
           throw new OrderError(
             "PRODUCT_NOT_FOUND",
             `Không tìm thấy sản phẩm "${productId}"`,
-          );
-        }
-        const available = stockById[productId] ?? 0;
-        if (quantity > available) {
-          throw new OrderError(
-            "INSUFFICIENT_STOCK",
-            available === 0
-              ? `Sản phẩm "${product.name}" đã hết hàng`
-              : `Sản phẩm "${product.name}" chỉ còn ${available} sản phẩm`,
           );
         }
         return {
@@ -112,15 +116,12 @@ export function createOrderService({
         };
       });
 
-      const createdAt = now();
-      const order: Order = {
-        id: generateId(createdAt),
+      const order: NewOrder = {
+        id: generateId(new Date()),
         status: "pending",
-        createdAt: createdAt.toISOString(),
-        updatedAt: createdAt.toISOString(),
         customer: {
           fullName: customer.fullName,
-          phone: customer.phone,
+          phone,
           email: customer.email || undefined,
           address: customer.address,
           note: customer.note || undefined,
@@ -131,34 +132,32 @@ export function createOrderService({
         ...calculateOrderTotals(orderItems, shippingMethod),
       };
 
-      await repository.save(order);
-      return order;
+      return runInTransaction(async (tx) => {
+        await stockLedger.reserveStock(
+          tx,
+          orderItems.map(({ productId, quantity }) => ({
+            productId,
+            quantity,
+          })),
+        );
+        return repository.insertOrder(tx, order);
+      });
     },
 
     /** Danh sách đơn hàng, mới nhất trước. */
-    async listOrders(): Promise<Order[]> {
-      const orders = await repository.findAll();
-      return orders.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    listOrders(): Promise<Order[]> {
+      return repository.findAll();
     },
 
-    getOrder,
-
-    /** Khách hàng chỉ được hủy đơn khi đơn còn ở trạng thái "Chờ xác nhận". */
-    async cancelOrder(id: string): Promise<Order> {
-      const order = await getOrder(id);
-      if (order.status !== "pending") {
+    async getOrder(id: string): Promise<Order> {
+      const order = await repository.findById(id);
+      if (!order) {
         throw new OrderError(
-          "INVALID_STATUS_TRANSITION",
-          "Chỉ có thể hủy đơn hàng đang ở trạng thái Chờ xác nhận",
+          "ORDER_NOT_FOUND",
+          `Không tìm thấy đơn hàng "${id}"`,
         );
       }
-      const cancelled: Order = {
-        ...order,
-        status: "cancelled",
-        updatedAt: now().toISOString(),
-      };
-      await repository.save(cancelled);
-      return cancelled;
+      return order;
     },
   };
 }

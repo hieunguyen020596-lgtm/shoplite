@@ -1,19 +1,15 @@
 import "server-only";
-import { readStock } from "@/features/inventory/server";
-import { getOrdersFile } from "@/lib/env";
-import {
-  createJsonFileOrderRepository,
-  DEFAULT_ORDERS_FILE,
-} from "./order-repository";
+import { runInTransaction } from "@/db/transaction";
+import { stockLedger } from "@/features/inventory/server";
+import { pgOrderRepository } from "./order-repository.pg";
 import { createOrderService } from "./order-service";
 
 /**
- * Instance dùng chung của OrderService. Chỉ import file này từ code chạy trên server
- * (Server Component, Route Handler) vì nó đọc/ghi file hệ thống.
- *
- * Đổi nơi lưu bằng biến môi trường ORDERS_FILE (mặc định: storage/orders.json).
+ * Instance dùng chung của OrderService (PostgreSQL). Chỉ import từ code chạy trên server
+ * (Server Component, Route Handler).
  */
 export const orderService = createOrderService({
-  repository: createJsonFileOrderRepository(getOrdersFile(DEFAULT_ORDERS_FILE)),
-  readStock,
+  runInTransaction,
+  repository: pgOrderRepository,
+  stockLedger,
 });

@@ -5,7 +5,6 @@ import { ArrowLeft, CircleCheck } from "lucide-react";
 import { ProductImage } from "@/features/catalog/components/product-image";
 import { PAYMENT_OPTIONS } from "@/features/checkout/checkout-schema";
 import { SHIPPING_OPTIONS } from "@/features/checkout/pricing";
-import { CancelOrderButton } from "@/features/orders/components/cancel-order-button";
 import { OrderStatusBadge } from "@/features/orders/components/order-status-badge";
 import { OrderError } from "@/features/orders/order-errors";
 import { orderService } from "@/features/orders/server";
@@ -66,7 +65,6 @@ export default async function OrderDetailPage({ params, searchParams }: PageProp
           </h1>
           <p className="mt-1 text-sm text-slate-500">Đặt lúc {formatDateTime(order.createdAt)}</p>
         </div>
-        {order.status === "pending" && <CancelOrderButton orderId={order.id} />}
       </header>
 
       <section className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">

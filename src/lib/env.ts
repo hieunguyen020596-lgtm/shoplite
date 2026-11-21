@@ -107,11 +107,6 @@ export function getServerEnv(): ServerEnv {
   return cached;
 }
 
-/** Đường dẫn file đơn của kho JSON cũ. Tách riêng để import kho này không kiểm env. */
-export function getOrdersFile(defaultFile: string): string {
-  return process.env.ORDERS_FILE ?? defaultFile;
-}
-
 /**
  * Kiểm env khi server khởi động. Env sai thì log tên biến rồi thoát mã 1.
  * Bỏ qua khi `next build` để build không cần env thật.

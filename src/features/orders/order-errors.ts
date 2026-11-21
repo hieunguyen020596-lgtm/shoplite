@@ -23,15 +23,25 @@ const HTTP_STATUS_BY_CODE: Record<OrderErrorCode, number> = {
   REFUND_OUTCOME_CONFLICT: 409,
 };
 
+/** Dòng thiếu hàng của `INSUFFICIENT_STOCK`. */
+export interface OrderLineShortage {
+  productId: string;
+  requested: number;
+  available: number;
+}
+
+/** Lỗi theo field (`{ "customer.phone": "..." }`) hoặc `{ lines }` khi thiếu hàng. */
+export type OrderErrorDetails = Record<string, string | OrderLineShortage[]>;
+
 /** Lỗi nghiệp vụ của đơn hàng - route handler chuyển thành HTTP response tương ứng. */
 export class OrderError extends Error {
   readonly code: OrderErrorCode;
-  readonly details?: Record<string, string>;
+  readonly details?: OrderErrorDetails;
 
   constructor(
     code: OrderErrorCode,
     message: string,
-    details?: Record<string, string>,
+    details?: OrderErrorDetails,
   ) {
     super(message);
     this.name = "OrderError";

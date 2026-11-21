@@ -4,8 +4,7 @@ Cửa hàng đồ công nghệ mini viết bằng **Next.js 16 (App Router) + Ty
 Dự án dùng làm mẫu cho các bài thực hành phát triển phần mềm: đủ nhỏ để đọc hiểu trong một buổi,
 đủ thật để mở rộng thêm nhiều tính năng.
 
-> Dữ liệu sản phẩm là dữ liệu mẫu, đơn hàng được lưu vào file JSON trên máy - không cần database,
-> không cần tài khoản dịch vụ bên ngoài.
+> Dữ liệu sản phẩm là dữ liệu mẫu, đơn hàng và Tồn kho được lưu trong PostgreSQL (xem `.env.example`).
 
 ## Tính năng
 
@@ -16,7 +15,7 @@ Dự án dùng làm mẫu cho các bài thực hành phát triển phần mềm:
 | 3   | Chi tiết sản phẩm   | `/products/[slug]` | Thông tin, thông số kỹ thuật, tình trạng kho, chọn số lượng, sản phẩm liên quan       |
 | 4   | Giỏ hàng            | `/cart`            | Thêm/sửa/xóa, giới hạn theo tồn kho, lưu trong localStorage, gợi ý miễn phí giao hàng |
 | 5   | Thanh toán          | `/checkout`        | Form có validate, chọn phương thức giao hàng & thanh toán, tạo đơn qua API            |
-| 6   | Đơn hàng            | `/orders`          | Lịch sử đơn hàng, chi tiết đơn, hủy đơn khi đang "Chờ xác nhận"                       |
+| 6   | Đơn hàng            | `/orders`          | Lịch sử đơn hàng, chi tiết đơn                       |
 
 ## Yêu cầu
 
@@ -62,12 +61,11 @@ src/
 │   ├── catalog/            # Tìm kiếm, lọc, sắp xếp, phân trang sản phẩm
 │   ├── cart/               # Giỏ hàng (reducer + store localStorage)
 │   ├── checkout/           # Quy tắc tính tiền, validate form thanh toán
-│   └── orders/             # Tạo / xem / hủy đơn hàng, lưu trữ JSON
+│   └── orders/             # Tạo / xem đơn hàng, lưu trong PostgreSQL
 ├── components/             # UI dùng chung (button, layout...)
 ├── data/                   # Dữ liệu mẫu: sản phẩm, danh mục
 └── lib/                    # Tiện ích: format tiền/ngày, cn, http helpers
 e2e/                        # Playwright end-to-end tests
-storage/                    # (tự tạo khi chạy) orders.json - đã được gitignore
 ```
 
 ## Quy tắc nghiệp vụ chính
@@ -75,7 +73,7 @@ storage/                    # (tự tạo khi chạy) orders.json - đã đượ
 - **Giỏ hàng:** tối đa 10 sản phẩm mỗi loại và không vượt quá tồn kho. Sản phẩm hết hàng không thể thêm.
 - **Phí giao hàng:** tiêu chuẩn 30.000 ₫ (miễn phí cho đơn từ 500.000 ₫), giao nhanh 60.000 ₫.
 - **Đặt hàng:** server tự tính lại giá từ dữ liệu sản phẩm, không tin giá do client gửi lên.
-- **Hủy đơn:** chỉ được hủy khi đơn đang ở trạng thái _Chờ xác nhận_.
+- **Tồn kho:** đặt hàng trừ Tồn kho nguyên tử trong một transaction; thiếu hàng thì không tạo đơn.
 
 ## API
 
@@ -86,7 +84,7 @@ storage/                    # (tự tạo khi chạy) orders.json - đã đượ
 | `GET`   | `/api/orders`         | Danh sách đơn hàng                                                                |
 | `POST`  | `/api/orders`         | Tạo đơn hàng                                                                      |
 | `GET`   | `/api/orders/:id`     | Chi tiết đơn hàng                                                                 |
-| `PATCH` | `/api/orders/:id`     | Hủy đơn: `{ "status": "cancelled" }`                                              |
+| `PATCH` | `/api/orders/:id`     | Luôn trả 401 (Khách hàng không tự hủy đơn)                                        |
 
 Lỗi trả về dạng `{ "error": { "code": "...", "message": "...", "details": { ... } } }`.
 
@@ -105,9 +103,7 @@ curl -X POST http://localhost:3000/api/orders \
 
 ## Biến môi trường
 
-| Biến          | Mặc định              | Mô tả                       |
-| ------------- | --------------------- | --------------------------- |
-| `ORDERS_FILE` | `storage/orders.json` | Đường dẫn file lưu đơn hàng |
+Xem `.env.example`; `DATABASE_URL` trỏ tới PostgreSQL.
 
 ## Giấy phép
 
