@@ -8,6 +8,7 @@ import { evaluateCoupon } from "@/features/coupons/coupon-rules";
 import { findCouponByCode } from "@/features/coupons/coupon-service";
 import type { Coupon } from "@/features/coupons/types";
 import { OrderError } from "./order-errors";
+import { withStatusHistory } from "./order-history";
 import type { OrderRepository } from "./order-repository";
 import { transitionOrder } from "./order-state-machine";
 import type { Order, OrderItem } from "./types";
@@ -48,7 +49,8 @@ export function createOrderService({
     if (!order) {
       throw new OrderError("ORDER_NOT_FOUND", `Không tìm thấy đơn hàng "${id}"`);
     }
-    return order;
+    // Đơn cũ chưa có lịch sử: suy ra khi đọc, không ghi lại file (FR-4)
+    return withStatusHistory(order);
   }
 
   return {
@@ -136,6 +138,7 @@ export function createOrderService({
         items: orderItems,
         ...(couponCode ? { couponCode } : {}),
         ...calculateOrderTotals(orderItems, shippingMethod, discount),
+        statusHistory: [{ status: "pending", at: createdAt.toISOString(), actor: "customer" }],
       };
 
       await repository.save(order);

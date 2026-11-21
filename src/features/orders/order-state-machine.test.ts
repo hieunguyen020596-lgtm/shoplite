@@ -113,3 +113,61 @@ describe("ma trận chuyển trạng thái", () => {
     }
   }
 });
+
+describe("lịch sử trạng thái", () => {
+  const withHistory = (status: OrderStatus): Order => ({
+    ...makeOrder(status),
+    statusHistory: [{ status: "pending", at: CREATED_AT, actor: "customer" }],
+  });
+
+  it("nối đúng một mục mới với ghi chú đã bỏ khoảng trắng, giữ nguyên các mục cũ", () => {
+    const confirmed = transitionOrder(withHistory("pending"), "confirmed", {
+      actor: "staff",
+      at: AT,
+      note: "  Đã kiểm hàng ",
+    });
+
+    expect(confirmed.statusHistory).toEqual([
+      { status: "pending", at: CREATED_AT, actor: "customer" },
+      { status: "confirmed", at: AT.toISOString(), actor: "staff", note: "Đã kiểm hàng" },
+    ]);
+    expect(confirmed.statusHistory?.at(-1)?.status).toBe(confirmed.status);
+  });
+
+  it("ghi chú chỉ có khoảng trắng: mục mới không có trường note", () => {
+    const confirmed = transitionOrder(withHistory("pending"), "confirmed", {
+      actor: "staff",
+      at: AT,
+      note: "   ",
+    });
+    expect(confirmed.statusHistory?.at(-1)).not.toHaveProperty("note");
+  });
+
+  it("ghi chú quá dài bị từ chối với VALIDATION_ERROR", () => {
+    const error = catchError(() =>
+      transitionOrder(withHistory("pending"), "confirmed", {
+        actor: "staff",
+        at: AT,
+        note: "a".repeat(201),
+      }),
+    );
+    expect(error.code).toBe("VALIDATION_ERROR");
+    expect(error.details).toHaveProperty("note");
+  });
+
+  it("bước chuyển bị từ chối không thêm mục lịch sử", () => {
+    const order = withHistory("delivered");
+    expect(() => transitionOrder(order, "cancelled", { actor: "staff", at: AT })).toThrow(
+      OrderError,
+    );
+    expect(order.statusHistory).toHaveLength(1);
+  });
+
+  it("đơn cũ chưa có lịch sử: lịch sử mới gồm mục suy ra và mục vừa chuyển", () => {
+    const shipped = transitionOrder(makeOrder("confirmed"), "shipping", { actor: "staff", at: AT });
+    expect(shipped.statusHistory).toEqual([
+      { status: "confirmed", at: CREATED_AT, actor: "system" },
+      { status: "shipping", at: AT.toISOString(), actor: "staff" },
+    ]);
+  });
+});

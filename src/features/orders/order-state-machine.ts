@@ -1,4 +1,5 @@
 import { OrderError } from "./order-errors";
+import { normalizeNote, withStatusHistory } from "./order-history";
 import { ORDER_STATUS_LABELS, type Order, type OrderActor, type OrderStatus } from "./types";
 
 /** Các bước chuyển hợp lệ của nhân viên. Trạng thái cuối (delivered, cancelled) không có bước nào. */
@@ -19,6 +20,7 @@ export function canTransition(from: OrderStatus, to: OrderStatus, actor: OrderAc
 export interface TransitionOptions {
   actor: OrderActor;
   at: Date;
+  note?: string;
 }
 
 /**
@@ -28,7 +30,7 @@ export interface TransitionOptions {
 export function transitionOrder(
   order: Order,
   to: OrderStatus,
-  { actor, at }: TransitionOptions,
+  { actor, at, note }: TransitionOptions,
 ): Order {
   if (!canTransition(order.status, to, actor)) {
     throw new OrderError(
@@ -37,5 +39,13 @@ export function transitionOrder(
       { currentStatus: order.status },
     );
   }
-  return { ...order, status: to, updatedAt: at.toISOString() };
+  const entryNote = normalizeNote(note);
+  const { statusHistory } = withStatusHistory(order);
+  statusHistory.push({
+    status: to,
+    at: at.toISOString(),
+    actor,
+    ...(entryNote ? { note: entryNote } : {}),
+  });
+  return { ...order, status: to, updatedAt: at.toISOString(), statusHistory };
 }

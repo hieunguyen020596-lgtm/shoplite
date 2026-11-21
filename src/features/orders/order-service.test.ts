@@ -263,6 +263,61 @@ describe("orderService", () => {
     });
   });
 
+  describe("lịch sử trạng thái", () => {
+    it("đơn vừa đặt có đúng một mục: chờ xác nhận, lúc tạo đơn, do khách hàng", async () => {
+      const order = await service.placeOrder(validInput());
+      expect(order.statusHistory).toEqual([
+        { status: "pending", at: FIXED_DATE.toISOString(), actor: "customer" },
+      ]);
+    });
+
+    it("khách tự hủy: mục cuối là đã hủy do khách hàng", async () => {
+      const order = await service.placeOrder(validInput());
+      const cancelled = await service.cancelOrder(order.id);
+      expect(cancelled.statusHistory?.at(-1)).toEqual({
+        status: "cancelled",
+        at: FIXED_DATE.toISOString(),
+        actor: "customer",
+      });
+      expect((await repository.findById(order.id))?.statusHistory).toHaveLength(2);
+    });
+
+    it("đơn cũ được suy ra lịch sử khi đọc và không bị ghi lại", async () => {
+      const placed = await service.placeOrder(validInput());
+      const legacy = { ...placed };
+      delete legacy.statusHistory;
+      const legacyRepository = createInMemoryOrderRepository([legacy]);
+      const save = vi.spyOn(legacyRepository, "save");
+      const legacyService = createOrderService({ repository: legacyRepository });
+
+      const order = await legacyService.getOrder(legacy.id);
+
+      expect(order.statusHistory).toEqual([
+        { status: "pending", at: legacy.updatedAt, actor: "system" },
+      ]);
+      expect(save).not.toHaveBeenCalled();
+      expect(await legacyRepository.findById(legacy.id)).not.toHaveProperty("statusHistory");
+    });
+
+    it("đơn cũ: hủy lưu lịch sử gồm mục suy ra và mục hủy", async () => {
+      const placed = await service.placeOrder(validInput());
+      const legacy = { ...placed };
+      delete legacy.statusHistory;
+      const legacyRepository = createInMemoryOrderRepository([legacy]);
+      const legacyService = createOrderService({
+        repository: legacyRepository,
+        now: () => new Date("2026-10-22T08:00:00.000Z"),
+      });
+
+      await legacyService.cancelOrder(legacy.id);
+
+      expect((await legacyRepository.findById(legacy.id))?.statusHistory).toEqual([
+        { status: "pending", at: legacy.updatedAt, actor: "system" },
+        { status: "cancelled", at: "2026-10-22T08:00:00.000Z", actor: "customer" },
+      ]);
+    });
+  });
+
   describe("listOrders / getOrder", () => {
     it("liệt kê đơn hàng mới nhất trước", async () => {
       let time = FIXED_DATE.getTime();

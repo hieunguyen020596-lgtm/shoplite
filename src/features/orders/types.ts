@@ -15,6 +15,15 @@ export type OrderStatus = (typeof ORDER_STATUSES)[number];
 /** Ai gây ra thay đổi trạng thái đơn. */
 export type OrderActor = "customer" | "staff";
 
+/** Một mục trong lịch sử trạng thái. "system" chỉ dùng cho mục suy ra từ đơn cũ. */
+export interface OrderStatusEntry {
+  status: OrderStatus;
+  /** Thời điểm chuyển (ISO 8601, đồng hồ server). */
+  at: string;
+  actor: OrderActor | "system";
+  note?: string;
+}
+
 export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   pending: "Chờ xác nhận",
   confirmed: "Đã xác nhận",
@@ -58,4 +67,6 @@ export interface Order {
   discount?: number;
   shippingFee: number;
   total: number;
+  /** Lịch sử trạng thái, chỉ ghi thêm. Đơn tạo trước khi có lịch sử không có trường này. */
+  statusHistory?: OrderStatusEntry[];
 }
