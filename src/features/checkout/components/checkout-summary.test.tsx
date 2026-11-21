@@ -187,7 +187,7 @@ describe("<CheckoutSummary />", () => {
     const input = screen.getByPlaceholderText(/Mã giảm giá/i);
     await user.type(input, "BIGDISCOUNT");
     await user.click(screen.getByRole("button", { name: "Áp dụng" }));
-    expect(await screen.findByTestId("discount-amount")).toHaveTextContent("-150.000 ₫");
+    expect(await screen.findByTestId("discount-amount")).toHaveTextContent("-150.000 ₫");
   });
 
   it("hiển thị thông báo lỗi khi mã không hợp lệ", async () => {
