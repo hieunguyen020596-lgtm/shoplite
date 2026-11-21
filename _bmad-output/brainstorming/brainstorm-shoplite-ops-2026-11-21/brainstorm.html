@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ShopLite Ops — Brainstorm Control Room (54 Ý Tưởng)</title>
+  <title>ShopLite Ops — Brainstorm Control Room (68 Ý Tưởng)</title>
   <style>
     :root {
       --bg: #0b1120;
@@ -84,9 +84,16 @@
       border-radius: 14px;
       padding: 16px;
     }
-    .radar-card code {
+    .focus-card {
+      background: var(--surface);
+      border: 1px solid rgba(52,211,153,0.35);
+      border-left: 4px solid var(--emerald);
+      border-radius: 14px;
+      padding: 16px;
+    }
+    .radar-card code, .focus-card code {
       display: inline-block;
-      margin-top: 6px;
+      margin-top: 4px;
       font-size: 11px;
       color: var(--accent);
       background: rgba(56,189,248,0.1);
@@ -140,6 +147,7 @@
     .b-rev { background: rgba(251,113,133,0.18); color: var(--rose); }
     .b-scamper { background: rgba(45,212,191,0.18); color: var(--teal); }
     .b-assump { background: rgba(251,191,36,0.18); color: var(--amber); }
+    .b-userq { background: rgba(52,211,153,0.2); color: var(--emerald); }
     .moscow {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -188,17 +196,17 @@
 <body>
   <div class="container">
     <header>
-      <span class="eyebrow">BMAD Brainstorming · 2026-11-21 · ShopLite Ops</span>
+      <span class="eyebrow">BMAD Creative Partner · 2026-11-21 · ShopLite Ops</span>
       <h1>Phòng Điều Hành Đơn Hàng ShopLite Ops</h1>
       <p class="subtitle">
-        Biến ý tưởng thô "nhân viên xử lý đơn hàng &amp; khách theo dõi tiến trình" thành phạm vi MVP sắc nét
-        với 54 ý tưởng phân kỳ qua 5 kỹ thuật sáng tạo, bám sát codebase Next.js 16 hiện có.
+        68 ý tưởng phân kỳ qua 6 nhóm góc nhìn — kết hợp khảo sát codebase Next.js 16 thực tế cùng 3 bài toán
+        trọng tâm do người dùng đặt ra (tra cứu khi quên mã, xem tồn kho khi duyệt đơn, thông báo trạng thái cho khách).
       </p>
       <div class="stats">
-        <div class="stat"><strong>54</strong><span>Ý tưởng phân kỳ đã ghi .memlog.md</span></div>
-        <div class="stat"><strong>5</strong><span>Kỹ thuật BMAD đa góc nhìn</span></div>
-        <div class="stat"><strong>5 / 5</strong><span>Mục MUST cho MVP không dịch vụ ngoài</span></div>
-        <div class="stat"><strong>4</strong><span>Câu hỏi mở cần chốt ở 4.3 &amp; 4.4</span></div>
+        <div class="stat"><strong>68</strong><span>Ý tưởng đã ghi .memlog.md</span></div>
+        <div class="stat"><strong>6</strong><span>Nhóm kỹ thuật &amp; Deep-Dive</span></div>
+        <div class="stat"><strong>5 / 5</strong><span>Mục MUST cho MVP</span></div>
+        <div class="stat"><strong>3</strong><span>Bài toán trọng tâm từ user</span></div>
       </div>
       <div class="pipeline">
         <span class="step done">Pending</span><span>→</span>
@@ -210,35 +218,34 @@
     </header>
 
     <section class="section">
-      <h2>🔍 Radar Hiện Trạng Codebase (Brownfield)</h2>
+      <h2>🎯 3 Bài Toán Trọng Tâm Do Bạn Đặt Ra</h2>
       <div class="radar-grid">
-        <div class="radar-card">
-          <strong>Chưa có máy trạng thái &amp; API vận hành</strong>
-          <p style="margin:6px 0 0;font-size:13px;color:var(--muted)"><code>ORDER_STATUSES</code> có đủ 5 trạng thái nhưng <code>PATCH</code> chỉ nhận <code>cancelled</code>.</p>
-          <code>src/app/api/orders/[id]/route.ts</code>
+        <div class="focus-card">
+          <strong>1. Khách quên mã đơn thì tra cứu thế nào?</strong>
+          <p style="margin:6px 0 0;font-size:13px;color:var(--muted)">
+            Lưu tự động vào <code>localStorage['shoplite:my-orders']</code>, nút Copy link/In phiếu sau khi đặt, tra cứu SĐT + xác minh phụ (che mờ &amp; rate limit), và CSKH tra cứu theo SĐT.
+          </p>
         </div>
-        <div class="radar-card">
-          <strong>Tồn kho tĩnh không bao giờ trừ</strong>
-          <p style="margin:6px 0 0;font-size:13px;color:var(--muted)"><code>placeOrder()</code> chỉ đọc <code>products.ts</code> để kiểm tra, không cập nhật số tồn sau khi đặt.</p>
-          <code>src/features/orders/order-service.ts</code>
+        <div class="focus-card">
+          <strong>2. Nhân viên xem tồn kho để duyệt đơn ra sao?</strong>
+          <p style="margin:6px 0 0;font-size:13px;color:var(--muted)">
+            Hiện tồn kho inline cạnh từng món (<code>Đặt: 2 · Còn kho: 5</code>), mã màu cảnh báo, tách số lượng đang chờ ở đơn pending khác &amp; tab Tồn kho nhanh 16 SKU.
+          </p>
         </div>
-        <div class="radar-card">
-          <strong>Rủi ro ghi đồng thời mất đơn</strong>
-          <p style="margin:6px 0 0;font-size:13px;color:var(--muted)">Repository dùng chung 1 file <code>orders.json.tmp</code>, chưa có khóa tuần tự.</p>
-          <code>src/features/orders/order-repository.ts</code>
-        </div>
-        <div class="radar-card">
-          <strong>Thiếu lịch sử &amp; bảo vệ admin</strong>
-          <p style="margin:6px 0 0;font-size:13px;color:var(--muted)"><code>Order</code> chưa có <code>statusHistory</code>; chưa có <code>/admin/orders</code> hay xác thực cookie.</p>
-          <code>src/features/orders/types.ts</code>
+        <div class="focus-card">
+          <strong>3. Khách biết đơn đổi trạng thái bằng cách nào?</strong>
+          <p style="margin:6px 0 0;font-size:13px;color:var(--muted)">
+            Chấm thông báo trên Header mục "Đơn hàng", auto-refresh nhẹ (<code>visibilitychange</code> + polling 30s), Browser Notification tùy chọn &amp; nút Copy tin nhắn báo khách cho nhân viên.
+          </p>
         </div>
       </div>
     </section>
 
     <section class="section">
-      <h2>💡 Kho 54 Ý Tưởng Theo 5 Kỹ Thuật BMAD</h2>
+      <h2>💡 Kho 68 Ý Tưởng Theo 6 Nhóm</h2>
       <div class="tabs">
-        <button class="tab-btn active" onclick="filterIdeas('all', this)">Tất cả (54)</button>
+        <button class="tab-btn active" onclick="filterIdeas('all', this)">Tất cả (68)</button>
+        <button class="tab-btn" onclick="filterIdeas('userq', this)">🎯 3 Câu Hỏi Trọng Tâm (14)</button>
         <button class="tab-btn" onclick="filterIdeas('role', this)">🎭 Role Playing (12)</button>
         <button class="tab-btn" onclick="filterIdeas('hmw', this)">❓ How Might We (11)</button>
         <button class="tab-btn" onclick="filterIdeas('rev', this)">💥 Reverse (11)</button>
@@ -255,35 +262,33 @@
           <h3>MUST (5 mục cốt lõi)</h3>
           <ul>
             <li>Máy trạng thái thuần + <code>statusHistory</code> tương thích ngược đơn cũ.</li>
-            <li>Trang <code>/admin/orders</code>: lọc URL query, tìm kiếm, chuyển 1 bước, chip lý do hủy, responsive 390px.</li>
+            <li>Trang <code>/admin/orders</code>: lọc URL query, tìm kiếm, <strong>tồn kho inline cạnh từng món</strong>, chuyển 1 bước, chip lý do hủy.</li>
             <li>Bảo vệ admin bằng <code>ADMIN_PASSCODE</code> + cookie HttpOnly ký HMAC (8 giờ + đăng xuất, proxy &amp; API).</li>
-            <li>Tồn kho thật tại <code>storage/inventory.json</code> + mutex &amp; file tạm UUID, đồng bộ catalog.</li>
-            <li>Timeline 4 bước trên <code>/orders/[id]</code>; giữ quy tắc khách chỉ hủy khi <code>pending</code>.</li>
+            <li>Tồn kho thật tại <code>storage/inventory.json</code> + mutex &amp; file tạm UUID, đồng bộ catalog &amp; admin.</li>
+            <li>Timeline 4 bước trên <code>/orders/[id]</code> kèm tự làm mới nhẹ; giữ quy tắc khách chỉ hủy khi <code>pending</code>.</li>
           </ul>
         </div>
         <div class="col should">
           <h3>SHOULD</h3>
           <ul>
-            <li>Thẻ KPI nhanh đầu trang <code>/admin/orders</code> (đơn từng trạng thái, doanh thu đã giao).</li>
-            <li>Cảnh báo đơn chờ quá 2 giờ, ưu tiên đơn giao nhanh &amp; sản phẩm sắp hết hàng (<code>&lt;= 5</code>).</li>
-            <li>Chống ghi đè bằng <code>expectedStatus</code> (trả <code>409 Conflict</code>).</li>
-            <li>Ghi chú mã vận đơn khi chuyển <code>shipping</code> &amp; dùng <code>statusHistory</code> làm audit log.</li>
+            <li>Lưu mã đơn gần đây trên <code>localStorage</code> + nút Copy link + tra cứu SĐT có che mờ &amp; rate limit.</li>
+            <li>Chấm báo "Cập nhật mới" ở Header + nút "Copy mẫu tin nhắn báo khách" cho nhân viên.</li>
+            <li>Thẻ KPI nhanh, cảnh báo trễ SLA &gt; 2h, tách Tồn thực / Đang chờ / Khả dụng &amp; <code>expectedStatus</code> (409).</li>
           </ul>
         </div>
         <div class="col could">
           <h3>COULD</h3>
           <ul>
             <li>Xác nhận hàng loạt nhiều đơn <code>pending</code> (Bulk Confirm).</li>
-            <li>Nút "Làm mới trạng thái" &amp; "Đặt lại các sản phẩm này" cho đơn đã hủy.</li>
-            <li>Tab "Tồn kho" xem biến động và nhập thêm hàng (<code>+N</code>).</li>
-            <li>Lọc theo phương thức thanh toán &amp; in nhanh phiếu nhặt hàng.</li>
+            <li>Browser Notification API khi tab theo dõi đơn phát hiện trạng thái mới.</li>
+            <li>Nút "Đặt lại các sản phẩm này" cho đơn hủy &amp; nhập thêm kho (<code>+N</code>) trong admin.</li>
           </ul>
         </div>
         <div class="col wont">
           <h3>WON'T (Ngoài MVP)</h3>
           <ul>
             <li>Phân quyền nhiều vai trò (RBAC) / đa tài khoản nhân viên.</li>
-            <li>Gửi email / SMS / Zalo tự động.</li>
+            <li>Gửi email / SMS / Zalo tự động qua dịch vụ trả phí ngoài.</li>
             <li>Tích hợp hãng vận chuyển ngoài (GHN, GHTK).</li>
             <li>Chuyển sang cơ sở dữ liệu ngoài.</li>
           </ul>
@@ -291,25 +296,27 @@
       </div>
     </section>
 
-    <section class="section">
-      <div class="questions">
-        <h2 style="margin-top:0">🧭 Câu Hỏi Mở Cần Chốt Trước Khi Viết PRD</h2>
-        <ol>
-          <li>Trừ tồn kho ngay khi khách đặt hàng (<code>pending</code>) hay chỉ trừ khi nhân viên xác nhận (<code>confirmed</code>)?</li>
-          <li>Nhân viên được phép hủy đơn ở những trạng thái nào (chỉ <code>pending/confirmed</code> hay cả <code>shipping</code>)?</li>
-          <li>Nếu chưa cấu hình <code>ADMIN_PASSCODE</code> ở môi trường local dev thì khóa cứng hay có mã dev mặc định kèm cảnh báo?</li>
-          <li>Trang <code>/products</code> và <code>/products/[slug]</code> cần đọc động tồn kho từ <code>inventory.json</code> như thế nào để luôn hiển thị đúng?</li>
-        </ol>
-      </div>
-    </section>
-
     <footer>
-      Sinh từ <code>.memlog.md</code> (54 ý tưởng) bởi BMAD Method v6.12.4 (Antigravity) · Đầu vào cho Bài 4.3 (Party Mode) &amp; Bài 4.4 (Brief / PRD).
+      Sinh từ <code>.memlog.md</code> (68 ý tưởng) bởi BMAD Method v6.12.4 (Antigravity) · Sẵn sàng sang Bài 4.3 (Party Mode) &amp; Bài 4.4 (Brief / PRD).
     </footer>
   </div>
 
   <script>
     const ideas = [
+      { cat: "userq", tag: "Quên mã đơn", cls: "b-userq", text: "[Quên mã đơn #1] Tự lưu lịch sử mã đơn gần đây vào localStorage['shoplite:my-orders'] để vào /orders thấy ngay không cần nhớ mã." },
+      { cat: "userq", tag: "Quên mã đơn", cls: "b-userq", text: "[Quên mã đơn #2] Tra cứu theo SĐT + xác minh phụ (email/ngày đặt), che mờ SĐT (091****678), ẩn địa chỉ chi tiết và giới hạn tần suất (rate limit)." },
+      { cat: "userq", tag: "Quên mã đơn", cls: "b-userq", text: "[Quên mã đơn #3] Trên màn hình 'Đặt hàng thành công!', thêm nút 1 chạm 'Sao chép link theo dõi' và 'In / Lưu phiếu đơn'." },
+      { cat: "userq", tag: "Quên mã đơn", cls: "b-userq", text: "[Quên mã đơn #4] Kênh dự phòng CSKH: khách mất cả mã lẫn đổi máy đọc SĐT để nhân viên tra trên /admin/orders cấp lại mã." },
+      { cat: "userq", tag: "Quên mã đơn", cls: "b-userq", text: "[Quên mã đơn #5 - Phòng thủ] Trả thông báo trung lập ('Không tìm thấy đơn phù hợp') khi không khớp để không lộ SĐT khách hàng." },
+      { cat: "userq", tag: "Tồn kho duyệt đơn", cls: "b-userq", text: "[Tồn kho khi duyệt #1] Hiển thị tồn kho thực tế inline ngay cạnh từng món trên /admin/orders (VD: 'Đặt: 2 · Còn kho: 5') đọc từ storage/inventory.json." },
+      { cat: "userq", tag: "Tồn kho duyệt đơn", cls: "b-userq", text: "[Tồn kho khi duyệt #2] Mã màu cảnh báo tồn kho trên dòng đơn: xanh (>5), vàng (1–5 sắp hết), đỏ (0 hoặc < số lượng đặt)." },
+      { cat: "userq", tag: "Tồn kho duyệt đơn", cls: "b-userq", text: "[Tồn kho khi duyệt #3] Tách rõ 3 chỉ số cho SKU đang có nhiều đơn pending: Tồn thực tế / Đang chờ duyệt / Còn khả dụng." },
+      { cat: "userq", tag: "Tồn kho duyệt đơn", cls: "b-userq", text: "[Tồn kho khi duyệt #4] Thêm ngăn kéo/tab 'Tồn kho nhanh' xem 16 sản phẩm (ban đầu, đã bán, còn lại) ngay trong /admin/orders." },
+      { cat: "userq", tag: "Thông báo trạng thái", cls: "b-userq", text: "[Thông báo trạng thái #1] Chấm đỏ / badge 'Cập nhật mới' trên mục 'Đơn hàng' ở Header khi trạng thái đơn trên thiết bị đổi so với lần xem gần nhất." },
+      { cat: "userq", tag: "Thông báo trạng thái", cls: "b-userq", text: "[Thông báo trạng thái #2] Auto-refresh nhẹ trên /orders/[id] (polling 30s + sự kiện visibilitychange khi quay lại tab) kèm highlight bước mới." },
+      { cat: "userq", tag: "Thông báo trạng thái", cls: "b-userq", text: "[Thông báo trạng thái #3] Hiển thị thời gian tương đối + người thực hiện trên Timeline ('Đã xác nhận · 5 phút trước bởi Cửa hàng')." },
+      { cat: "userq", tag: "Thông báo trạng thái", cls: "b-userq", text: "[Thông báo trạng thái #4] Nút tùy chọn 'Bật thông báo trình duyệt' (Browser Notification API — không cần server push ngoài)." },
+      { cat: "userq", tag: "Thông báo trạng thái", cls: "b-userq", text: "[Thông báo trạng thái #5] Nút 'Copy mẫu tin nhắn báo khách' cho nhân viên sau khi đổi sang Đang giao / Đã hủy để dán nhanh vào Zalo/SMS." },
       { cat: "role", tag: "Role Playing", cls: "b-role", text: "[Nhân viên kho] Hàng đợi mặc định lọc 'Chờ xác nhận' & 'Đã xác nhận' theo thứ tự FIFO." },
       { cat: "role", tag: "Role Playing", cls: "b-role", text: "[Nhân viên kho] Một nút hành động chính duy nhất cho bước kế tiếp hợp lệ, giảm bấm nhầm." },
       { cat: "role", tag: "Role Playing", cls: "b-role", text: "[Nhân viên kho] Trừ tồn kho thật lưu ở storage/inventory.json ngay khi đặt hàng." },
