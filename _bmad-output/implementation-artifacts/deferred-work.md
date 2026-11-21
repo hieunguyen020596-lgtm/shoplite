@@ -14,3 +14,7 @@
 ## Deferred from: code review of spec-1-2-xac-thuc-quan-tri-fail-closed.md (2026-11-21)
 
 - Document `ADMIN_PASSCODE` and `/api/admin/auth/login` + `/api/admin/auth/logout` endpoints in `README.md` and `.env.example` when the `/admin` UI (Story 3.1) lands.
+
+## Deferred from: code review of spec-1-3-api-van-hanh-chuyen-trang-thai-don.md (2026-11-21)
+
+- Wire `StorageLock` re-entrant locking and `InventoryRepository` restock handling for `shouldRestock` in `OrderService` (`src/features/orders/order-service.ts:70-84`), intentionally excluded from Story 1.3 and scheduled for Story 2.1.

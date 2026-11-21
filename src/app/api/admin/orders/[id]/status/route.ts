@@ -62,7 +62,7 @@ export async function PATCH(
     const order = await orderService.transitionOrderStatus(id, {
       status: parsed.data.status,
       actor: "staff",
-      note: parsed.data.note,
+      note: parsed.data.note || undefined,
       expectedStatus: parsed.data.expectedStatus,
     });
 

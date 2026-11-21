@@ -2,6 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   ADMIN_COOKIE_NAME,
+  ADMIN_SESSION_TTL_SECONDS,
   createAdminSessionToken,
 } from "@/features/orders/admin-auth";
 import type { OrderRepository } from "@/features/orders/order-repository";
@@ -113,6 +114,7 @@ describe("PATCH /api/admin/orders/:id/status", () => {
 
   describe("Auth fail-closed (503 -> 401)", () => {
     it("503 ADMIN_NOT_CONFIGURED khi thiếu/rỗng ADMIN_PASSCODE trước cả parse body & đọc repo", async () => {
+      const created = await createSampleOrder();
       const validCookie = validAdminCookie();
 
       for (const envValue of [undefined, "", "   "]) {
@@ -123,7 +125,7 @@ describe("PATCH /api/admin/orders/:id/status", () => {
         }
 
         const resInvalidJson = await patchAdminOrderStatus(
-          "SL-KHONG-CO",
+          created.id,
           "{not-json",
           { raw: true },
         );
@@ -133,7 +135,7 @@ describe("PATCH /api/admin/orders/:id/status", () => {
         );
 
         const resWithCookie = await patchAdminOrderStatus(
-          "SL-KHONG-CO",
+          created.id,
           { status: "confirmed" },
           { cookie: validCookie },
         );
@@ -142,11 +144,17 @@ describe("PATCH /api/admin/orders/:id/status", () => {
           "ADMIN_NOT_CONFIGURED",
         );
       }
+
+      expect((await testState.repository.findById(created.id))?.status).toBe(
+        "pending",
+      );
     });
 
     it("401 UNAUTHORIZED khi thiếu, sai chữ ký hoặc hết hạn cookie (trước parse body & repo)", async () => {
       const created = await createSampleOrder();
-      const expiredToken = createAdminSessionToken(Date.now() - 28_801 * 1000);
+      const expiredToken = createAdminSessionToken(
+        Date.now() - (ADMIN_SESSION_TTL_SECONDS + 1) * 1000,
+      );
       const validToken = createAdminSessionToken();
       const tamperedToken = `${validToken.slice(0, -1)}${validToken.endsWith("0") ? "1" : "0"}`;
 
@@ -245,6 +253,7 @@ describe("PATCH /api/admin/orders/:id/status", () => {
         const json = await res.json();
         expect(json.error.code).toBe("VALIDATION_ERROR");
         expect(json.error.details).toHaveProperty(detailKey);
+        expect(json.error.details[detailKey]).not.toMatch(/^Invalid input/i);
       }
 
       expect((await testState.repository.findById(created.id))?.status).toBe(
@@ -458,7 +467,7 @@ describe("PATCH /api/admin/orders/:id/status", () => {
       ).toBe(false);
     });
 
-    it("chấp nhận note đúng 200 ký tự (sau trim) và bỏ qua note toàn khoảng trắng khi không hủy", async () => {
+    it("chấp nhận note đúng 200 ký tự (sau trim) cho tiến bước/hủy và bỏ qua note rỗng khi không hủy", async () => {
       const cookie = validAdminCookie();
       const created = await createSampleOrder();
       const exact200 = "a".repeat(200);
@@ -474,12 +483,52 @@ describe("PATCH /api/admin/orders/:id/status", () => {
 
       const shippingRes = await patchAdminOrderStatus(
         created.id,
-        { status: "shipping", note: `  ${exact200}  ` },
+        { status: "shipping", note: "" },
         { cookie },
       );
       expect(shippingRes.status).toBe(200);
       const shipping = ((await shippingRes.json()) as { order: Order }).order;
-      expect(shipping.statusHistory?.at(-1)?.note).toBe(exact200);
+      expect(shipping.statusHistory?.at(-1)).not.toHaveProperty("note");
+
+      const cancel200Res = await patchAdminOrderStatus(
+        created.id,
+        {
+          status: "cancelled",
+          note: `  ${exact200}  `,
+          expectedStatus: "shipping",
+        },
+        { cookie },
+      );
+      expect(cancel200Res.status).toBe(200);
+      const cancelled200 = ((await cancel200Res.json()) as { order: Order })
+        .order;
+      expect(cancelled200.statusHistory?.at(-1)?.note).toBe(exact200);
+    });
+
+    it("hỗ trợ đơn lịch sử thiếu statusHistory kèm discount/couponCode qua admin route", async () => {
+      const cookie = validAdminCookie();
+      const created = await createSampleOrder();
+      const legacyOrder = {
+        ...created,
+        discount: 50_000,
+        couponCode: "LEGACY50",
+      } as Order & { discount: number; couponCode: string };
+      delete legacyOrder.statusHistory;
+      await testState.repository.save(legacyOrder);
+
+      const confirmRes = await patchAdminOrderStatus(
+        created.id,
+        { status: "confirmed", expectedStatus: "pending" },
+        { cookie },
+      );
+      expect(confirmRes.status).toBe(200);
+      const updated = ((await confirmRes.json()) as { order: Order }).order;
+      expect(updated.inventoryRestocked).toBe(true);
+      expect(updated.statusHistory).toHaveLength(2);
+      expect(updated).toMatchObject({
+        discount: 50_000,
+        couponCode: "LEGACY50",
+      });
     });
   });
 
@@ -554,18 +603,28 @@ describe("PATCH /api/admin/orders/:id/status", () => {
         { cookie },
       );
 
+      const confirmedStored = await testState.repository.findById(created.id);
+
       const conflictRes = await patchAdminOrderStatus(
         created.id,
-        { status: "shipping", expectedStatus: "pending" },
+        {
+          status: "cancelled",
+          expectedStatus: "pending",
+          note: "Hủy khi tab bị cũ",
+        },
         { cookie },
       );
       expect(conflictRes.status).toBe(409);
-      expect((await conflictRes.json()).error.code).toBe(
-        "INVALID_STATUS_TRANSITION",
-      );
+      const conflictJson = await conflictRes.json();
+      expect(conflictJson.error.code).toBe("INVALID_STATUS_TRANSITION");
+      expect(conflictJson.error.details).toEqual({
+        expectedStatus: "pending",
+        currentStatus: "confirmed",
+      });
 
       const stored = await testState.repository.findById(created.id);
       expect(stored?.status).toBe("confirmed");
+      expect(stored?.updatedAt).toBe(confirmedStored?.updatedAt);
       expect(stored?.statusHistory).toHaveLength(2);
     });
   });

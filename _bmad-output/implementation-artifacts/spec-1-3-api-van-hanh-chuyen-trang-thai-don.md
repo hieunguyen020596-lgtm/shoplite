@@ -69,6 +69,20 @@ context:
 - Given một đơn hàng mới đặt qua `POST /api/orders` rồi đi qua `PATCH /api/admin/orders/:id/status` (`confirmed` → `shipping` có `note` & `expectedStatus` → `delivered`), when kiểm tra đơn trả về qua `GET /api/orders/:id`, then `statusHistory` lưu đủ 4 mốc tuần tự theo thời gian với đúng `actor` và `note`.
 - Given `npm run check` chạy sau khi hoàn tất 4 task trên, when ESLint, `next typegen && tsc --noEmit`, và Vitest hoàn thành, then toàn bộ 189 tests trước đó và tất cả test mới của Story 1.3 pass 100%.
 
+### Review Findings
+
+- [x] [Review][Patch] Chuẩn hóa `note: parsed.data.note || undefined` ở route admin để không truyền chuỗi rỗng `""` vào `orderService.transitionOrderStatus` [src/app/api/admin/orders/[id]/status/route.ts:65]
+- [x] [Review][Patch] Mở rộng test trong `src/app/api/admin/orders/[id]/status/route.test.ts` (`note: ""`, hủy với `note` 200 ký tự + `expectedStatus`, đơn lịch sử giữ `discount`/`couponCode`, tiếng Việt ở `details`, `updatedAt` không đổi khi `409`, `503` không sửa đơn có sẵn, `ADMIN_SESSION_TTL_SECONDS + 1`) [src/app/api/admin/orders/[id]/status/route.test.ts:120-572]
+- [x] [Review][Defer] Gắn `StorageLock` re-entrant và xử lý hoàn kho `shouldRestock` qua `InventoryRepository` trong `OrderService` [src/features/orders/order-service.ts:70-84] — deferred: thuộc Story 2.1 theo `<frozen-after-approval>` (`Never`)
+
+#### Rejected
+- **BH-1** (`blind-hunter`, `src/app/api/orders/[id]/route.ts:21-25`) — `false`: Route công khai được giữ nguyên hợp đồng theo spec; `cancelOrder(id)` không nhận `note`/`actor`/`expectedStatus` từ client nên không lưu dữ liệu ngoài ý muốn.
+- **BH-3** (`blind-hunter`, `order-service.ts:134-160`) — `false`: `placeOrder()` dùng `now().toISOString()` là code sẵn có trước Story 1.3; tạo `statusHistory` 1 phần tử inline rất gọn.
+- **BH-8** (`blind-hunter`, `order-service.test.ts:191-198`) — `false`: Spec yêu cầu giữ nguyên 13 test cũ; hủy từ các trạng thái khác và `actor: "customer"` đã được phủ qua `order-state-machine.test.ts`, `orders/[id]/route.test.ts` và `cancelOrder`.
+- **BH-9** (`blind-hunter`, `src/app/api/orders/route.test.ts`) — `false`: Khởi tạo `statusHistory` từ `POST /api/orders` đã được kiểm tra end-to-end trong `status/route.test.ts` và `orders/[id]/route.test.ts`.
+- **BH-10** (`blind-hunter`, `order-repository.test.ts`) — `false`: `createJsonFileOrderRepository` dùng `JSON.stringify`/`JSON.parse` và không thuộc phạm vi thay đổi của Story 1.3 (sẽ cập nhật khi vào Story 2.1).
+- **BH-11** (`blind-hunter`, `deferred-work.md`, `spec-1-3`) — `false`: `deferred-work.md` giữ tính append-only theo quy ước BMAD; `spec-1-3` (`status: 'done'`) và `sprint-status.yaml` (`review`) đúng quy trình bàn giao review, không sửa lại lịch sử spec.
+
 ## Implementation Notes
 
 - Cập nhật `src/features/orders/order-service.ts`: `placeOrder()` khởi tạo `statusHistory` với 1 mục `pending` (`actor: "customer"`); bổ sung `transitionOrderStatus(id, input)` gọi `transitionOrder()` trong `order-state-machine.ts`; `cancelOrder(id)` ủy quyền về `transitionOrderStatus(id, { status: "cancelled", actor: "customer" })`.
