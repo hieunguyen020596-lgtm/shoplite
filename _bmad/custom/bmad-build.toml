@@ -1,0 +1,5 @@
+[workflow]
+persistent_facts = [
+  "file:{project-root}/README.md",
+  "Mọi thay đổi nghiệp vụ phải có unit test cho trường hợp biên; npm run check phải pass.",
+]
