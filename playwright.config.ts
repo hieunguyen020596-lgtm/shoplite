@@ -20,7 +20,9 @@ function requireTestDatabaseUrl(): string {
     databaseName = undefined;
   }
   if (!url || databaseName !== TEST_DATABASE_NAME) {
-    throw new Error(`TEST_DATABASE_URL khong tro toi database ${TEST_DATABASE_NAME}`);
+    throw new Error(
+      `TEST_DATABASE_URL khong tro toi database ${TEST_DATABASE_NAME}`,
+    );
   }
   return url;
 }
@@ -32,10 +34,14 @@ export default defineConfig({
   fullyParallel: false,
   workers: 1,
   retries: process.env.CI ? 2 : 0,
-  reporter: process.env.CI ? "github" : "list",
+  reporter: process.env.CI ? "github" : [["list"], ["html", { open: "never" }]],
+  expect: { timeout: 10_000 },
   use: {
     baseURL: BASE_URL,
-    trace: "on-first-retry",
+    // Bằng chứng khi test đỏ: chỉ giữ lại khi hỏng để thư mục test-results gọn.
+    trace: "retain-on-failure",
+    screenshot: "only-on-failure",
+    video: "retain-on-failure",
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: {
