@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mockup — /orders/[id] Timeline tiến trình (ShopLite Ops)</title>
+  <style>
+    /*
+     * Governed by:
+     * - DESIGN.md: Colors, Typography, Shapes, Components (OrderProgressTimeline, RefreshStatusButton)
+     * - EXPERIENCE.md: IA (/orders/[id]), Component Patterns, State Patterns (Active, Cancelled, Legacy Fallback), Key Flows (UJ-2)
+     * Spines win on conflict. Pure offline HTML/CSS reference (no JS, no network).
+     */
+    :root {
+      --primary: #4F39F6;
+      --primary-soft: #EEF2FF;
+      --primary-text: #432DD7;
+      --primary-ring: #C6D2FF;
+      --bg-page: #F8FAFC;
+      --bg-surface: #FFFFFF;
+      --bg-subtle: #F1F5F9;
+      --border: #E2E8F0;
+      --border-strong: #CAD5E2;
+      --text-primary: #0F172B;
+      --text-secondary: #45556C;
+      --text-muted: #62748E;
+      --success: #009966;
+      --success-soft: #ECFDF5;
+      --success-text: #007A55;
+      --success-ring: #A4F4CF;
+      --danger-soft: #FFF1F2;
+      --danger-text: #C70036;
+      --danger-ring: #FFCCD3;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Be Vietnam Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #E2E8F0;
+      color: var(--text-primary);
+      line-height: 1.5;
+      padding: 24px 16px 48px;
+    }
+    .canvas-header {
+      max-width: 1080px;
+      margin: 0 auto 20px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 8px;
+    }
+    .canvas-header h1 { margin: 0; font-size: 20px; font-weight: 700; }
+    .canvas-header p { margin: 0; font-size: 13px; color: var(--text-secondary); }
+    .grid {
+      max-width: 1080px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 390px;
+      gap: 24px;
+      align-items: start;
+    }
+    @media (max-width: 860px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+    .frame {
+      background: var(--bg-page);
+      border-radius: 20px;
+      border: 1px solid var(--border-strong);
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      box-shadow: 0 10px 28px rgba(15, 23, 43, 0.08);
+    }
+    .frame-mobile {
+      width: 390px;
+      max-width: 100%;
+      background: var(--bg-page);
+      border-radius: 28px;
+      border: 4px solid var(--text-primary);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      box-shadow: 0 12px 28px rgba(15, 23, 43, 0.14);
+    }
+    .tag {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+    }
+    .page-header {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+    }
+    .page-title {
+      margin: 0;
+      font-size: 22px;
+      font-weight: 700;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      border-radius: 9999px;
+      padding: 3px 10px;
+      font-size: 12px;
+      font-weight: 600;
+      border: 1px solid transparent;
+    }
+    .badge-shipping { background: var(--primary-soft); color: var(--primary-text); border-color: var(--primary-ring); }
+    .badge-cancelled { background: var(--bg-subtle); color: var(--text-secondary); border-color: var(--border); }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      min-height: 44px;
+      padding: 0 14px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      border: 1px solid var(--border-strong);
+      background: #fff;
+      color: var(--text-primary);
+    }
+    .card {
+      background: var(--bg-surface);
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      padding: 18px;
+      box-shadow: 0 1px 2px rgba(15, 23, 43, 0.04);
+    }
+    .card h2 { margin: 0 0 14px; font-size: 16px; font-weight: 700; }
+
+    /* Timeline (vertical on mobile & clear stepper on desktop) */
+    .timeline {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+    .step {
+      display: flex;
+      gap: 12px;
+      position: relative;
+      padding-bottom: 18px;
+    }
+    .step:last-child { padding-bottom: 0; }
+    .step-rail {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 28px;
+      flex-shrink: 0;
+    }
+    .dot {
+      width: 28px;
+      height: 28px;
+      border-radius: 9999px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+      border: 2px solid var(--border-strong);
+      background: #fff;
+      color: var(--text-muted);
+      z-index: 1;
+    }
+    .step.done .dot {
+      background: var(--success-soft);
+      border-color: var(--success);
+      color: var(--success-text);
+    }
+    .step.current .dot {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #fff;
+      box-shadow: 0 0 0 4px var(--primary-soft);
+    }
+    .line {
+      width: 2px;
+      flex: 1;
+      min-height: 20px;
+      background: var(--border);
+      margin-top: 4px;
+    }
+    .step.done .line { background: var(--success); }
+    .step-body { flex: 1; padding-top: 2px; }
+    .step-title { font-size: 14px; font-weight: 700; color: var(--text-primary); }
+    .step.upcoming .step-title { color: var(--text-muted); font-weight: 500; }
+    .step-time { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+    .step-note {
+      margin-top: 6px;
+      display: inline-block;
+      font-size: 12px;
+      background: var(--primary-soft);
+      color: var(--primary-text);
+      padding: 4px 10px;
+      border-radius: 8px;
+      font-weight: 600;
+    }
+
+    .info-note {
+      background: var(--bg-subtle);
+      color: var(--text-secondary);
+      border-radius: 12px;
+      padding: 10px 14px;
+      font-size: 13px;
+    }
+    .cancel-box {
+      background: var(--danger-soft);
+      border: 1px solid var(--danger-ring);
+      border-radius: 12px;
+      padding: 14px;
+      color: var(--danger-text);
+      font-size: 13px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .cancel-box strong { font-size: 14px; }
+  </style>
+</head>
+<body>
+  <div class="canvas-header">
+    <div>
+      <h1>ShopLite Ops — Mockup 1:1 <code>/orders/[id]</code></h1>
+      <p>Minh họa Timeline tiến trình 4 bước (UJ-2), nút Làm mới thủ công và trạng thái Đơn đã hủy / Đơn cũ fallback.</p>
+    </div>
+    <p><code>DESIGN.md</code> &amp; <code>EXPERIENCE.md</code> giữ quyền ưu tiên.</p>
+  </div>
+
+  <div class="grid">
+    <!-- Desktop Canonical Active Order -->
+    <section class="frame">
+      <div class="tag">Trạng thái chuẩn (Desktop) · Đơn đang giao (shipping)</div>
+      <header class="page-header">
+        <div>
+          <h2 class="page-title">
+            Đơn hàng SL-20261121-A1B2C3
+            <span class="badge badge-shipping">● Đang giao</span>
+          </h2>
+          <div style="font-size:13px;color:var(--text-secondary);margin-top:4px;">Đặt lúc 08:05, 21/11/2026 · Anh Minh</div>
+        </div>
+        <button class="btn" type="button">↻ Làm mới trạng thái</button>
+      </header>
+
+      <div class="card">
+        <h2>Tiến trình đơn hàng</h2>
+        <ol class="timeline">
+          <li class="step done">
+            <div class="step-rail"><span class="dot">✓</span><span class="line"></span></div>
+            <div class="step-body">
+              <div class="step-title">1. Chờ xác nhận</div>
+              <div class="step-time">08:05, 21/11/2026 · Khách hàng đặt đơn</div>
+            </div>
+          </li>
+          <li class="step done">
+            <div class="step-rail"><span class="dot">✓</span><span class="line"></span></div>
+            <div class="step-body">
+              <div class="step-title">2. Đã xác nhận</div>
+              <div class="step-time">08:15, 21/11/2026 · Cửa hàng đã xác nhận và giữ hàng</div>
+            </div>
+          </li>
+          <li class="step current">
+            <div class="step-rail"><span class="dot">3</span><span class="line"></span></div>
+            <div class="step-body">
+              <div class="step-title">3. Đang giao</div>
+              <div class="step-time">14:20, 21/11/2026 · Đã bàn giao đơn vị vận chuyển</div>
+              <div class="step-note">Ghi chú vận chuyển: Mã vận đơn GHN-882910</div>
+            </div>
+          </li>
+          <li class="step upcoming">
+            <div class="step-rail"><span class="dot">4</span></div>
+            <div class="step-body">
+              <div class="step-title">4. Đã giao</div>
+              <div class="step-time">Chưa hoàn tất</div>
+            </div>
+          </li>
+        </ol>
+      </div>
+
+      <div class="info-note">
+        ℹ Đơn hàng đã được xác nhận — vui lòng liên hệ cửa hàng nếu cần hỗ trợ thay đổi hoặc hủy đơn.
+      </div>
+    </section>
+
+    <!-- Mobile 390px: Cancelled Order + Legacy Fallback -->
+    <aside class="frame-mobile">
+      <div class="tag">Mobile 390px · Trạng thái Đơn đã hủy</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <strong style="font-size:16px;">SL-20261121-B9C8D7</strong>
+        <span class="badge badge-cancelled">✕ Đã hủy</span>
+      </div>
+      <button class="btn" style="width:100%;" type="button">↻ Làm mới trạng thái</button>
+
+      <div class="cancel-box" role="status">
+        <strong>✕ Đơn hàng đã bị hủy bởi Cửa hàng</strong>
+        <span>Thời điểm: 08:30, 21/11/2026</span>
+        <span>Lý do: Hết hàng thực tế (hộp cuối bị móp)</span>
+      </div>
+
+      <div class="card" style="padding:14px;">
+        <div class="tag" style="margin-bottom:8px;">Trạng thái Fallback — Đơn cũ (không có statusHistory · đủ 4 bước)</div>
+        <ol class="timeline">
+          <li class="step done">
+            <div class="step-rail"><span class="dot">✓</span><span class="line"></span></div>
+            <div class="step-body">
+              <div class="step-title">1. Chờ xác nhận</div>
+              <div class="step-time">08:00, 08/11/2026</div>
+            </div>
+          </li>
+          <li class="step done">
+            <div class="step-rail"><span class="dot">✓</span><span class="line"></span></div>
+            <div class="step-body">
+              <div class="step-title">2. Đã xác nhận</div>
+              <div class="step-time">—</div>
+            </div>
+          </li>
+          <li class="step done">
+            <div class="step-rail"><span class="dot">✓</span><span class="line"></span></div>
+            <div class="step-body">
+              <div class="step-title">3. Đang giao</div>
+              <div class="step-time">—</div>
+            </div>
+          </li>
+          <li class="step done">
+            <div class="step-rail"><span class="dot">✓</span></div>
+            <div class="step-body">
+              <div class="step-title">4. Đã giao</div>
+              <div class="step-time">17:30, 09/11/2026</div>
+            </div>
+          </li>
+        </ol>
+      </div>
+    </aside>
+  </div>
+</body>
+</html>

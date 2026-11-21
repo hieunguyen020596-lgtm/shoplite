@@ -1,0 +1,643 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mockup — /admin/orders (ShopLite Ops)</title>
+  <style>
+    /*
+     * Governed by:
+     * - DESIGN.md: Colors, Layout & Spacing, Shapes, Components (AdminHeaderBar, OrderFilterTabs,
+     *   AdminOrderCard, ReservedStockIndicator, RestockStatusBadge, CancelOrderDialog)
+     * - EXPERIENCE.md: IA (/admin/orders), Component Patterns, State Patterns, Key Flows (UJ-1, UJ-3)
+     * Spines win on conflict. Pure offline HTML/CSS reference (no JS, no network).
+     */
+    :root {
+      --primary: #4F39F6;
+      --primary-hover: #615FFF;
+      --primary-soft: #EEF2FF;
+      --primary-text: #432DD7;
+      --primary-ring: #C6D2FF;
+      --bg-page: #F8FAFC;
+      --bg-surface: #FFFFFF;
+      --bg-subtle: #F1F5F9;
+      --border: #E2E8F0;
+      --border-strong: #CAD5E2;
+      --text-primary: #0F172B;
+      --text-secondary: #45556C;
+      --text-muted: #62748E;
+      --danger: #EC003F;
+      --danger-soft: #FFF1F2;
+      --danger-text: #C70036;
+      --danger-ring: #FFCCD3;
+      --success-soft: #ECFDF5;
+      --success-text: #007A55;
+      --success-ring: #A4F4CF;
+      --warning-soft: #FFFBEB;
+      --warning-text: #BB4D00;
+      --warning-strong: #973C00;
+      --warning-ring: #FEE685;
+      --info-soft: #F0F9FF;
+      --info-text: #0069A8;
+      --info-ring: #B8E6FE;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Be Vietnam Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #E2E8F0;
+      color: var(--text-primary);
+      line-height: 1.5;
+      padding: 24px 16px 48px;
+    }
+    .canvas-header {
+      max-width: 1120px;
+      margin: 0 auto 20px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 8px;
+    }
+    .canvas-header h1 { margin: 0; font-size: 20px; font-weight: 700; }
+    .canvas-header p { margin: 0; font-size: 13px; color: var(--text-secondary); }
+    .section-label {
+      max-width: 1120px;
+      margin: 28px auto 10px;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-secondary);
+    }
+    .frame-desktop {
+      max-width: 1120px;
+      margin: 0 auto;
+      background: var(--bg-page);
+      border-radius: 20px;
+      border: 1px solid var(--border-strong);
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(15, 23, 43, 0.08);
+    }
+    .frames-row {
+      max-width: 1120px;
+      margin: 0 auto;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 24px;
+      align-items: flex-start;
+    }
+    .frame-mobile {
+      width: 390px;
+      max-width: 100%;
+      background: var(--bg-page);
+      border-radius: 28px;
+      border: 4px solid var(--text-primary);
+      overflow: hidden;
+      box-shadow: 0 12px 30px rgba(15, 23, 43, 0.14);
+      flex-shrink: 0;
+    }
+    .frame-modal-showcase {
+      flex: 1;
+      min-width: 320px;
+      background: rgba(15, 23, 43, 0.45);
+      border-radius: 20px;
+      padding: 28px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Admin Header Bar */
+    .admin-header {
+      background: rgba(255, 255, 255, 0.94);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 16px;
+      color: var(--text-primary);
+    }
+    .brand-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: var(--primary);
+      color: #fff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+    }
+    .brand-pill {
+      font-size: 11px;
+      font-weight: 600;
+      background: var(--primary-soft);
+      color: var(--primary-text);
+      padding: 2px 8px;
+      border-radius: 9999px;
+      border: 1px solid var(--primary-ring);
+    }
+    .container {
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .frame-mobile .admin-header { padding: 10px 14px; }
+    .frame-mobile .container { padding: 14px; gap: 12px; }
+
+    /* Controls: Tabs + Search */
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .tabs {
+      display: flex;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      gap: 6px;
+      padding-bottom: 2px;
+    }
+    .tab {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 44px;
+      padding: 6px 12px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 600;
+      white-space: nowrap;
+      border: 1px solid var(--border);
+      background: var(--bg-surface);
+      color: var(--text-secondary);
+    }
+    .tab.active {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #fff;
+    }
+    .tab-count {
+      font-size: 11px;
+      padding: 1px 6px;
+      border-radius: 9999px;
+      background: var(--bg-subtle);
+      color: var(--text-secondary);
+    }
+    .tab.active .tab-count {
+      background: rgba(255, 255, 255, 0.22);
+      color: #fff;
+    }
+    .search-box {
+      display: flex;
+      gap: 8px;
+      min-width: 260px;
+      flex: 1;
+      max-width: 360px;
+    }
+    .frame-mobile .search-box { max-width: 100%; min-width: 0; width: 100%; }
+    .input {
+      width: 100%;
+      min-height: 44px;
+      padding: 10px 14px;
+      border-radius: 12px;
+      border: 1px solid var(--border-strong);
+      background: var(--bg-surface);
+      font-size: 14px;
+      color: var(--text-primary);
+    }
+    .sort-hint {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin: -6px 0 0;
+    }
+
+    /* Cards */
+    .order-card {
+      background: var(--bg-surface);
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      box-shadow: 0 1px 2px rgba(15, 23, 43, 0.04);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .frame-mobile .order-card { padding: 14px; }
+    .card-top {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 8px;
+    }
+    .order-id { font-weight: 700; font-size: 15px; color: var(--text-primary); }
+    .order-meta { font-size: 13px; color: var(--text-secondary); margin-top: 2px; }
+    .order-total { font-weight: 700; font-size: 16px; color: var(--primary-text); }
+
+    /* Badges */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      border-radius: 9999px;
+      padding: 2px 10px;
+      font-size: 12px;
+      font-weight: 600;
+      border: 1px solid transparent;
+      white-space: nowrap;
+    }
+    .badge-pending { background: var(--warning-soft); color: var(--warning-text); border-color: var(--warning-ring); }
+    .badge-confirmed { background: var(--info-soft); color: var(--info-text); border-color: var(--info-ring); }
+    .badge-cancelled { background: var(--bg-subtle); color: var(--text-secondary); border-color: var(--border); }
+    .badge-restock-pending { background: var(--warning-soft); color: var(--warning-strong); border-color: var(--warning-ring); }
+    .badge-restocked { background: var(--success-soft); color: var(--success-text); border-color: var(--success-ring); }
+
+    /* Line items + ReservedStockIndicator */
+    .items-list {
+      border-top: 1px solid var(--bg-subtle);
+      border-bottom: 1px solid var(--bg-subtle);
+      padding: 10px 0;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .item-row {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+    .item-name { font-size: 14px; font-weight: 600; color: var(--text-primary); }
+    .item-qty { font-size: 13px; color: var(--text-secondary); }
+    .stock-pill {
+      display: inline-flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 10px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      border: 1px solid transparent;
+    }
+    .stock-ok { background: var(--success-soft); color: var(--success-text); border-color: var(--success-ring); }
+    .stock-low { background: var(--warning-soft); color: var(--warning-strong); border-color: var(--warning-ring); }
+    .stock-zero { background: var(--danger-soft); color: var(--danger-text); border-color: var(--danger-ring); }
+    .reserved-tag {
+      background: #FFFFFF;
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+      padding: 1px 6px;
+      border-radius: 6px;
+      font-weight: 700;
+    }
+
+    /* Buttons (min-height 44px for mobile touch target) */
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      justify-content: flex-end;
+    }
+    .frame-mobile .actions { flex-direction: column; align-items: stretch; }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      min-height: 44px;
+      padding: 0 16px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      border: 1px solid transparent;
+      cursor: pointer;
+    }
+    .btn-sm { min-height: 44px; padding: 0 14px; font-size: 13px; }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-secondary { background: #fff; color: var(--text-primary); border-color: var(--border-strong); }
+    .btn-danger { background: var(--danger); color: #fff; }
+    .btn-danger-outline { background: #fff; color: var(--danger-text); border-color: var(--danger-ring); }
+
+    /* Cancel Dialog */
+    .dialog {
+      width: 100%;
+      max-width: 440px;
+      background: #fff;
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 20px 40px rgba(15, 23, 43, 0.24);
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .dialog h2 { margin: 0; font-size: 18px; font-weight: 700; }
+    .alert-warning {
+      background: var(--warning-soft);
+      border: 1px solid var(--warning-ring);
+      color: var(--warning-strong);
+      border-radius: 12px;
+      padding: 10px 12px;
+      font-size: 13px;
+      font-weight: 500;
+    }
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      min-height: 44px;
+      padding: 8px 14px;
+      border-radius: 9999px;
+      font-size: 12px;
+      font-weight: 600;
+      background: var(--bg-subtle);
+      color: var(--text-primary);
+      border: 1px solid var(--border-strong);
+    }
+    .chip.selected {
+      background: var(--primary-soft);
+      color: var(--primary-text);
+      border-color: var(--primary-ring);
+    }
+    .textarea {
+      width: 100%;
+      min-height: 82px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border-strong);
+      font-family: inherit;
+      font-size: 14px;
+      color: var(--text-primary);
+      resize: vertical;
+    }
+    .field-meta {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .banner-409 {
+      background: var(--danger-soft);
+      border: 1px solid var(--danger-ring);
+      color: var(--danger-text);
+      border-radius: 12px;
+      padding: 10px 14px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <div class="canvas-header">
+    <div>
+      <h1>ShopLite Ops — Mockup 1:1 <code>/admin/orders</code></h1>
+      <p>Minh họa Desktop (1024px+), Mobile kho (390px) và hộp thoại Hủy đơn đang giao (`shipping`).</p>
+    </div>
+    <p><code>DESIGN.md</code> &amp; <code>EXPERIENCE.md</code> giữ quyền ưu tiên khi có khác biệt.</p>
+  </div>
+
+  <div class="section-label">1. Desktop View — Hàng chờ duyệt đơn (tab Chờ xác nhận · FIFO cũ nhất ở trên) &amp; Đơn hủy chờ hàng hoàn</div>
+  <div class="frame-desktop">
+    <header class="admin-header">
+      <div class="brand">
+        <span class="brand-icon" aria-hidden="true">🏪</span>
+        <span>ShopLite</span>
+        <span class="brand-pill">Vận hành đơn hàng</span>
+      </div>
+      <button class="btn btn-secondary btn-sm" type="button">Đăng xuất</button>
+    </header>
+
+    <main class="container">
+      <div class="toolbar">
+        <nav class="tabs" aria-label="Lọc theo trạng thái đơn hàng">
+          <span class="tab">Tất cả <span class="tab-count">18</span></span>
+          <span class="tab active">Chờ xác nhận <span class="tab-count">12</span></span>
+          <span class="tab">Đã xác nhận <span class="tab-count">3</span></span>
+          <span class="tab">Đang giao <span class="tab-count">1</span></span>
+          <span class="tab">Đã giao <span class="tab-count">1</span></span>
+          <span class="tab">Đã hủy <span class="tab-count">1</span></span>
+        </nav>
+        <div class="search-box">
+          <input class="input" type="search" aria-label="Tìm kiếm đơn hàng" placeholder="Tìm mã SL-..., SĐT hoặc tên khách..." value="" readonly />
+        </div>
+      </div>
+      <p class="sort-hint">Đang hiển thị đơn chờ xác nhận theo thứ tự cũ nhất trước (FIFO) · URL: <code>/admin/orders?status=pending</code></p>
+
+      <!-- Card 1: Amber low stock remaining -->
+      <article class="order-card">
+        <div class="card-top">
+          <div>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+              <span class="order-id">SL-20261121-A1B2C3</span>
+              <span class="badge badge-pending">● Chờ xác nhận</span>
+            </div>
+            <div class="order-meta">Anh Minh · 0912 345 678 · Đặt lúc 08:05, 21/11/2026 · COD</div>
+          </div>
+          <div class="order-total">2.980.000 ₫</div>
+        </div>
+        <div class="items-list">
+          <div class="item-row">
+            <div>
+              <div class="item-name">Bàn phím cơ KeyPro 75%</div>
+              <div class="item-qty">1.490.000 ₫ × 2</div>
+            </div>
+            <div class="stock-pill stock-low" role="status">
+              <span class="reserved-tag">✓ Đã giữ 2 cho đơn này</span>
+              <span>· ⚠ Còn cho đơn mới: 3</span>
+            </div>
+          </div>
+        </div>
+        <div class="actions">
+          <button class="btn btn-danger-outline" type="button">Hủy đơn</button>
+          <button class="btn btn-primary" type="button">Xác nhận đơn</button>
+        </div>
+      </article>
+
+      <!-- Card 2: Zero remaining for new orders (Anti-illusion) -->
+      <article class="order-card">
+        <div class="card-top">
+          <div>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+              <span class="order-id">SL-20261121-D4E5F6</span>
+              <span class="badge badge-pending">● Chờ xác nhận</span>
+            </div>
+            <div class="order-meta">Nguyễn Lan Anh · 0987 111 222 · Đặt lúc 08:12, 21/11/2026 · Chuyển khoản</div>
+          </div>
+          <div class="order-total">1.890.000 ₫</div>
+        </div>
+        <div class="items-list">
+          <div class="item-row">
+            <div>
+              <div class="item-name">Tai nghe SoundMax Pro</div>
+              <div class="item-qty">1.890.000 ₫ × 1</div>
+            </div>
+            <div class="stock-pill stock-zero" role="status">
+              <span class="reserved-tag">✓ Đã giữ 1 cho đơn này</span>
+              <span>· ✕ Còn cho đơn mới: 0</span>
+            </div>
+          </div>
+        </div>
+        <div class="actions">
+          <button class="btn btn-danger-outline" type="button">Hủy đơn</button>
+          <button class="btn btn-primary" type="button">Xác nhận đơn</button>
+        </div>
+      </article>
+
+      <!-- Card 3: Confirmed order ready for shipping with optional tracking note -->
+      <article class="order-card">
+        <div class="card-top">
+          <div>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+              <span class="order-id">SL-20261121-C9D8E7</span>
+              <span class="badge badge-confirmed">✓ Đã xác nhận</span>
+            </div>
+            <div class="order-meta">Phạm Minh Khôi · 0938 222 333 · Xác nhận lúc 09:10, 21/11/2026 · COD</div>
+          </div>
+          <div class="order-total">1.490.000 ₫</div>
+        </div>
+        <div class="items-list">
+          <div class="item-row">
+            <div>
+              <div class="item-name">Bàn phím cơ KeyPro 75%</div>
+              <div class="item-qty">1.490.000 ₫ × 1</div>
+            </div>
+            <div class="stock-pill stock-ok" role="status">
+              <span class="reserved-tag">✓ Đã giữ 1 cho đơn này</span>
+              <span>· ✓ Còn cho đơn mới: 8</span>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;justify-content:space-between;">
+          <div style="flex:1;min-width:220px;">
+            <label for="shipping-note-1" style="display:block;font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:4px;">Ghi chú vận chuyển / mã vận đơn (tùy chọn)</label>
+            <input id="shipping-note-1" class="input" type="text" placeholder="VD: Mã vận đơn GHN-882910" value="Mã vận đơn GHN-882910" readonly />
+          </div>
+          <div class="actions">
+            <button class="btn btn-danger-outline" type="button">Hủy đơn</button>
+            <button class="btn btn-primary" type="button">Bàn giao giao hàng</button>
+          </div>
+        </div>
+      </article>
+
+      <!-- Card 4: Cancelled from shipping waiting for physical restock (UJ-3) -->
+      <article class="order-card">
+        <div class="card-top">
+          <div>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+              <span class="order-id">SL-20261119-G7H8I9</span>
+              <span class="badge badge-cancelled">✕ Đã hủy</span>
+              <span class="badge badge-restock-pending">⏳ Chờ nhận hàng hoàn</span>
+            </div>
+            <div class="order-meta">Trần Văn Hùng · 0903 444 555 · Lý do hủy: Giao hàng thất bại / Khách không nhận</div>
+          </div>
+          <div class="order-total">450.000 ₫</div>
+        </div>
+        <div class="items-list">
+          <div class="item-row">
+            <div>
+              <div class="item-name">Chuột không dây SwiftClick</div>
+              <div class="item-qty">450.000 ₫ × 1</div>
+            </div>
+          </div>
+        </div>
+        <div class="actions">
+          <button class="btn btn-primary" type="button">Xác nhận đã nhận hàng hoàn (+kho)</button>
+        </div>
+      </article>
+    </main>
+  </div>
+
+  <div class="section-label">2. Mobile Kho (390px · không tràn ngang, nút ≥ 44px) &amp; Hộp thoại Hủy đơn đang giao (UJ-3)</div>
+  <div class="frames-row">
+    <div class="frame-mobile" aria-label="Khung điện thoại 390px">
+      <header class="admin-header">
+        <div class="brand">
+          <span class="brand-icon" aria-hidden="true">🏪</span>
+          <span>Vận hành</span>
+        </div>
+        <button class="btn btn-secondary btn-sm" type="button">Đăng xuất</button>
+      </header>
+      <div class="container">
+        <div class="banner-409" role="alert">
+          ⚠ Đơn SL-20261121-A1B2C3 vừa được cập nhật bởi thao tác khác. Danh sách đã được làm mới.
+        </div>
+        <div class="search-box">
+          <input class="input" type="search" aria-label="Tìm đơn trên di động" placeholder="Tìm mã đơn, SĐT, tên..." readonly />
+        </div>
+        <div class="tabs">
+          <span class="tab active">Chờ xác nhận <span class="tab-count">12</span></span>
+          <span class="tab">Đã xác nhận <span class="tab-count">3</span></span>
+          <span class="tab">Đang giao <span class="tab-count">1</span></span>
+          <span class="tab">Đã hủy <span class="tab-count">1</span></span>
+        </div>
+        <article class="order-card">
+          <div class="card-top">
+            <div>
+              <div class="order-id">SL-20261121-A1B2C3</div>
+              <div class="order-meta">Anh Minh · 0912 345 678</div>
+            </div>
+            <span class="badge badge-pending">● Chờ xác nhận</span>
+          </div>
+          <div class="items-list">
+            <div>
+              <div class="item-name">Bàn phím cơ KeyPro 75% × 2</div>
+              <div class="stock-pill stock-low" style="margin-top:6px;">
+                <span class="reserved-tag">✓ Đã giữ 2 cho đơn này</span>
+                <span>· ⚠ Còn cho đơn mới: 3</span>
+              </div>
+            </div>
+          </div>
+          <div class="actions">
+            <button class="btn btn-primary" type="button">Xác nhận đơn</button>
+            <button class="btn btn-danger-outline" type="button">Hủy đơn</button>
+          </div>
+        </article>
+      </div>
+    </div>
+
+    <div class="frame-modal-showcase">
+      <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="cancel-dialog-title">
+        <h2 id="cancel-dialog-title">Hủy đơn SL-20261119-G7H8I9</h2>
+        <div class="alert-warning" role="alert">
+          ⚠ <strong>Lưu ý tồn kho:</strong> Hủy đơn đang giao sẽ <strong>không tự động cộng lại tồn kho</strong>. Bạn sẽ xác nhận cộng lại kho sau khi shipper trả hàng thực tế về kệ.
+        </div>
+        <div>
+          <div style="font-size:13px;font-weight:600;margin-bottom:8px;">Chọn nhanh lý do (có thể sửa lại bên dưới):</div>
+          <div class="chips">
+            <span class="chip">Hết hàng thực tế</span>
+            <span class="chip">Khách yêu cầu hủy qua điện thoại</span>
+            <span class="chip selected">✓ Giao hàng thất bại / Khách không nhận</span>
+          </div>
+        </div>
+        <div>
+          <label for="cancel-note" style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;">Lý do hủy đơn (bắt buộc)</label>
+          <textarea id="cancel-note" class="textarea" readonly>Giao hàng thất bại / Khách không nhận — shipper gọi 3 lần không nghe máy</textarea>
+          <div class="field-meta">
+            <span>Tối đa 200 ký tự · Lưu bất biến vào lịch sử đơn</span>
+            <span>71 / 200</span>
+          </div>
+        </div>
+        <div class="actions">
+          <button class="btn btn-secondary" type="button">Quay lại</button>
+          <button class="btn btn-danger" type="button">Xác nhận hủy đơn</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

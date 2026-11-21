@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mockup — /admin/login (ShopLite Ops)</title>
+  <style>
+    /*
+     * Governed by:
+     * - DESIGN.md: Colors, Typography, Shapes, Components (AdminLoginCard)
+     * - EXPERIENCE.md: IA (/admin/login), State Patterns (Expired 401, Wrong passcode, Fail-closed 503), Key Flows (UJ-1)
+     * Spines win on conflict. Pure offline HTML/CSS reference (no JS, no network).
+     */
+    :root {
+      --primary: #4F39F6;
+      --bg-page: #F8FAFC;
+      --bg-surface: #FFFFFF;
+      --border: #E2E8F0;
+      --border-strong: #CAD5E2;
+      --text-primary: #0F172B;
+      --text-secondary: #45556C;
+      --text-muted: #62748E;
+      --danger-soft: #FFF1F2;
+      --danger-text: #C70036;
+      --danger-ring: #FFCCD3;
+      --warning-soft: #FFFBEB;
+      --warning-strong: #973C00;
+      --warning-ring: #FEE685;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Be Vietnam Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #E2E8F0;
+      color: var(--text-primary);
+      line-height: 1.5;
+      padding: 24px 16px 48px;
+    }
+    .wrap {
+      max-width: 920px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 24px;
+    }
+    .panel {
+      background: var(--bg-page);
+      border-radius: 20px;
+      border: 1px solid var(--border-strong);
+      padding: 24px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      align-items: center;
+    }
+    .tag {
+      width: 100%;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+    }
+    .card {
+      width: 100%;
+      max-width: 400px;
+      background: var(--bg-surface);
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      padding: 24px 20px;
+      box-shadow: 0 2px 8px rgba(15, 23, 43, 0.05);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .logo {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: var(--primary);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+    h1 { margin: 0; font-size: 20px; font-weight: 700; }
+    .sub { margin: 4px 0 0; font-size: 13px; color: var(--text-secondary); }
+    .alert-warn {
+      background: var(--warning-soft);
+      border: 1px solid var(--warning-ring);
+      color: var(--warning-strong);
+      border-radius: 12px;
+      padding: 10px 12px;
+      font-size: 13px;
+      font-weight: 500;
+    }
+    .alert-err {
+      background: var(--danger-soft);
+      border: 1px solid var(--danger-ring);
+      color: var(--danger-text);
+      border-radius: 12px;
+      padding: 10px 12px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+    input {
+      width: 100%;
+      min-height: 44px;
+      padding: 10px 14px;
+      border-radius: 12px;
+      border: 1px solid var(--border-strong);
+      font-size: 14px;
+    }
+    input:disabled { background: #F1F5F9; color: var(--text-muted); }
+    .btn {
+      width: 100%;
+      min-height: 44px;
+      border-radius: 12px;
+      border: none;
+      background: var(--primary);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .btn:disabled { opacity: 0.5; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="panel">
+      <div class="tag">1. Trạng thái chuẩn &amp; Phiên hết hạn (?expired=1)</div>
+      <div class="card">
+        <div class="logo" aria-hidden="true">🔒</div>
+        <div>
+          <h1>Đăng nhập quản trị</h1>
+          <p class="sub">Dành cho Nhân viên vận hành cửa hàng ShopLite.</p>
+        </div>
+        <div class="alert-warn" role="status">
+          ⏱ Phiên làm việc 8 giờ đã hết hạn. Vui lòng đăng nhập lại để tiếp tục xử lý đơn.
+        </div>
+        <div>
+          <label for="passcode">Mật khẩu quản trị</label>
+          <input id="passcode" type="password" placeholder="Nhập ADMIN_PASSCODE" value="••••••••••" readonly />
+        </div>
+        <button class="btn" type="button">Đăng nhập vận hành</button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="tag">2. Trạng thái Fail-Closed (503 ADMIN_NOT_CONFIGURED)</div>
+      <div class="card">
+        <div class="logo" aria-hidden="true">🔒</div>
+        <div>
+          <h1>Đăng nhập quản trị</h1>
+          <p class="sub">Dành cho Nhân viên vận hành cửa hàng ShopLite.</p>
+        </div>
+        <div class="alert-err" role="alert">
+          ✕ Hệ thống chưa cấu hình mật khẩu quản trị (<code>ADMIN_PASSCODE</code>). Vui lòng thiết lập biến môi trường trên máy chủ trước khi truy cập.
+        </div>
+        <div>
+          <label for="passcode-disabled">Mật khẩu quản trị</label>
+          <input id="passcode-disabled" type="password" placeholder="Tạm khóa khi chưa cấu hình" disabled />
+        </div>
+        <button class="btn" type="button" disabled>Đăng nhập vận hành</button>
+      </div>
+    </section>
+  </div>
+</body>
+</html>
