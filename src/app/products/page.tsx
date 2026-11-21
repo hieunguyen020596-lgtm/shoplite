@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { buttonStyles } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
+import { queryProductsWithStock } from "@/features/catalog/catalog-inventory";
 import { CatalogFilters } from "@/features/catalog/components/catalog-filters";
 import { CategoryPills } from "@/features/catalog/components/category-pills";
 import { Pagination } from "@/features/catalog/components/pagination";
@@ -10,22 +11,30 @@ import {
   getCategories,
   getCategoryBySlug,
   parseCatalogQuery,
-  queryProducts,
 } from "@/features/catalog/catalog-service";
+
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = { title: "Sản phẩm" };
 
-export default async function ProductsPage({ searchParams }: PageProps<"/products">) {
+export default async function ProductsPage({
+  searchParams,
+}: PageProps<"/products">) {
   const query = parseCatalogQuery(await searchParams);
-  const result = queryProducts(query);
-  const category = query.category ? getCategoryBySlug(query.category) : undefined;
+  const result = await queryProductsWithStock(query);
+  const category = query.category
+    ? getCategoryBySlug(query.category)
+    : undefined;
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8">
       <header>
-        <h1 className="text-2xl font-bold">{category ? category.name : "Tất cả sản phẩm"}</h1>
+        <h1 className="text-2xl font-bold">
+          {category ? category.name : "Tất cả sản phẩm"}
+        </h1>
         <p className="mt-1 text-sm text-slate-500">
-          {category?.description ?? "Khám phá đồ công nghệ chính hãng với giá tốt nhất."}
+          {category?.description ??
+            "Khám phá đồ công nghệ chính hãng với giá tốt nhất."}
         </p>
       </header>
 
@@ -47,7 +56,11 @@ export default async function ProductsPage({ searchParams }: PageProps<"/product
       {result.items.length > 0 ? (
         <>
           <ProductGrid products={result.items} />
-          <Pagination query={query} page={result.page} totalPages={result.totalPages} />
+          <Pagination
+            query={query}
+            page={result.page}
+            totalPages={result.totalPages}
+          />
         </>
       ) : (
         <EmptyState
@@ -55,7 +68,10 @@ export default async function ProductsPage({ searchParams }: PageProps<"/product
           title="Không tìm thấy sản phẩm phù hợp"
           description="Hãy thử từ khóa khác hoặc bỏ bớt bộ lọc."
           action={
-            <Link href="/products" className={buttonStyles({ variant: "secondary" })}>
+            <Link
+              href="/products"
+              className={buttonStyles({ variant: "secondary" })}
+            >
               Xem tất cả sản phẩm
             </Link>
           }

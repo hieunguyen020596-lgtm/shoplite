@@ -11,7 +11,9 @@ describe("<ProductCard />", () => {
   it("hiển thị tên, giá, giá gốc và % giảm giá", () => {
     render(<ProductCard product={getProductById("p001")!} />);
 
-    expect(screen.getByRole("heading", { name: "Tai nghe không dây SoundMax Pro" })).toBeVisible();
+    expect(
+      screen.getByRole("heading", { name: "Tai nghe không dây SoundMax Pro" }),
+    ).toBeVisible();
     expect(screen.getByTestId("price")).toHaveTextContent(/1\.290\.000/);
     expect(screen.getByText(/1\.590\.000/)).toHaveClass("line-through");
     expect(screen.getByText("-19%")).toBeVisible();
@@ -22,6 +24,15 @@ describe("<ProductCard />", () => {
 
     expect(screen.getByRole("button", { name: "Hết hàng" })).toBeDisabled();
     expect(screen.getAllByText("Hết hàng")).toHaveLength(2); // badge + nút
+  });
+
+  it("hiển thị StockBadge Hết hàng và khóa nút mua khi tồn kho động giảm về 0", () => {
+    const outOfStockProduct = { ...getProductById("p011")!, stock: 0 };
+    render(<ProductCard product={outOfStockProduct} />);
+
+    const button = screen.getByRole("button", { name: "Hết hàng" });
+    expect(button).toBeDisabled();
+    expect(screen.getAllByText("Hết hàng")).toHaveLength(2);
   });
 
   it("thêm sản phẩm vào giỏ khi bấm nút", async () => {

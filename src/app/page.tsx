@@ -1,18 +1,20 @@
 import Link from "next/link";
 import { ArrowRight, BadgePercent } from "lucide-react";
 import { buttonStyles } from "@/components/ui/button";
+import { getFeaturedProductsWithStock } from "@/features/catalog/catalog-inventory";
 import { ProductGrid } from "@/features/catalog/components/product-grid";
 import {
   buildCatalogHref,
   DEFAULT_CATALOG_QUERY,
   getCategories,
-  getFeaturedProducts,
 } from "@/features/catalog/catalog-service";
 import { FREE_SHIPPING_THRESHOLD } from "@/features/checkout/pricing";
 import { formatCurrency } from "@/lib/format";
 
-export default function HomePage() {
-  const featured = getFeaturedProducts(4);
+export const dynamic = "force-dynamic";
+
+export default async function HomePage() {
+  const featured = await getFeaturedProductsWithStock(4);
   const categories = getCategories();
 
   return (
@@ -21,14 +23,15 @@ export default function HomePage() {
         <div className="relative z-10 max-w-xl">
           <p className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-sm font-medium">
             <BadgePercent className="size-4" />
-            Miễn phí giao hàng cho đơn từ {formatCurrency(FREE_SHIPPING_THRESHOLD)}
+            Miễn phí giao hàng cho đơn từ{" "}
+            {formatCurrency(FREE_SHIPPING_THRESHOLD)}
           </p>
           <h1 className="mt-4 text-4xl font-bold tracking-tight sm:text-5xl">
             Đồ công nghệ chất lượng, giá tốt mỗi ngày
           </h1>
           <p className="mt-4 text-lg text-indigo-100">
-            Tai nghe, bàn phím, phụ kiện và thiết bị nhà thông minh chính hãng - giao nhanh toàn
-            quốc.
+            Tai nghe, bàn phím, phụ kiện và thiết bị nhà thông minh chính hãng -
+            giao nhanh toàn quốc.
           </p>
           <Link
             href="/products"
@@ -56,14 +59,19 @@ export default function HomePage() {
           {categories.map((category) => (
             <Link
               key={category.slug}
-              href={buildCatalogHref({ ...DEFAULT_CATALOG_QUERY, category: category.slug })}
+              href={buildCatalogHref({
+                ...DEFAULT_CATALOG_QUERY,
+                category: category.slug,
+              })}
               className="flex flex-col gap-2 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200 transition hover:-translate-y-0.5 hover:shadow-md"
             >
               <span className="text-3xl" aria-hidden>
                 {category.emoji}
               </span>
               <span className="font-semibold">{category.name}</span>
-              <span className="line-clamp-2 text-xs text-slate-500">{category.description}</span>
+              <span className="line-clamp-2 text-xs text-slate-500">
+                {category.description}
+              </span>
             </Link>
           ))}
         </div>

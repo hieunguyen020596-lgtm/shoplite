@@ -43,9 +43,9 @@ development_status:
   1-3-api-vận-hành-chuyển-trạng-thái-hủy-đơn-cho-nhân-viên: done
   epic-1-retrospective: optional
 
-  epic-2: in-progress
+  epic-2: done
   2-1-khóa-tuần-tự-re-entrant-kho-storage-inventory-json-trừ-hoàn: done
-  2-2-đồng-bộ-tồn-kho-động-lên-mặt-tiền-bán-hàng-xử-lý-hết-hàng-tạ: in-progress
+  2-2-đồng-bộ-tồn-kho-động-lên-mặt-tiền-bán-hàng-xử-lý-hết-hàng-tạ: done
   epic-2-retrospective: optional
 
   epic-3: backlog
