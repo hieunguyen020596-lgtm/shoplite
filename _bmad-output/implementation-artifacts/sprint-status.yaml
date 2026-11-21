@@ -53,6 +53,6 @@ development_status:
   3-2-giao-diện-hàng-chờ-admin-orders-tồn-kho-giữ-chỗ-inline-thao: done
   epic-3-retrospective: optional
 
-  epic-4: backlog
-  4-1-timeline-tiến-trình-4-bước-làm-mới-trạng-thái-tại-orders-id: backlog
+  epic-4: done
+  4-1-timeline-tiến-trình-4-bước-làm-mới-trạng-thái-tại-orders-id: done
   epic-4-retrospective: optional
