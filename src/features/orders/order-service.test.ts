@@ -905,6 +905,434 @@ describe("orderService", () => {
       expect(await inventoryRepository.getStock("p011")).toBe(5);
     });
   });
+
+  describe("listAdminOrders", () => {
+    async function seedAdminOrdersFixture() {
+      const inventoryRepository = createInMemoryInventoryRepository({
+        p006: 12,
+        p010: 5,
+        p011: 3,
+      });
+      let currentMs = FIXED_DATE.getTime();
+      let seq = 0;
+      const ids = [
+        "SL-20261021-AAAA01",
+        "SL-20261021-BBBB02",
+        "SL-20261021-CCCC03",
+        "SL-20261021-DDDD04",
+        "SL-20261021-EEEE05",
+        "SL-20261021-FFFF06",
+      ];
+      const adminService = createOrderService({
+        repository,
+        inventoryRepository,
+        storageLock: new StorageLock(),
+        now: () => new Date(currentMs),
+        generateId: () => ids[seq++] ?? `SL-EXTRA-${seq}`,
+      });
+
+      // 1. pending (cũ nhất: t + 0)
+      const pendingOld = await adminService.placeOrder(
+        validInput({
+          customer: {
+            fullName: "Nguyễn Văn Minh",
+            phone: "0911222333",
+            address: "10 Lê Lợi, Quận 1",
+          },
+          items: [{ productId: "p010", quantity: 1 }],
+        }),
+      );
+
+      // 2. confirmed (t + 60s)
+      currentMs += 60_000;
+      const confirmedOrder = await adminService.placeOrder(
+        validInput({
+          customer: {
+            fullName: "Đặng Quốc Minh",
+            phone: "0922333444",
+            address: "20 Nguyễn Huệ, Quận 1",
+          },
+          items: [{ productId: "p006", quantity: 2 }],
+        }),
+      );
+      await adminService.transitionOrderStatus(confirmedOrder.id, {
+        status: "confirmed",
+        actor: "staff",
+      });
+
+      // 3. shipping (t + 120s)
+      currentMs += 60_000;
+      const shippingOrder = await adminService.placeOrder(
+        validInput({
+          customer: {
+            fullName: "Trần Thị Hương",
+            phone: "0933444555",
+            address: "30 Hai Bà Trưng, Quận 3",
+          },
+          items: [{ productId: "p011", quantity: 1 }],
+        }),
+      );
+      await adminService.transitionOrderStatus(shippingOrder.id, {
+        status: "confirmed",
+        actor: "staff",
+      });
+      await adminService.transitionOrderStatus(shippingOrder.id, {
+        status: "shipping",
+        actor: "staff",
+      });
+
+      // 4. delivered (t + 180s)
+      currentMs += 60_000;
+      const deliveredOrder = await adminService.placeOrder(
+        validInput({
+          customer: {
+            fullName: "Lê Hoàng Nam",
+            phone: "0944555666",
+            address: "40 Điện Biên Phủ, Bình Thạnh",
+          },
+          items: [{ productId: "p010", quantity: 1 }],
+        }),
+      );
+      await adminService.transitionOrderStatus(deliveredOrder.id, {
+        status: "confirmed",
+        actor: "staff",
+      });
+      await adminService.transitionOrderStatus(deliveredOrder.id, {
+        status: "shipping",
+        actor: "staff",
+      });
+      await adminService.transitionOrderStatus(deliveredOrder.id, {
+        status: "delivered",
+        actor: "staff",
+      });
+
+      // 5. cancelled (t + 240s)
+      currentMs += 60_000;
+      const cancelledOrder = await adminService.placeOrder(
+        validInput({
+          customer: {
+            fullName: "Phạm Minh Châu",
+            phone: "0955666777",
+            address: "50 Cách Mạng Tháng 8, Quận 10",
+          },
+          items: [{ productId: "p010", quantity: 1 }],
+        }),
+      );
+      await adminService.cancelOrder(cancelledOrder.id);
+
+      // 6. pending mới hơn (t + 300s)
+      currentMs += 60_000;
+      const pendingNew = await adminService.placeOrder(
+        validInput({
+          customer: {
+            fullName: "Võ Thành Đạt",
+            phone: "0966777888",
+            address: "60 Võ Văn Tần, Quận 3",
+          },
+          items: [{ productId: "p006", quantity: 1 }],
+        }),
+      );
+
+      return {
+        adminService,
+        inventoryRepository,
+        orders: {
+          pendingOld,
+          confirmedOrder,
+          shippingOrder,
+          deliveredOrder,
+          cancelledOrder,
+          pendingNew,
+        },
+      };
+    }
+
+    it("trả về toàn bộ đơn mới nhất trước, counts đủ 6 khóa và snapshot availableStockByProductId khi không truyền filter", async () => {
+      const { adminService, orders } = await seedAdminOrdersFixture();
+
+      const result = await adminService.listAdminOrders();
+
+      expect(result.orders.map((o) => o.id)).toEqual([
+        orders.pendingNew.id,
+        orders.cancelledOrder.id,
+        orders.deliveredOrder.id,
+        orders.shippingOrder.id,
+        orders.confirmedOrder.id,
+        orders.pendingOld.id,
+      ]);
+      expect(result.counts).toEqual({
+        all: 6,
+        pending: 2,
+        confirmed: 1,
+        shipping: 1,
+        delivered: 1,
+        cancelled: 1,
+      });
+      // p006: 12 - 2 - 1 = 9; p010: 5 - 1 - 1 - 1 + 1 (cancelled) = 3; p011: 3 - 1 = 2
+      expect(result.availableStockByProductId).toMatchObject({
+        p006: 9,
+        p010: 3,
+        p011: 2,
+      });
+    });
+
+    it("sắp xếp tab pending theo FIFO (createdAt tăng dần, tie-break theo id), còn các tab khác theo createdAt giảm dần", async () => {
+      const { adminService, orders } = await seedAdminOrdersFixture();
+
+      // Thêm 1 đơn pending cùng timestamp với pendingOld để kiểm tra tie-break theo id
+      const tieOrder = {
+        ...orders.pendingOld,
+        id: "SL-20261021-AAAA00",
+      };
+      await repository.save(tieOrder);
+
+      const pendingResult = await adminService.listAdminOrders({
+        status: "pending",
+      });
+      expect(pendingResult.orders.map((o) => o.id)).toEqual([
+        "SL-20261021-AAAA00",
+        orders.pendingOld.id,
+        orders.pendingNew.id,
+      ]);
+      expect(pendingResult.counts).toEqual({
+        all: 7,
+        pending: 3,
+        confirmed: 1,
+        shipping: 1,
+        delivered: 1,
+        cancelled: 1,
+      });
+
+      const allResult = await adminService.listAdminOrders({ status: "all" });
+      expect(allResult.orders.map((o) => o.id)).toEqual([
+        orders.pendingNew.id,
+        orders.cancelledOrder.id,
+        orders.deliveredOrder.id,
+        orders.shippingOrder.id,
+        orders.confirmedOrder.id,
+        "SL-20261021-AAAA00",
+        orders.pendingOld.id,
+      ]);
+    });
+
+    it("tìm kiếm q không phân biệt hoa thường và dấu trên id, phone, fullName; tính counts trên tập khớp q trước khi lọc status", async () => {
+      const { adminService, orders } = await seedAdminOrdersFixture();
+
+      // Tìm theo tên không dấu "minh" -> khớp 3 đơn (pendingOld, confirmedOrder, cancelledOrder)
+      const byNameAndPending = await adminService.listAdminOrders({
+        status: "pending",
+        q: "  MÌNH  ",
+      });
+      expect(byNameAndPending.orders.map((o) => o.id)).toEqual([
+        orders.pendingOld.id,
+      ]);
+      expect(byNameAndPending.counts).toEqual({
+        all: 3,
+        pending: 1,
+        confirmed: 1,
+        shipping: 0,
+        delivered: 0,
+        cancelled: 1,
+      });
+
+      // Tìm theo chữ "đặng quốc" không dấu "dang quoc"
+      const byDiacriticName = await adminService.listAdminOrders({
+        q: "dang quoc",
+      });
+      expect(byDiacriticName.orders.map((o) => o.id)).toEqual([
+        orders.confirmedOrder.id,
+      ]);
+
+      // Tìm theo SĐT
+      const byPhone = await adminService.listAdminOrders({
+        q: "0933444",
+      });
+      expect(byPhone.orders.map((o) => o.id)).toEqual([
+        orders.shippingOrder.id,
+      ]);
+
+      // Tìm theo mã đơn chữ thường
+      const byId = await adminService.listAdminOrders({
+        q: "dddd04",
+      });
+      expect(byId.orders.map((o) => o.id)).toEqual([orders.deliveredOrder.id]);
+    });
+
+    it("fallback status không hợp lệ (rỗng, all, bogus) về all", async () => {
+      const { adminService, orders } = await seedAdminOrdersFixture();
+      const expectedIds = [
+        orders.pendingNew.id,
+        orders.cancelledOrder.id,
+        orders.deliveredOrder.id,
+        orders.shippingOrder.id,
+        orders.confirmedOrder.id,
+        orders.pendingOld.id,
+      ];
+
+      for (const invalidStatus of [undefined, "", "all", "bogus", "UNKNOWN"]) {
+        const res = await adminService.listAdminOrders({
+          status: invalidStatus,
+        });
+        expect(res.orders.map((o) => o.id)).toEqual(expectedIds);
+        expect(res.counts.all).toBe(6);
+      }
+    });
+
+    it("chuẩn hóa status có khoảng trắng hoặc chữ hoa và sắp xếp giảm dần theo createdAt cho các tab confirmed, shipping, delivered, cancelled", async () => {
+      const { adminService, orders } = await seedAdminOrdersFixture();
+
+      // Thêm 1 đơn thứ 2 cho mỗi tab non-pending với timestamp mới hơn (+600s) để kiểm chứng sắp xếp giảm dần
+      const laterIso = new Date(FIXED_DATE.getTime() + 600_000).toISOString();
+      const extraByStatus = [
+        {
+          ...orders.confirmedOrder,
+          id: "SL-20261021-CONF02",
+          status: "confirmed" as const,
+          createdAt: laterIso,
+        },
+        {
+          ...orders.shippingOrder,
+          id: "SL-20261021-SHIP02",
+          status: "shipping" as const,
+          createdAt: laterIso,
+        },
+        {
+          ...orders.deliveredOrder,
+          id: "SL-20261021-DELV02",
+          status: "delivered" as const,
+          createdAt: laterIso,
+        },
+        {
+          ...orders.cancelledOrder,
+          id: "SL-20261021-CANC02",
+          status: "cancelled" as const,
+          createdAt: laterIso,
+        },
+      ];
+      for (const extra of extraByStatus) {
+        await repository.save(extra);
+      }
+
+      const pendingUpper = await adminService.listAdminOrders({
+        status: "  PENDING  ",
+      });
+      expect(pendingUpper.orders.map((o) => o.id)).toEqual([
+        orders.pendingOld.id,
+        orders.pendingNew.id,
+      ]);
+
+      const confirmedRes = await adminService.listAdminOrders({
+        status: " CONFIRMED ",
+      });
+      expect(confirmedRes.orders.map((o) => o.id)).toEqual([
+        "SL-20261021-CONF02",
+        orders.confirmedOrder.id,
+      ]);
+
+      const shippingRes = await adminService.listAdminOrders({
+        status: "shipping",
+      });
+      expect(shippingRes.orders.map((o) => o.id)).toEqual([
+        "SL-20261021-SHIP02",
+        orders.shippingOrder.id,
+      ]);
+
+      const deliveredRes = await adminService.listAdminOrders({
+        status: "delivered",
+      });
+      expect(deliveredRes.orders.map((o) => o.id)).toEqual([
+        "SL-20261021-DELV02",
+        orders.deliveredOrder.id,
+      ]);
+
+      const cancelledRes = await adminService.listAdminOrders({
+        status: "cancelled",
+      });
+      expect(cancelledRes.orders.map((o) => o.id)).toEqual([
+        "SL-20261021-CANC02",
+        orders.cancelledOrder.id,
+      ]);
+    });
+
+    it("hỗ trợ tìm SĐT có khoảng trắng/dấu gạch/+84, ký tự zero-width, trả mảng rỗng khi q không khớp hoặc kho đơn trống và chịu lỗi dữ liệu bẩn", async () => {
+      // 1. Repository trống
+      const emptyRes = await service.listAdminOrders();
+      expect(emptyRes.orders).toEqual([]);
+      expect(emptyRes.counts).toEqual({
+        all: 0,
+        pending: 0,
+        confirmed: 0,
+        shipping: 0,
+        delivered: 0,
+        cancelled: 0,
+      });
+
+      const { adminService, orders } = await seedAdminOrdersFixture();
+
+      // Lưu thêm 1 đơn có SĐT dạng +84912345678 và 1 bản ghi dữ liệu cũ bất thường
+      const plus84Order = {
+        ...orders.pendingOld,
+        id: "SL-20261021-PLUS84",
+        customer: {
+          ...orders.pendingOld.customer,
+          fullName: "Hoàng Văn Phúc",
+          phone: "+84912345678",
+        },
+      };
+      await repository.save(plus84Order);
+
+      // 2. Tìm "0912 345 678" khớp với đơn lưu "+84912345678" và ngược lại "+84 933-444-555" khớp với "0933444555"
+      const bySpacedDomesticPhone = await adminService.listAdminOrders({
+        q: "0912 345 678",
+      });
+      expect(bySpacedDomesticPhone.orders.map((o) => o.id)).toEqual([
+        "SL-20261021-PLUS84",
+      ]);
+
+      const byFormattedIntlPhone = await adminService.listAdminOrders({
+        q: "+84 (933) 444-555",
+      });
+      expect(byFormattedIntlPhone.orders.map((o) => o.id)).toEqual([
+        orders.shippingOrder.id,
+      ]);
+
+      // 3. Ký tự zero-width trong q được loại bỏ trước khi so khớp
+      const byZeroWidthQuery = await adminService.listAdminOrders({
+        q: "Đặng\u200B Quốc\uFEFF Minh",
+      });
+      expect(byZeroWidthQuery.orders.map((o) => o.id)).toEqual([
+        orders.confirmedOrder.id,
+      ]);
+
+      // 4. q không khớp đơn nào -> orders rỗng, toàn bộ counts = 0
+      const zeroMatch = await adminService.listAdminOrders({
+        status: "pending",
+        q: "khong-ton-tai-999999",
+      });
+      expect(zeroMatch.orders).toEqual([]);
+      expect(zeroMatch.counts).toEqual({
+        all: 0,
+        pending: 0,
+        confirmed: 0,
+        shipping: 0,
+        delivered: 0,
+        cancelled: 0,
+      });
+
+      // 5. Chịu lỗi bản ghi có status lạ hoặc createdAt không phải ngày hợp lệ mà không làm hỏng counts/sort
+      const malformedOrder = {
+        ...orders.pendingOld,
+        id: "SL-20261021-MALFORMED",
+        status: "archived" as unknown as typeof orders.pendingOld.status,
+        createdAt: "not-a-valid-date",
+      };
+      await repository.save(malformedOrder);
+
+      const resilientRes = await adminService.listAdminOrders();
+      expect(resilientRes.counts.all).toBe(8);
+      expect(resilientRes.orders).toHaveLength(8);
+    });
+  });
 });
 
 describe("generateOrderId", () => {

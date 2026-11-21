@@ -5,6 +5,7 @@ import {
   toFieldErrors,
 } from "@/features/checkout/checkout-schema";
 import { calculateOrderTotals } from "@/features/checkout/pricing";
+import { normalizeText } from "@/lib/format";
 import { StorageLock } from "@/lib/storage-lock";
 import {
   createInMemoryInventoryRepository,
@@ -14,13 +15,30 @@ import {
 import { OrderError } from "./order-errors";
 import type { OrderRepository } from "./order-repository";
 import { markOrderRestocked, transitionOrder } from "./order-state-machine";
-import type { Order, OrderActor, OrderItem, OrderStatus } from "./types";
+import {
+  ORDER_STATUSES,
+  type Order,
+  type OrderActor,
+  type OrderItem,
+  type OrderStatus,
+} from "./types";
 
 export interface TransitionOrderStatusInput {
   status: OrderStatus;
   actor: OrderActor;
   note?: string;
   expectedStatus?: OrderStatus;
+}
+
+export interface AdminOrderListFilter {
+  status?: string;
+  q?: string;
+}
+
+export interface AdminOrderListResult {
+  orders: Order[];
+  counts: Record<OrderStatus | "all", number>;
+  availableStockByProductId: Record<string, number>;
 }
 
 export interface OrderServiceDeps {
@@ -30,6 +48,35 @@ export interface OrderServiceDeps {
   findProduct?: (id: string) => Product | undefined;
   now?: () => Date;
   generateId?: (date: Date) => string;
+}
+
+const ZERO_WIDTH_CHARS = /[\u200B-\u200D\uFEFF\u00AD]/g;
+
+function isOrderStatus(value: string | undefined): value is OrderStatus {
+  return (
+    value !== undefined && (ORDER_STATUSES as readonly string[]).includes(value)
+  );
+}
+
+function safeNorm(value: unknown): string {
+  return typeof value === "string"
+    ? normalizeText(value.replace(ZERO_WIDTH_CHARS, ""))
+    : "";
+}
+
+function canonicalizePhone(value: string): string {
+  return value.replace(/[\s.\-()]/g, "").replace(/^\+84/, "0");
+}
+
+function compareCreatedAt(aCreatedAt: unknown, bCreatedAt: unknown): number {
+  const aStr = typeof aCreatedAt === "string" ? aCreatedAt : "";
+  const bStr = typeof bCreatedAt === "string" ? bCreatedAt : "";
+  const aMs = Date.parse(aStr);
+  const bMs = Date.parse(bStr);
+  if (Number.isFinite(aMs) && Number.isFinite(bMs)) {
+    return aMs - bMs;
+  }
+  return aStr.localeCompare(bStr);
 }
 
 /** Mã đơn hàng dạng SL-20261021-4F9A2C */
@@ -136,6 +183,76 @@ export function createOrderService({
         note,
       });
       return saveOrderAndRestockIfNeeded(order, nextOrder, true);
+    });
+  }
+
+  async function listAdminOrders(
+    filter?: AdminOrderListFilter,
+  ): Promise<AdminOrderListResult> {
+    return storageLock.runExclusive(async () => {
+      const allOrders = await repository.findAll();
+      const availableStockByProductId = await inventoryRepository.getStockMap();
+
+      const normalizedQuery = safeNorm(filter?.q);
+      const canonicalQueryPhone = canonicalizePhone(normalizedQuery);
+      const matchedByQuery =
+        normalizedQuery.length === 0
+          ? allOrders
+          : allOrders.filter((order) => {
+              const normalizedPhone = safeNorm(order.customer?.phone);
+              return (
+                safeNorm(order.id).includes(normalizedQuery) ||
+                normalizedPhone.includes(normalizedQuery) ||
+                (canonicalQueryPhone.length > 0 &&
+                  canonicalizePhone(normalizedPhone).includes(
+                    canonicalQueryPhone,
+                  )) ||
+                safeNorm(order.customer?.fullName).includes(normalizedQuery)
+              );
+            });
+
+      const counts: Record<OrderStatus | "all", number> = {
+        all: matchedByQuery.length,
+        pending: 0,
+        confirmed: 0,
+        shipping: 0,
+        delivered: 0,
+        cancelled: 0,
+      };
+      for (const order of matchedByQuery) {
+        if (isOrderStatus(order.status)) {
+          counts[order.status] += 1;
+        }
+      }
+
+      const normalizedStatus = filter?.status?.trim().toLowerCase();
+      const activeStatus: OrderStatus | "all" = isOrderStatus(normalizedStatus)
+        ? normalizedStatus
+        : "all";
+
+      const filteredOrders =
+        activeStatus === "all"
+          ? [...matchedByQuery]
+          : matchedByQuery.filter((order) => order.status === activeStatus);
+
+      filteredOrders.sort((a, b) => {
+        const cmp =
+          activeStatus === "pending"
+            ? compareCreatedAt(a.createdAt, b.createdAt)
+            : compareCreatedAt(b.createdAt, a.createdAt);
+        if (cmp !== 0) {
+          return cmp;
+        }
+        const aId = typeof a.id === "string" ? a.id : "";
+        const bId = typeof b.id === "string" ? b.id : "";
+        return aId.localeCompare(bId);
+      });
+
+      return {
+        orders: filteredOrders,
+        counts,
+        availableStockByProductId,
+      };
     });
   }
 
@@ -249,6 +366,9 @@ export function createOrderService({
         return orders.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
       });
     },
+
+    /** Danh sách đơn hàng cho cổng vận hành quản trị kèm counts và tồn kho khả dụng. */
+    listAdminOrders,
 
     getOrder,
 
