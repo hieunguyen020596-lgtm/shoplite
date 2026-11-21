@@ -9,6 +9,7 @@ import { findCouponByCode } from "@/features/coupons/coupon-service";
 import type { Coupon } from "@/features/coupons/types";
 import { OrderError } from "./order-errors";
 import type { OrderRepository } from "./order-repository";
+import { transitionOrder } from "./order-state-machine";
 import type { Order, OrderItem } from "./types";
 
 export interface OrderServiceDeps {
@@ -149,16 +150,10 @@ export function createOrderService({
 
     getOrder,
 
-    /** Khách hàng chỉ được hủy đơn khi đơn còn ở trạng thái "Chờ xác nhận". */
+    /** Khách hàng tự hủy đơn - quy tắc nằm trong máy trạng thái (chỉ đơn "Chờ xác nhận"). */
     async cancelOrder(id: string): Promise<Order> {
       const order = await getOrder(id);
-      if (order.status !== "pending") {
-        throw new OrderError(
-          "INVALID_STATUS_TRANSITION",
-          "Chỉ có thể hủy đơn hàng đang ở trạng thái Chờ xác nhận",
-        );
-      }
-      const cancelled: Order = { ...order, status: "cancelled", updatedAt: now().toISOString() };
+      const cancelled = transitionOrder(order, "cancelled", { actor: "customer", at: now() });
       await repository.save(cancelled);
       return cancelled;
     },

@@ -12,6 +12,9 @@ export const ORDER_STATUSES = [
 
 export type OrderStatus = (typeof ORDER_STATUSES)[number];
 
+/** Ai gây ra thay đổi trạng thái đơn. */
+export type OrderActor = "customer" | "staff";
+
 export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   pending: "Chờ xác nhận",
   confirmed: "Đã xác nhận",

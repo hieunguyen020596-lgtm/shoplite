@@ -2,9 +2,10 @@
 title: 'Story 1.1 - Máy trạng thái đơn hàng'
 type: 'feature'
 created: '2026-11-20'
-status: 'ready-for-dev'
+status: 'done'
 route: 'dispatch'
 review_loop_iteration: 0
+baseline_commit: '18f5635671f387f57386c5d6dc3913ca1c418b19'
 context:
   - '{project-root}/AGENTS.md'
   - '{project-root}/_bmad-output/planning-artifacts/architecture/architecture-shoplite-ops-2026-11-20/ARCHITECTURE-SPINE.md'
@@ -61,10 +62,10 @@ context:
 ## Tasks & Acceptance
 
 **Execution:**
-- [ ] `src/features/orders/types.ts` -- thêm `export type OrderActor = "customer" | "staff"` -- người thực hiện dùng chung cho service và UI sau này.
-- [ ] `src/features/orders/order-state-machine.ts` -- tạo `ALLOWED_TRANSITIONS: Record<OrderStatus, readonly OrderStatus[]>`, `canTransition(from, to, actor)`, `transitionOrder(order, to, { actor, at })` theo Boundaries -- chỗ duy nhất đổi trạng thái (AD-4).
-- [ ] `src/features/orders/order-state-machine.test.ts` -- test toàn bộ ma trận 5 × 5 × 2 người thực hiện với bảng kỳ vọng viết tay trong file test; test `details.currentStatus` và đơn đầu vào không bị mutate -- phủ I/O Matrix.
-- [ ] `src/features/orders/order-service.ts` -- `cancelOrder` gọi `transitionOrder` với `actor: "customer"` -- bỏ logic trùng lặp.
+- [x] `src/features/orders/types.ts` -- thêm `export type OrderActor = "customer" | "staff"` -- người thực hiện dùng chung cho service và UI sau này.
+- [x] `src/features/orders/order-state-machine.ts` -- tạo `ALLOWED_TRANSITIONS: Record<OrderStatus, readonly OrderStatus[]>`, `canTransition(from, to, actor)`, `transitionOrder(order, to, { actor, at })` theo Boundaries -- chỗ duy nhất đổi trạng thái (AD-4).
+- [x] `src/features/orders/order-state-machine.test.ts` -- test toàn bộ ma trận 5 × 5 × 2 người thực hiện với bảng kỳ vọng viết tay trong file test; test `details.currentStatus` và đơn đầu vào không bị mutate -- phủ I/O Matrix.
+- [x] `src/features/orders/order-service.ts` -- `cancelOrder` gọi `transitionOrder` với `actor: "customer"` -- bỏ logic trùng lặp.
 
 **Acceptance Criteria:**
 - Given `npm run check`, when chạy sau thay đổi, then lint, typecheck và toàn bộ test pass, kể cả test `cancelOrder` cũ không sửa.
@@ -72,9 +73,23 @@ context:
 
 ## Implementation Notes
 
+- `OrderActor` thêm vào `types.ts` (không phải `order-state-machine.ts`) để component client dùng được mà không kéo theo `order-errors`.
+- `canTransition(from, to, actor)` được export riêng: Story 2.3 sẽ dùng để quyết định hiện nút nào.
+- `cancelOrder` giờ chỉ còn: đọc đơn → `transitionOrder(..., { actor: "customer", at: now() })` → lưu. Mọi test `cancelOrder` cũ pass không sửa.
+- Thêm test service: hủy lại đơn đã hủy bị từ chối và không ghi đè bản ghi (patch từ review, xem Triage Log #5).
+- File chạm: `types.ts`, `order-state-machine.ts` (mới), `order-state-machine.test.ts` (mới), `order-service.ts`, `order-service.test.ts`.
+
 ## Spec Change Log
 
 ## Review Triage Log
+
+| # | Layer | Finding | Verdict | Route | Evidence |
+|---|-------|---------|---------|-------|----------|
+| 1 | blind-hunter | `canTransition` nhận `actor` lạ sẽ rơi vào nhánh nhân viên | false | rejected | `OrderActor` là union kiểu TS; story này không có input từ ngoài, mọi nơi gọi đều truyền hằng `"customer"`/`"staff"`. |
+| 2 | blind-hunter | `ALLOWED_TRANSITIONS` export ra ngoài có thể bị sửa lúc chạy | low | rejected | Mảng khai báo `readonly`; muốn sửa phải ép kiểu. Thêm `Object.freeze` là phức tạp hóa không cần thiết. |
+| 3 | edge-case-hunter | `at` là `Invalid Date` thì `toISOString()` ném `RangeError` | low | rejected | `at` luôn đến từ `now()` của service; không có đường nào truyền ngày từ client. |
+| 4 | edge-case-hunter | Đơn cũ thiếu `discount` bị mất trường khi hủy | false | rejected | `transitionOrder` spread toàn bộ đơn; test "đơn cũ không có thông tin giảm giá vẫn xem, liệt kê và hủy được" pass. |
+| 5 | verification-gap | Không có test cho `cancelOrder` trên đơn đã hủy sau khi chuyển sang `transitionOrder` | medium | patch | Đã thêm test "không cho hủy lại đơn đã hủy và không ghi đè thời điểm hủy" trong `order-service.test.ts`. |
 
 ## Verification
 

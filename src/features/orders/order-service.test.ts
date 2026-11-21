@@ -324,6 +324,13 @@ describe("orderService", () => {
       await repository.save({ ...order, status: "confirmed" });
       await expectOrderError(service.cancelOrder(order.id), "INVALID_STATUS_TRANSITION");
     });
+
+    it("không cho hủy lại đơn đã hủy và không ghi đè thời điểm hủy", async () => {
+      const order = await service.placeOrder(validInput());
+      const cancelled = await service.cancelOrder(order.id);
+      await expectOrderError(service.cancelOrder(order.id), "INVALID_STATUS_TRANSITION");
+      expect(await repository.findById(order.id)).toEqual(cancelled);
+    });
   });
 });
 
