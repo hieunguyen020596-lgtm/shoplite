@@ -27,7 +27,9 @@ describe("<WishlistPage />", () => {
 
     render(<WishlistPage />);
 
-    expect(screen.getByText("Tai nghe không dây SoundMax Pro")).toBeInTheDocument();
+    expect(
+      screen.getByText("Tai nghe không dây SoundMax Pro"),
+    ).toBeInTheDocument();
     expect(screen.getByTestId("wishlist-item")).toBeInTheDocument();
 
     const removeBtn = screen.getByRole("button", {
@@ -57,5 +59,15 @@ describe("<WishlistPage />", () => {
     render(<WishlistPage />);
 
     expect(screen.getByText("Danh sách yêu thích trống")).toBeInTheDocument();
+  });
+
+  it("hiển thị nhãn Hết hàng và vô hiệu hóa nút thêm vào giỏ cho sản phẩm hết hàng", () => {
+    wishlistStore.dispatch({ type: "add", productId: "p004" });
+
+    render(<WishlistPage />);
+
+    expect(screen.getByText("Micro thu âm PodCast USB")).toBeInTheDocument();
+    const disabledBtn = screen.getByRole("button", { name: "Hết hàng" });
+    expect(disabledBtn).toBeDisabled();
   });
 });

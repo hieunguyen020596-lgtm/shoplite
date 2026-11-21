@@ -17,7 +17,9 @@ describe("wishlistStore", () => {
     wishlistStore.dispatch({ type: "toggle", productId: "p001" });
     expect(wishlistStore.getSnapshot().productIds).toEqual(["p001"]);
 
-    const stored = JSON.parse(window.localStorage.getItem(WISHLIST_STORAGE_KEY) || "{}");
+    const stored = JSON.parse(
+      window.localStorage.getItem(WISHLIST_STORAGE_KEY) || "{}",
+    );
     expect(stored.productIds).toEqual(["p001"]);
   });
 
@@ -29,7 +31,10 @@ describe("wishlistStore", () => {
   });
 
   it("tự động đọc và hỗ trợ định dạng mảng thô trong localStorage", () => {
-    window.localStorage.setItem(WISHLIST_STORAGE_KEY, JSON.stringify(["p001", "p002"]));
+    window.localStorage.setItem(
+      WISHLIST_STORAGE_KEY,
+      JSON.stringify(["p001", "p002"]),
+    );
     wishlistStore.reset();
 
     expect(wishlistStore.getSnapshot().productIds).toEqual(["p001", "p002"]);

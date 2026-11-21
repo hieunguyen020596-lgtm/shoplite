@@ -19,7 +19,10 @@ export function WishlistItemRow({ product, onRemove }: WishlistItemRowProps) {
       data-testid="wishlist-item"
     >
       <div className="flex items-center gap-4">
-        <Link href={`/products/${product.slug}`} className="w-20 shrink-0 sm:w-24">
+        <Link
+          href={`/products/${product.slug}`}
+          className="w-20 shrink-0 sm:w-24"
+        >
           <ProductImage image={product.image} alt={product.name} size="sm" />
         </Link>
         <div>
@@ -29,7 +32,9 @@ export function WishlistItemRow({ product, onRemove }: WishlistItemRowProps) {
           >
             {product.name}
           </Link>
-          <p className="mt-1 font-medium text-slate-800">{formatCurrency(product.price)}</p>
+          <p className="mt-1 font-medium text-slate-800">
+            {formatCurrency(product.price)}
+          </p>
           {product.stock <= 0 && (
             <span className="mt-1 inline-block rounded-md bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">
               Hết hàng
