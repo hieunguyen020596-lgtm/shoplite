@@ -2,6 +2,8 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { getAllProducts } from "@/features/catalog/catalog-service";
+import { inventorySeed } from "./inventory-seed";
 
 const ROOTS = ["src", "scripts", "e2e"];
 const ALLOWED = ["scripts/db-test-lib.ts"];
@@ -25,5 +27,13 @@ describe("inventory-seed", () => {
       .filter((file) => !IGNORED.includes(file))
       .filter((file) => readFileSync(file, "utf8").includes("inventory-seed"));
     expect(importers).toEqual(ALLOWED);
+  });
+
+  it("có đúng một dòng cho mỗi sản phẩm trong catalog", () => {
+    const seedIds = inventorySeed.map((row) => row.productId).sort();
+    const catalogIds = getAllProducts()
+      .map((product) => product.id)
+      .sort();
+    expect(seedIds).toEqual(catalogIds);
   });
 });

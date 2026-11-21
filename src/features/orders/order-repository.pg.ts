@@ -121,6 +121,8 @@ export async function insertOrder(tx: DbTx, order: NewOrder): Promise<Order> {
 }
 
 async function findById(id: string): Promise<Order | null> {
+  // PostgreSQL từ chối byte NUL trong text; mã như vậy chắc chắn không tồn tại.
+  if (id.includes(String.fromCharCode(0))) return null;
   return withDb(async (db) => {
     const [row] = await db.select().from(orders).where(eq(orders.id, id));
     if (!row) return null;

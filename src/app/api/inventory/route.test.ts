@@ -36,6 +36,8 @@ describe("GET /api/inventory", () => {
       `?ids=${Array.from({ length: 51 }, (_, i) => `p${i}`).join(",")}`,
     ],
     ["id quá dài", `?ids=${"x".repeat(65)}`],
+    ["51 id trùng nhau", `?ids=${Array(51).fill("a").join(",")}`],
+    ["id có byte NUL", "?ids=a%00b"],
   ])("400 VALIDATION_ERROR khi %s, không chạm DB", async (_n, qs) => {
     const res = await call(qs);
     expect(res.status).toBe(400);

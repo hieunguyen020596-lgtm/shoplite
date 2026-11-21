@@ -444,6 +444,90 @@ describe("<CheckoutForm />", () => {
       expect(screen.getByRole("button", { name: "Đặt hàng" })).toBeEnabled();
     });
 
+    it("giỏ đổi ở tab khác lúc đang gửi: 409 vẫn hiện thông báo", async () => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockImplementation(async () => {
+          act(() => {
+            cartStore.dispatch({
+              type: "update-quantity",
+              productId: "p010",
+              quantity: 1,
+            });
+          });
+          return conflict([{ productId: "p010", requested: 2, available: 1 }]);
+        }),
+      );
+      const user = userEvent.setup();
+      render(<CheckoutForm />);
+      await fillAndSubmit(user);
+      expect(await screen.findByRole("alert")).toHaveTextContent(
+        "Lỗi từ server",
+      );
+      expect(screen.queryByTestId("stock-conflict-row")).toBeNull();
+    });
+
+    it("dòng đã Lấy không quay lại với số tồn cũ khi giỏ tăng lại", async () => {
+      vi.stubGlobal(
+        "fetch",
+        vi
+          .fn()
+          .mockResolvedValue(
+            conflict([{ productId: "p010", requested: 2, available: 1 }]),
+          ),
+      );
+      const user = userEvent.setup();
+      render(<CheckoutForm />);
+      await fillAndSubmit(user);
+      await user.click(await screen.findByRole("button", { name: /^Lấy 1/ }));
+      expect(screen.queryByTestId("stock-conflict-row")).toBeNull();
+      act(() => {
+        cartStore.dispatch({
+          type: "update-quantity",
+          productId: "p010",
+          quantity: 2,
+        });
+      });
+      expect(screen.queryByTestId("stock-conflict-row")).toBeNull();
+      expect(screen.getByRole("button", { name: "Đặt hàng" })).toBeEnabled();
+    });
+
+    it("lỗi API thường xóa danh sách thiếu cũ", async () => {
+      vi.stubGlobal(
+        "fetch",
+        vi
+          .fn()
+          .mockResolvedValueOnce(
+            conflict([{ productId: "p010", requested: 2, available: 1 }]),
+          )
+          .mockResolvedValueOnce(conflict(undefined, "RATE_LIMITED", 429)),
+      );
+      const user = userEvent.setup();
+      render(<CheckoutForm />);
+      await fillAndSubmit(user);
+      await screen.findAllByTestId("stock-conflict-row");
+      act(() => {
+        cartStore.dispatch({
+          type: "update-quantity",
+          productId: "p010",
+          quantity: 1,
+        });
+      });
+      await user.click(screen.getByRole("button", { name: "Đặt hàng" }));
+      expect(await screen.findByRole("alert")).toHaveTextContent(
+        "Lỗi từ server",
+      );
+      act(() => {
+        cartStore.dispatch({
+          type: "update-quantity",
+          productId: "p010",
+          quantity: 2,
+        });
+      });
+      expect(screen.queryByTestId("stock-conflict-row")).toBeNull();
+      expect(screen.getByRole("button", { name: "Đặt hàng" })).toBeEnabled();
+    });
+
     it("RATE_LIMITED hiện error.message, form giữ nguyên", async () => {
       vi.stubGlobal(
         "fetch",

@@ -1,10 +1,30 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getClientIp } from "./client-ip";
 
 const h = (xff?: string) =>
   new Headers(xff === undefined ? {} : { "x-forwarded-for": xff });
 
 describe("getClientIp", () => {
+  beforeEach(() => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+  });
+  afterEach(() => vi.restoreAllMocks());
+
+  it("không xác định được IP: log cảnh báo, không ghi header", () => {
+    expect(getClientIp(h("bi-mat"), 1)).toBe("unknown");
+    expect(console.error).toHaveBeenCalledOnce();
+    const out = String(vi.mocked(console.error).mock.calls[0][0]);
+    expect(JSON.parse(out)).toEqual({
+      scope: "client-ip",
+      name: "UnresolvedClientIp",
+    });
+  });
+
+  it("IP hợp lệ không ghi log", () => {
+    expect(getClientIp(h("1.2.3.4"), 1)).toBe("1.2.3.4");
+    expect(console.error).not.toHaveBeenCalled();
+  });
+
   it("hops 0: bucket direct, không đọc header", () => {
     expect(getClientIp(h("1.2.3.4"), 0)).toBe("direct");
     const headers = new Headers();

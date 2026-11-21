@@ -161,7 +161,7 @@ export const orderStatusHistory = pgTable(
       sql`(
         ${table.eventType} = 'order_created'
         AND ${table.fromStatus} IS NULL
-        AND ${table.toStatus} = 'pending'
+        AND ${table.toStatus} IS NOT DISTINCT FROM 'pending'
         AND ${table.reasonCode} IS NULL
         AND ${table.reasonText} IS NULL
         AND ${table.refundOutcome} IS NULL

@@ -5,6 +5,7 @@ afterEach(() => vi.restoreAllMocks());
 
 function logged(error: unknown): string {
   const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+  spy.mockClear();
   logServerError("test", error);
   return String(spy.mock.calls[0]?.[0]);
 }

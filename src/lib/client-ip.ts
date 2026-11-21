@@ -1,4 +1,5 @@
 import { isIP } from "node:net";
+import { logServerError } from "@/lib/safe-log";
 
 const DIRECT = "direct";
 const UNKNOWN = "unknown";
@@ -60,6 +61,10 @@ export function getClientIp(headers: Headers, hops: number): string {
   if (hops <= 0) return DIRECT;
   const chain = (headers.get("x-forwarded-for") ?? "").split(",");
   const entry = chain[chain.length - hops];
-  if (entry === undefined || chain.length < hops) return UNKNOWN;
-  return normalizeIp(entry);
+  const ip =
+    entry === undefined || chain.length < hops ? UNKNOWN : normalizeIp(entry);
+  // Chỉ ghi tên sự kiện, không ghi header. Nhiều dòng này thường là cấu hình proxy sai.
+  if (ip === UNKNOWN)
+    logServerError("client-ip", { name: "UnresolvedClientIp" });
+  return ip;
 }

@@ -1,9 +1,27 @@
 import { NextResponse } from "next/server";
 import { logServerError } from "@/lib/safe-log";
-import { OrderError, type OrderErrorDetails } from "@/features/orders/order-errors";
+import {
+  OrderError,
+  type OrderErrorDetails,
+} from "@/features/orders/order-errors";
 
 export interface ApiErrorBody {
   error: { code: string; message: string; details?: OrderErrorDetails };
+}
+
+/** Hết `lock_timeout`, `statement_timeout` hoặc `idle_in_transaction_session_timeout`. */
+const DB_TIMEOUT_STATES = new Set(["55P03", "57014", "25P03"]);
+
+function isDbTimeout(error: unknown): boolean {
+  const { name, sqlState } = (error ?? {}) as {
+    name?: unknown;
+    sqlState?: unknown;
+  };
+  return (
+    name === "DbFailure" &&
+    typeof sqlState === "string" &&
+    DB_TIMEOUT_STATES.has(sqlState)
+  );
 }
 
 export function jsonError(
@@ -26,6 +44,13 @@ export function handleRouteError(error: unknown): NextResponse<ApiErrorBody> {
     );
   }
   logServerError("route", error);
+  if (isDbTimeout(error)) {
+    return jsonError(
+      503,
+      "SERVICE_UNAVAILABLE",
+      "Hệ thống đang bận, vui lòng thử lại sau ít phút",
+    );
+  }
   return jsonError(
     500,
     "INTERNAL_ERROR",

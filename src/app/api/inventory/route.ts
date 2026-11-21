@@ -10,18 +10,17 @@ const MAX_ID_LENGTH = 64;
 /** GET /api/inventory?ids=a,b -> { stock: { a: 3, b: 0 } } */
 export async function GET(request: NextRequest) {
   const raw = request.nextUrl.searchParams.get("ids") ?? "";
-  const ids = [
-    ...new Set(
-      raw
-        .split(",")
-        .map((id) => id.trim())
-        .filter(Boolean),
-    ),
-  ];
+  const parts = raw
+    .split(",")
+    .map((id) => id.trim())
+    .filter(Boolean);
+  const ids = [...new Set(parts)];
   if (
-    ids.length === 0 ||
-    ids.length > MAX_IDS ||
-    ids.some((id) => id.length > MAX_ID_LENGTH)
+    parts.length === 0 ||
+    parts.length > MAX_IDS ||
+    ids.some(
+      (id) => id.length > MAX_ID_LENGTH || id.includes(String.fromCharCode(0)),
+    )
   ) {
     return jsonError(
       400,

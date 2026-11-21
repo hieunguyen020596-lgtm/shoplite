@@ -1,4 +1,4 @@
-/** Tồn kho ban đầu, khớp số đang ở products.ts. Không import products. */
+/** Tồn kho ban đầu cho mọi sản phẩm trong catalog. Không import products. */
 export const inventorySeed: ReadonlyArray<{
   productId: string;
   stock: number;

@@ -15,6 +15,7 @@ import { Button, buttonStyles } from "@/components/ui/button";
 import { cardClass } from "@/components/ui/card";
 import { formFieldClass } from "@/components/ui/form-field";
 import { EmptyState } from "@/components/ui/empty-state";
+import { cartStore } from "@/features/cart/cart-store";
 import { useCart } from "@/features/cart/use-cart";
 import {
   checkoutFormSchema,
@@ -80,6 +81,14 @@ export function CheckoutForm() {
       ? [{ ...shortage, requested: item.quantity, name: item.name }]
       : [];
   });
+  // Dòng đã xử lý không được quay lại với số tồn cũ khi giỏ tăng lại.
+  if (conflictLines.length !== shortages.length) {
+    setShortages(
+      shortages.filter((shortage) =>
+        conflictLines.some((line) => line.productId === shortage.productId),
+      ),
+    );
+  }
   const conflictCount = conflictLines.length;
   const formRef = useRef<HTMLFormElement>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
@@ -188,8 +197,14 @@ export function CheckoutForm() {
           body?.error?.code === "INSUFFICIENT_STOCK"
             ? parseShortageLines(body.error.details)
             : null;
+        // Đọc giỏ mới nhất: tab khác có thể đã đổi giỏ trong lúc chờ response.
+        const latestItems = cartStore.getSnapshot().items;
         const known = shortageLines?.filter((line) =>
-          items.some((item) => item.productId === line.productId),
+          latestItems.some(
+            (item) =>
+              item.productId === line.productId &&
+              item.quantity > line.available,
+          ),
         );
         if (known && known.length > 0) {
           setShortages(known);

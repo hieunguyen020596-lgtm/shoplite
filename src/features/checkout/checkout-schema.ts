@@ -17,12 +17,17 @@ export const PAYMENT_OPTIONS: Record<PaymentMethod, { label: string; description
 /** Số di động Việt Nam: 0xxxxxxxxx hoặc +84xxxxxxxxx (đầu số 3, 5, 7, 8, 9). */
 export const VN_PHONE_REGEX = /^(0|\+84)(3|5|7|8|9)\d{8}$/;
 
+const NUL = String.fromCharCode(0);
+const hasNoNul = (value: string) => !value.includes(NUL);
+const INVALID_CHARACTER = "Có ký tự không hợp lệ";
+
 export const customerSchema = z.object({
   fullName: z
     .string()
     .trim()
     .min(2, "Họ tên phải có ít nhất 2 ký tự")
-    .max(50, "Họ tên tối đa 50 ký tự"),
+    .max(50, "Họ tên tối đa 50 ký tự")
+    .refine(hasNoNul, INVALID_CHARACTER),
   phone: z.string().trim().regex(VN_PHONE_REGEX, "Số điện thoại không hợp lệ (ví dụ: 0912345678)"),
   email: z
     .string()
@@ -33,8 +38,14 @@ export const customerSchema = z.object({
     .string()
     .trim()
     .min(10, "Địa chỉ phải có ít nhất 10 ký tự")
-    .max(200, "Địa chỉ tối đa 200 ký tự"),
-  note: z.string().trim().max(200, "Ghi chú tối đa 200 ký tự").optional(),
+    .max(200, "Địa chỉ tối đa 200 ký tự")
+    .refine(hasNoNul, INVALID_CHARACTER),
+  note: z
+    .string()
+    .trim()
+    .max(200, "Ghi chú tối đa 200 ký tự")
+    .refine(hasNoNul, INVALID_CHARACTER)
+    .optional(),
 });
 
 export type CustomerInput = z.infer<typeof customerSchema>;

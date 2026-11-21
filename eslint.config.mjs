@@ -25,7 +25,7 @@ const eslintConfig = defineConfig([
               message: "src/app không import src/db, hãy gọi service.",
             },
             {
-              group: ["**/*.pg"],
+              group: ["**/*.pg", "**/*.pg.ts"],
               message: "src/app không import *.pg, hãy gọi service.",
             },
           ],

@@ -62,10 +62,14 @@ describe("ranh giới lớp (AD-1)", () => {
     expect(await lint("src/features/x/components/x.tsx", code)).toHaveLength(0);
   });
 
-  it("src/app import *.pg bị chặn đúng rule", async () => {
+  it.each([
+    "@/features/orders/order.pg",
+    "@/features/orders/order.pg.ts",
+    "./order.pg.ts",
+  ])("src/app import %s bị chặn đúng rule", async (source) => {
     const msgs = await lint(
       "src/app/x/route.ts",
-      'import { db } from "@/db/client";\nexport const a = db;\n',
+      `import { f } from "${source}";\nexport const a = f;\n`,
     );
     expect(msgs.map((m) => m.ruleId)).toEqual(["no-restricted-imports"]);
   });

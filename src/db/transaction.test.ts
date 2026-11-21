@@ -27,7 +27,8 @@ describe("sanitizeDbError", () => {
     expect(out.message).toBe("Database operation failed");
     expect((out as DbFailure).sqlState).toBe("57P01");
     expect(out.cause).toBeUndefined();
-    expect(JSON.stringify(out)).not.toContain("pw");
+    expect(out.message).not.toContain("pw@");
+    expect(String(out.stack)).not.toContain("pw@");
   });
 
   it("lấy sqlState từ cause khi Drizzle bọc lỗi", () => {

@@ -76,7 +76,7 @@ export function StockConflictList({
           <li
             key={line.productId}
             data-testid="stock-conflict-row"
-            className="flex flex-col gap-2 rounded-xl bg-white/60 p-3"
+            className="flex flex-col gap-2 rounded-xl bg-rose-50 p-3 ring-1 ring-rose-200"
           >
             <p className="min-w-0 text-sm font-semibold break-words">
               {line.name}

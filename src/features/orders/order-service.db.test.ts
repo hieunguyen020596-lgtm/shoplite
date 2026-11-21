@@ -2,8 +2,11 @@ import pg from "pg";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { assertTestDatabase } from "../../../scripts/db-test-lib";
 import { runInTransaction } from "@/db/transaction";
+import { getProductById } from "@/features/catalog/catalog-service";
+import { getStockedProductBySlug } from "@/features/catalog/server";
 import type { Product } from "@/features/catalog/types";
 import { pgStockLedger } from "@/features/inventory/stock-ledger.pg";
+import { orderIpPolicy } from "@/features/rate-limit/policies";
 import { pgRateLimiter } from "@/features/rate-limit/rate-limiter.pg";
 import { OrderError } from "./order-errors";
 import { pgOrderRepository } from "./order-repository.pg";
@@ -456,4 +459,107 @@ describe("chống đơn ảo", () => {
     expect(await counterOf(ip)).toBe(10);
     expect(await stockOf("p010")).toBe(40);
   });
+});
+
+describe("các biên sau code review", () => {
+  const item = [{ productId: "p010", quantity: 1 }];
+
+  it("mã đơn không tồn tại hoặc có byte NUL: ORDER_NOT_FOUND", async () => {
+    for (const id of ["SL-KHONG-CO", `SL${String.fromCharCode(0)}X`]) {
+      await expect(service.getOrder(id)).rejects.toMatchObject({
+        code: "ORDER_NOT_FOUND",
+      });
+    }
+  });
+
+  it("gộp dòng đúng 10 sản phẩm vẫn đặt được", async () => {
+    const order = await place(
+      service,
+      input([
+        { productId: "p010", quantity: 6 },
+        { productId: "p010", quantity: 4 },
+      ]),
+    );
+    expect(order.items).toHaveLength(1);
+    expect(order.items[0].quantity).toBe(10);
+    expect(await stockOf("p010")).toBe(10);
+  });
+
+  it("đọc lại dòng hàng theo productId dù DB lưu lệch thứ tự", async () => {
+    const order = await place(
+      service,
+      input([
+        { productId: "p010", quantity: 1 },
+        { productId: "p011", quantity: 1 },
+      ]),
+    );
+    const { rows } = await client!.query(
+      "SELECT * FROM order_items WHERE order_id = $1 ORDER BY product_id DESC",
+      [order.id],
+    );
+    await client!.query("DELETE FROM order_items WHERE order_id = $1", [
+      order.id,
+    ]);
+    for (const row of rows) {
+      const keys = Object.keys(row);
+      await client!.query(
+        `INSERT INTO order_items (${keys.join(",")}) VALUES (${keys.map((_, i) => `$${i + 1}`).join(",")})`,
+        Object.values(row),
+      );
+    }
+    const ids = (o: { items: { productId: string }[] }) =>
+      o.items.map((line) => line.productId);
+    expect(ids(await service.getOrder(order.id))).toEqual(["p010", "p011"]);
+    expect(ids((await service.listOrders())[0])).toEqual(["p010", "p011"]);
+  });
+
+  it("đơn cuối: trang sản phẩm đọc được Hết hàng", async () => {
+    await place(service, input([{ productId: "p011", quantity: 3 }]));
+    const product = getProductById("p011")!;
+    expect((await getStockedProductBySlug(product.slug))?.stock).toBe(0);
+  });
+
+  it.each(["confirmed", "shipping", "delivered"])(
+    "3 đơn %s không tính vào giới hạn SĐT",
+    async (status) => {
+      const phone = uniquePhone();
+      for (let i = 0; i < 3; i++) await place(service, input(item, phone));
+      await client!.query("UPDATE orders SET status = $1", [status]);
+      await expect(place(service, input(item, phone))).resolves.toBeDefined();
+    },
+  );
+
+  it("cửa sổ IP đúng 1 giờ: 59 phút vẫn chặn, 61 phút đếm lại", async () => {
+    expect(orderIpPolicy("203.0.113.60").windowSeconds).toBe(3600);
+    const ip = "203.0.113.60";
+    for (let i = 0; i < 10; i++) await place(service, input(item), ip);
+    await client!.query(
+      "UPDATE rate_limits SET window_started_at = now() - interval '59 minutes'",
+    );
+    await expect(place(service, input(item), ip)).rejects.toMatchObject({
+      code: "RATE_LIMITED",
+    });
+    await client!.query(
+      "UPDATE rate_limits SET window_started_at = now() - interval '61 minutes'",
+    );
+    await expect(place(service, input(item), ip)).resolves.toBeDefined();
+  });
+
+  it("chờ khóa quá lock_timeout: DbFailure 55P03, không trừ kho", async () => {
+    await client!.query("BEGIN");
+    try {
+      await client!.query(
+        "SELECT 1 FROM inventory WHERE product_id = 'p010' FOR UPDATE",
+      );
+      const error = (await place(service, input(item)).catch(
+        (e: unknown) => e,
+      )) as Error & { sqlState?: string };
+      expect(error.name).toBe("DbFailure");
+      expect(error.sqlState).toBe("55P03");
+    } finally {
+      await client!.query("ROLLBACK");
+    }
+    expect(await stockOf("p010")).toBe(20);
+    expect(await count("orders")).toBe(0);
+  }, 10_000);
 });

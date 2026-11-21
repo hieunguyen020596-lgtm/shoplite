@@ -3,7 +3,7 @@ import pg from "pg";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { assertTestDatabase } from "../../../../scripts/db-test-lib";
 import { readStock } from "@/features/inventory/server";
-import { PATCH } from "./[id]/route";
+import { GET as GET_ONE, PATCH } from "./[id]/route";
 import { GET, POST } from "./route";
 
 let client: pg.Client | undefined;
@@ -111,5 +111,42 @@ describe("giới hạn đơn ảo qua API", () => {
       `Bạn đã đặt quá nhiều đơn. Vui lòng thử lại sau hoặc liên hệ shop qua ${process.env.SHOP_CONTACT_PHONE}.`,
     );
     expect((await readStock(["p006"])).p006).toBe(7);
+  });
+});
+
+describe("đầu vào biên của API đơn hàng", () => {
+  const getOne = (id: string) =>
+    GET_ONE(new Request("http://localhost/api/orders/x"), {
+      params: Promise.resolve({ id }),
+    });
+
+  it("GET /api/orders/:id không tồn tại hoặc có byte NUL: 404", async () => {
+    for (const id of ["SL-KHONG-CO", `SL${String.fromCharCode(0)}X`]) {
+      const res = await getOne(id);
+      expect(res.status).toBe(404);
+      expect((await res.json()).error.code).toBe("ORDER_NOT_FOUND");
+    }
+  });
+
+  it("POST có byte NUL trong text: 400, không tạo đơn", async () => {
+    const res = await POST(
+      new Request("http://localhost/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          customer: {
+            fullName: `Phạm${String.fromCharCode(0)}Minh`,
+            phone: "0356789012",
+            address: "99 Hai Bà Trưng, Huế",
+          },
+          shippingMethod: "standard",
+          paymentMethod: "cod",
+          items: [{ productId: "p006", quantity: 1 }],
+        }),
+      }),
+    );
+    expect(res.status).toBe(400);
+    expect((await res.json()).error.code).toBe("VALIDATION_ERROR");
+    expect((await readStock(["p006"])).p006).toBe(1);
   });
 });
