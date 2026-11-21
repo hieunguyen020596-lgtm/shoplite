@@ -1,4 +1,9 @@
-import { createJsonFileOrderRepository, DEFAULT_ORDERS_FILE } from "./order-repository";
+import "server-only";
+import { getOrdersFile } from "@/lib/env";
+import {
+  createJsonFileOrderRepository,
+  DEFAULT_ORDERS_FILE,
+} from "./order-repository";
 import { createOrderService } from "./order-service";
 
 /**
@@ -8,5 +13,5 @@ import { createOrderService } from "./order-service";
  * Đổi nơi lưu bằng biến môi trường ORDERS_FILE (mặc định: storage/orders.json).
  */
 export const orderService = createOrderService({
-  repository: createJsonFileOrderRepository(process.env.ORDERS_FILE ?? DEFAULT_ORDERS_FILE),
+  repository: createJsonFileOrderRepository(getOrdersFile(DEFAULT_ORDERS_FILE)),
 });
