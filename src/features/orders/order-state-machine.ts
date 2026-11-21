@@ -45,7 +45,7 @@ export interface TransitionOrderResult {
 function hasStatusHistory(
   order: Order,
 ): order is Order & { statusHistory: OrderStatusEvent[] } {
-  return (order.statusHistory?.length ?? 0) > 0;
+  return Array.isArray(order.statusHistory) && order.statusHistory.length > 0;
 }
 
 function cloneStatusHistory(
@@ -61,7 +61,7 @@ function getBaseStatusHistory(order: Order): OrderStatusEvent[] {
 }
 
 function normalizeNow(now?: Date): string {
-  const date = now ?? new Date();
+  const date = now === undefined ? new Date() : now;
   if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
     throw new OrderError(
       "VALIDATION_ERROR",

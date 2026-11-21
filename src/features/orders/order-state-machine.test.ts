@@ -944,4 +944,78 @@ describe("order-state-machine", () => {
       );
     });
   });
+
+  describe("biên bổ sung sau code review 5.2", () => {
+    it("từ chối now: null bằng VALIDATION_ERROR và chấp nhận note đúng 1 ký tự sau trim", () => {
+      const order = createOrder({ status: "confirmed" });
+
+      const nullDateErr = expectOrderError(
+        () =>
+          transitionOrder(order, {
+            to: "cancelled",
+            actor: "staff",
+            note: "Hủy",
+            now: null as unknown as Date,
+          }),
+        "VALIDATION_ERROR",
+        400,
+      );
+      expect(nullDateErr.details).toHaveProperty("now");
+
+      const { order: oneCharCancelled } = transitionOrder(order, {
+        to: "cancelled",
+        actor: "staff",
+        note: "  a  ",
+        now: TRANSITION_DATE,
+      });
+      expect(oneCharCancelled.statusHistory?.at(-1)?.note).toBe("a");
+    });
+
+    it("bảo toàn trường phụ discount/couponCode và không lỗi TypeError khi statusHistory không phải mảng", () => {
+      const legacyWithDiscount = {
+        ...createOrder({
+          status: "pending",
+          statusHistory: "corrupted" as unknown as Order["statusHistory"],
+        }),
+        discount: 50_000,
+        couponCode: "GIAM50K",
+      } as Order & { discount: number; couponCode: string };
+
+      const { order: cancelled, shouldRestock } = transitionOrder(
+        legacyWithDiscount,
+        {
+          to: "cancelled",
+          actor: "customer",
+          now: TRANSITION_DATE,
+        },
+      );
+
+      expect(shouldRestock).toBe(false);
+      expect(cancelled.inventoryRestocked).toBe(true);
+      expect(cancelled).toMatchObject({
+        discount: 50_000,
+        couponCode: "GIAM50K",
+      });
+    });
+
+    it("ngăn chặn gọi đúp tuần tự markOrderRestocked trên chính kết quả đã hoàn kho", () => {
+      const cancelledFromShipping = createOrder({
+        status: "cancelled",
+        inventoryRestocked: false,
+      });
+
+      const once = markOrderRestocked(cancelledFromShipping, {
+        now: TRANSITION_DATE,
+        note: "Đã nhận hoàn kho",
+      });
+      expect(once.inventoryRestocked).toBe(true);
+
+      const err = expectOrderError(
+        () => markOrderRestocked(once, { now: TRANSITION_DATE }),
+        "INVALID_STATUS_TRANSITION",
+        409,
+      );
+      expect(err.details).toEqual({ status: "cancelled" });
+    });
+  });
 });

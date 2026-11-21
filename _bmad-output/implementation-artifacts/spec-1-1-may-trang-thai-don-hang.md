@@ -69,6 +69,26 @@ context:
 - Given `storage/orders.json` chứa đơn hàng lịch sử không có `statusHistory` / `inventoryRestocked`, when gọi `synthesizeStatusHistory(legacyOrder)` hoặc hủy đơn `legacyPendingOrder`, then không xảy ra lỗi runtime, không tạo mốc thời gian giả, và hủy đơn `pending` cũ trả `shouldRestock: false`.
 - Given toàn bộ mã nguồn dự án sau khi hoàn thành 4 task trên, when chạy `npm run check`, then ESLint, `next typegen && tsc --noEmit`, 83 unit tests hiện có và toàn bộ unit tests mới trong `order-state-machine.test.ts` pass 100%.
 
+### Review Findings
+
+- [x] [Review][Patch] Kiểm tra `Array.isArray(order.statusHistory)` trong `hasStatusHistory` để tránh `TypeError` khi dữ liệu JSON lỗi kiểu [src/features/orders/order-state-machine.ts:45-49]
+- [x] [Review][Patch] Dùng `now === undefined ? new Date() : now` trong `normalizeNow` để từ chối `now: null` bằng `VALIDATION_ERROR` [src/features/orders/order-state-machine.ts:63-65]
+- [x] [Review][Patch] Bổ sung test giữ nguyên `discount`/`couponCode`, gọi đúp tuần tự `markOrderRestocked`, `note` 1 ký tự sau trim, và `now: null` [src/features/orders/order-state-machine.test.ts:765-1020]
+
+#### Rejected
+- **BH-2** (`blind-hunter`, `order-state-machine.ts:229-239`) — `rejected` *(quyết định kiến trúc ở bước 4)*: Giữ quy ước đặt `inventoryRestocked: true` khi đơn lịch sử chuyển tiếp làm cờ chống cộng khống kho theo `AD-4` / `AD-5`, và chỉ diễn giải/hiển thị `inventoryRestocked` trên đơn `status === "cancelled"`, tránh thay đổi schema `Order`.
+- **EC-1** (`edge-case-hunter`, `order-state-machine.ts:120-134`) — `false`: Zod (`z.enum(ORDER_STATUSES)`) và TypeScript union chặn key từ `Object.prototype` tại mọi caller hợp lệ.
+- **EC-2** (`edge-case-hunter`, `order-state-machine.ts:181-194`) — `false`: `ORDER_STATUSES` và TypeScript union ngăn chuỗi prototype đi vào `ORDER_STATUS_LABELS`.
+- **EC-4** (`edge-case-hunter`, `order-state-machine.ts:177-190`) — `false`: Route API validate `expectedStatus` bằng Zod trả `400`; caller typed không truyền được `null`; gọi trực tiếp vẫn từ chối `409` an toàn.
+- **BH-1** (`blind-hunter`, `order-state-machine.ts`) — `false`: Trùng luận điểm prototype key với EC-1/EC-2; không có luồng caller nào tạo key `Object.prototype`.
+- **BH-5** (`blind-hunter`, `order-state-machine.ts:177-208,255-274`) — `false`: Tầng HTTP đã validate field (`400`) bằng Zod; kiểm tra điều kiện chuyển trạng thái trước format `note`/`now` trong domain là fail-fast có chủ đích.
+- **BH-6** (`blind-hunter`, `order-state-machine.ts:142-166`) — `false`: Đơn tiền Epic 1 chỉ hỗ trợ khách hủy nên đơn lịch sử ở `cancelled` mặc định có `actor: "customer"`; `updatedAt` là trường bắt buộc trên `Order`.
+- **BH-7** (`blind-hunter`, `order-state-machine.ts:263-271`) — `false`: `transitionOrder` luôn gán boolean cho `inventoryRestocked` khi hủy, nên `inventoryRestocked === undefined` chỉ xuất hiện ở đơn lịch sử cũ và phải ném `409` theo `AD-4`.
+- **BH-8** (`blind-hunter`, `order-state-machine.ts` vs `spec-1-1`) — `false`: Xử lý `[]` thống nhất với `undefined` đã được ghi nhận khi triage build; `placeOrder` luôn tạo `[pending]`; không sửa ngược spec trong code review.
+- **BH-9** (`blind-hunter`, `order-errors.ts:36-38`) — `false`: `Record<OrderErrorCode, number>` ép đủ mã lỗi ở compile-time; test `OrderError` chạy bình thường trong `order-state-machine.test.ts`.
+- **BH-10** (`blind-hunter`, `order-state-machine.ts:10`, `types.ts`) — `false`: Tập export công khai bị khóa theo hợp đồng `AD-10`, không thêm export mới ngoài spec.
+- **BH-12** (`blind-hunter`, `spec-1-1`, `sprint-status.yaml`, `deferred-work.md`) — `false`: `spec` ở `done` và `sprint-status` ở `review` là quy ước chuyển giao sang code review; `154/154` vs `159/159` là mốc trước/sau patch; triage loại bỏ finding chỉ nhằm sửa văn bản spec.
+
 ## Implementation Notes
 
 - Hoàn thành triển khai 4 file thuộc Story 1.1; giữ nguyên không đụng `order-service.ts`, `order-repository.ts`, route API hay UI.
