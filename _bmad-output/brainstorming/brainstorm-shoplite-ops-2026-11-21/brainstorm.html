@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ShopLite Ops — Brainstorm Control Room</title>
+  <style>
+    :root {
+      --bg: #0b1120;
+      --surface: #111a2e;
+      --surface-2: #17233d;
+      --border: #243456;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --emerald: #34d399;
+      --amber: #fbbf24;
+      --rose: #fb7185;
+      --violet: #a78bfa;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: radial-gradient(circle at top right, #162447 0%, var(--bg) 55%);
+      color: var(--text);
+      line-height: 1.6;
+    }
+    .container { max-width: 1120px; margin: 0 auto; padding: 32px 20px 64px; }
+    header {
+      border: 1px solid var(--border);
+      background: linear-gradient(135deg, rgba(56,189,248,0.12), rgba(167,139,250,0.08));
+      border-radius: 20px;
+      padding: 28px 32px;
+      margin-bottom: 28px;
+    }
+    .eyebrow {
+      display: inline-flex;
+      gap: 8px;
+      align-items: center;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--accent);
+      background: rgba(56,189,248,0.12);
+      padding: 5px 12px;
+      border-radius: 999px;
+    }
+    h1 { margin: 14px 0 8px; font-size: 32px; letter-spacing: -0.02em; }
+    .subtitle { color: var(--muted); max-width: 780px; margin: 0; }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px;
+      margin-top: 22px;
+    }
+    .stat {
+      background: rgba(15,23,42,0.7);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px 16px;
+    }
+    .stat strong { display: block; font-size: 24px; color: #fff; }
+    .stat span { font-size: 12px; color: var(--muted); }
+    .section { margin-top: 32px; }
+    .section h2 {
+      font-size: 20px;
+      margin: 0 0 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .radar-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 14px;
+    }
+    .radar-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--rose);
+      border-radius: 14px;
+      padding: 16px;
+    }
+    .radar-card code {
+      display: inline-block;
+      margin-top: 6px;
+      font-size: 11px;
+      color: var(--accent);
+      background: rgba(56,189,248,0.1);
+      padding: 2px 7px;
+      border-radius: 6px;
+    }
+    .tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .tab-btn {
+      background: var(--surface);
+      color: var(--muted);
+      border: 1px solid var(--border);
+      padding: 9px 16px;
+      border-radius: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .tab-btn.active, .tab-btn:hover {
+      background: var(--accent);
+      color: #0b1120;
+      border-color: var(--accent);
+    }
+    .idea-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 12px;
+    }
+    .idea-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 15px 16px;
+      font-size: 14px;
+    }
+    .badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 999px;
+      margin-bottom: 8px;
+    }
+    .b-role { background: rgba(167,139,250,0.18); color: var(--violet); }
+    .b-hmw { background: rgba(56,189,248,0.18); color: var(--accent); }
+    .b-rev { background: rgba(251,113,133,0.18); color: var(--rose); }
+    .moscow {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 14px;
+    }
+    .col {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 18px;
+    }
+    .col h3 { margin: 0 0 12px; font-size: 15px; text-transform: uppercase; letter-spacing: 0.05em; }
+    .col.must h3 { color: var(--emerald); }
+    .col.should h3 { color: var(--accent); }
+    .col.could h3 { color: var(--amber); }
+    .col.wont h3 { color: var(--rose); }
+    .col ul { margin: 0; padding-left: 18px; font-size: 14px; }
+    .col li { margin-bottom: 8px; }
+    .questions {
+      background: linear-gradient(135deg, rgba(251,191,36,0.1), rgba(56,189,248,0.06));
+      border: 1px solid rgba(251,191,36,0.35);
+      border-radius: 16px;
+      padding: 20px 24px;
+    }
+    .questions ol { margin: 8px 0 0; padding-left: 20px; }
+    .questions li { margin-bottom: 8px; }
+    .pipeline {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      margin-top: 14px;
+      font-size: 13px;
+    }
+    .step {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      padding: 6px 12px;
+      border-radius: 10px;
+      font-weight: 600;
+    }
+    .step.done { border-color: var(--emerald); color: var(--emerald); }
+    footer { margin-top: 40px; text-align: center; color: var(--muted); font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <span class="eyebrow">BMAD Brainstorming · 2026-11-21 · ShopLite Ops</span>
+      <h1>Phòng Điều Hành Đơn Hàng ShopLite Ops</h1>
+      <p class="subtitle">
+        Biến ý tưởng thô "nhân viên xử lý đơn hàng &amp; khách theo dõi tiến trình" thành phạm vi MVP sắc nét,
+        bám sát hiện trạng brownfield của codebase Next.js 16 hiện có.
+      </p>
+      <div class="stats">
+        <div class="stat"><strong>34</strong><span>Ý tưởng phân kỳ đã ghi .memlog.md</span></div>
+        <div class="stat"><strong>3</strong><span>Kỹ thuật: Role Playing · HMW · Reverse</span></div>
+        <div class="stat"><strong>5 / 5</strong><span>Mục MUST cho MVP không dịch vụ ngoài</span></div>
+        <div class="stat"><strong>4</strong><span>Câu hỏi mở cần chốt ở 4.3 &amp; 4.4</span></div>
+      </div>
+      <div class="pipeline">
+        <span class="step done">Pending</span><span>→</span>
+        <span class="step done">Confirmed</span><span>→</span>
+        <span class="step done">Shipping</span><span>→</span>
+        <span class="step done">Delivered</span>
+        <span style="margin-left:10px;color:var(--rose)">⚡ Cancelled (hoàn kho có kiểm soát)</span>
+      </div>
+    </header>
+
+    <section class="section">
+      <h2>🔍 Radar Hiện Trạng Codebase (Brownfield)</h2>
+      <div class="radar-grid">
+        <div class="radar-card">
+          <strong>Chưa có máy trạng thái &amp; API vận hành</strong>
+          <p style="margin:6px 0 0;font-size:13px;color:var(--muted)"><code>ORDER_STATUSES</code> có đủ 5 trạng thái nhưng <code>PATCH</code> chỉ nhận <code>cancelled</code>.</p>
+          <code>src/app/api/orders/[id]/route.ts</code>
+        </div>
+        <div class="radar-card">
+          <strong>Tồn kho tĩnh không bao giờ trừ</strong>
+          <p style="margin:6px 0 0;font-size:13px;color:var(--muted)"><code>placeOrder()</code> chỉ đọc <code>products.ts</code> để kiểm tra, không cập nhật số tồn sau khi đặt.</p>
+          <code>src/features/orders/order-service.ts</code>
+        </div>
+        <div class="radar-card">
+          <strong>Rủi ro ghi đồng thời mất đơn</strong>
+          <p style="margin:6px 0 0;font-size:13px;color:var(--muted)">Repository dùng chung 1 file <code>orders.json.tmp</code>, chưa có khóa tuần tự.</p>
+          <code>src/features/orders/order-repository.ts</code>
+        </div>
+        <div class="radar-card">
+          <strong>Thiếu lịch sử &amp; bảo vệ admin</strong>
+          <p style="margin:6px 0 0;font-size:13px;color:var(--muted)"><code>Order</code> chưa có <code>statusHistory</code>; chưa có <code>/admin/orders</code> hay xác thực cookie.</p>
+          <code>src/features/orders/types.ts</code>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>💡 Kho Ý Tưởng Theo 3 Kỹ Thuật</h2>
+      <div class="tabs">
+        <button class="tab-btn active" onclick="filterIdeas('all', this)">Tất cả (34)</button>
+        <button class="tab-btn" onclick="filterIdeas('role', this)">🎭 Role Playing (12)</button>
+        <button class="tab-btn" onclick="filterIdeas('hmw', this)">❓ How Might We (11)</button>
+        <button class="tab-btn" onclick="filterIdeas('rev', this)">💥 Reverse Brainstorming (11)</button>
+      </div>
+      <div class="idea-grid" id="ideaGrid"></div>
+    </section>
+
+    <section class="section">
+      <h2>🎯 Hội Tụ MVP Theo MoSCoW</h2>
+      <div class="moscow">
+        <div class="col must">
+          <h3>MUST (5 mục cốt lõi)</h3>
+          <ul>
+            <li>Máy trạng thái thuần + <code>statusHistory</code> tương thích ngược đơn cũ.</li>
+            <li>Trang <code>/admin/orders</code>: lọc, tìm kiếm, chuyển 1 bước, bắt buộc lý do hủy.</li>
+            <li>Bảo vệ admin bằng <code>ADMIN_PASSCODE</code> + cookie HttpOnly ký HMAC (proxy + API).</li>
+            <li>Tồn kho thật tại <code>storage/inventory.json</code> + mutex &amp; file tạm UUID.</li>
+            <li>Timeline 4 bước trên <code>/orders/[id]</code>; giữ quy tắc khách chỉ hủy khi <code>pending</code>.</li>
+          </ul>
+        </div>
+        <div class="col should">
+          <h3>SHOULD</h3>
+          <ul>
+            <li>Thẻ KPI nhanh đầu trang <code>/admin/orders</code> (đơn từng trạng thái, doanh thu đã giao).</li>
+            <li>Cảnh báo sản phẩm sắp hết hàng (<code>stock &lt;= 5</code>).</li>
+            <li>Chống ghi đè bằng <code>expectedStatus</code> (trả <code>409 Conflict</code>).</li>
+          </ul>
+        </div>
+        <div class="col could">
+          <h3>COULD</h3>
+          <ul>
+            <li>Lọc đơn theo phương thức thanh toán (COD / Chuyển khoản).</li>
+            <li>In nhanh phiếu nhặt hàng (packing slip).</li>
+            <li>Điều chỉnh tồn kho thủ công khi nhập thêm hàng.</li>
+          </ul>
+        </div>
+        <div class="col wont">
+          <h3>WON'T (Ngoài MVP)</h3>
+          <ul>
+            <li>Phân quyền nhiều vai trò (RBAC) / đa tài khoản nhân viên.</li>
+            <li>Gửi email / SMS / Zalo tự động.</li>
+            <li>Tích hợp hãng vận chuyển ngoài (GHN, GHTK).</li>
+            <li>Chuyển sang cơ sở dữ liệu ngoài.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="questions">
+        <h2 style="margin-top:0">🧭 Câu Hỏi Mở Cần Chốt Trước Khi Viết PRD</h2>
+        <ol>
+          <li>Trừ tồn kho ngay khi khách đặt hàng (<code>pending</code>) hay chỉ trừ khi nhân viên xác nhận (<code>confirmed</code>)?</li>
+          <li>Nhân viên được phép hủy đơn ở những trạng thái nào (chỉ <code>pending/confirmed</code> hay cả <code>shipping</code>)?</li>
+          <li>Nếu chưa cấu hình <code>ADMIN_PASSCODE</code> ở môi trường local dev thì khóa cứng hay có mã dev mặc định kèm cảnh báo?</li>
+          <li>Trang <code>/products</code> và <code>/products/[slug]</code> cần đọc động tồn kho từ <code>inventory.json</code> như thế nào để luôn hiển thị đúng?</li>
+        </ol>
+      </div>
+    </section>
+
+    <footer>
+      Sinh từ <code>.memlog.md</code> bởi BMAD Method v6.12.4 (Antigravity) · Đầu vào cho Bài 4.3 (Party Mode) &amp; Bài 4.4 (Brief / PRD).
+    </footer>
+  </div>
+
+  <script>
+    const ideas = [
+      { cat: "role", tag: "Role Playing", cls: "b-role", text: "[Nhân viên kho] Hàng đợi mặc định lọc 'Chờ xác nhận' & 'Đã xác nhận' theo thứ tự FIFO." },
+      { cat: "role", tag: "Role Playing", cls: "b-role", text: "[Nhân viên kho] Một nút hành động chính duy nhất cho bước kế tiếp hợp lệ, giảm bấm nhầm." },
+      { cat: "role", tag: "Role Playing", cls: "b-role", text: "[Nhân viên kho] Trừ tồn kho thật lưu ở storage/inventory.json ngay khi đặt hàng." },
+      { cat: "role", tag: "Role Playing", cls: "b-role", text: "[Nhân viên kho] Tự động hoàn kho khi đơn bị hủy." },
+      { cat: "role", tag: "Role Playing", cls: "b-role", text: "[Nhân viên kho] Hiện danh sách món cần nhặt ngay trên dòng hoặc drawer chi tiết." },
+      { cat: "role", tag: "Role Playing", cls: "b-role", text: "[CSKH] Lưu statusHistory (trạng thái, thời gian, actor, ghi chú) để tra cứu nhanh." },
+      { cat: "role", tag: "Role Playing", cls: "b-role", text: "[CSKH] Tìm kiếm đơn theo mã đơn SL-..., SĐT hoặc tên khách trên /admin/orders." },
+      { cat: "role", tag: "Role Playing", cls: "b-role", text: "[CSKH] Bắt buộc nhập lý do khi nhân viên hủy đơn." },
+      { cat: "role", tag: "Role Playing", cls: "b-role", text: "[Chủ shop] Thẻ KPI nhanh: số đơn theo trạng thái và doanh thu đơn đã giao." },
+      { cat: "role", tag: "Role Playing", cls: "b-role", text: "[Chủ shop] Cảnh báo sản phẩm sắp hết hàng (stock <= 5)." },
+      { cat: "role", tag: "Role Playing", cls: "b-role", text: "[Khách hàng] Timeline 4 bước trên /orders/[id] kèm mốc thời gian từng chặng." },
+      { cat: "role", tag: "Role Playing", cls: "b-role", text: "[Khách hàng] Giữ quy tắc chỉ tự hủy khi pending; sau đó ẩn nút và hướng dẫn liên hệ shop." },
+      { cat: "hmw", tag: "How Might We", cls: "b-hmw", text: "Bảo vệ /admin không cần dịch vụ ngoài: ADMIN_PASSCODE + cookie HttpOnly ký HMAC-SHA256." },
+      { cat: "hmw", tag: "How Might We", cls: "b-hmw", text: "Dùng src/proxy.ts (Next.js 16) + verify trực tiếp trong API route handler." },
+      { cat: "hmw", tag: "How Might We", cls: "b-hmw", text: "Khởi tạo storage/inventory.json từ products.ts tĩnh, catalog đọc tồn kho thống nhất." },
+      { cat: "hmw", tag: "How Might We", cls: "b-hmw", text: "Đặt statusHistory optional để tương thích ngược 100% đơn cũ trong orders.json." },
+      { cat: "hmw", tag: "How Might We", cls: "b-hmw", text: "Tách máy trạng thái thành hàm thuần canTransition() kèm unit test ma trận 5x5." },
+      { cat: "hmw", tag: "How Might We", cls: "b-hmw", text: "Gửi kèm expectedStatus để phát hiện 2 nhân viên sửa cùng lúc (409 Conflict)." },
+      { cat: "hmw", tag: "How Might We", cls: "b-hmw", text: "Khóa tuần tự in-process mutex + file tạm UUID khi ghi JSON để tránh mất đơn." },
+      { cat: "hmw", tag: "How Might We", cls: "b-hmw", text: "Ghi rõ actor ('customer' | 'staff') trong statusHistory để phân biệt ai thao tác." },
+      { cat: "hmw", tag: "How Might We", cls: "b-hmw", text: "Tạo createInMemoryInventoryRepository() cho unit test không chạm ổ đĩa." },
+      { cat: "hmw", tag: "How Might We", cls: "b-hmw", text: "Giữ nguyên PATCH /api/orders/:id cho khách; tách endpoint /api/admin/orders/:id/status cho nhân viên." },
+      { cat: "hmw", tag: "How Might We", cls: "b-hmw", text: "Giao diện kho responsive dạng thẻ trên mobile/tablet với nút bấm >= 40px." },
+      { cat: "rev", tag: "Reverse", cls: "b-rev", text: "[Phòng thủ #1] Chống overselling bằng kiểm tra + trừ kho nguyên tử trong lock." },
+      { cat: "rev", tag: "Reverse", cls: "b-rev", text: "[Phòng thủ #2] Chặn nhảy cóc, đi lùi trạng thái và hủy đơn đã giao (409/422)." },
+      { cat: "rev", tag: "Reverse", cls: "b-rev", text: "[Phòng thủ #3] Bắt buộc verify session ở mọi /api/admin/* (401), không chỉ ẩn UI." },
+      { cat: "rev", tag: "Reverse", cls: "b-rev", text: "[Phòng thủ #4] Sửa race condition dùng chung file orders.json.tmp bằng UUID." },
+      { cat: "rev", tag: "Reverse", cls: "b-rev", text: "[Phòng thủ #5] Hoàn kho idempotent — không bao giờ cộng kho 2 lần khi retry hủy." },
+      { cat: "rev", tag: "Reverse", cls: "b-rev", text: "[Phòng thủ #6] Fallback timeline cho đơn cũ chưa có statusHistory." },
+      { cat: "rev", tag: "Reverse", cls: "b-rev", text: "[Phòng thủ #7] Khách không thể hủy khi đơn đã sang confirmed/shipping cả ở UI & server." },
+      { cat: "rev", tag: "Reverse", cls: "b-rev", text: "[Phòng thủ #8] Không hardcode mật khẩu production; so sánh HMAC bằng timingSafeEqual." },
+      { cat: "rev", tag: "Reverse", cls: "b-rev", text: "[Phòng thủ #9] Thống nhất nguồn tồn kho giữa catalog và order-service." },
+      { cat: "rev", tag: "Reverse", cls: "b-rev", text: "[Phòng thủ #10] Mọi chuyển trạng thái đều ghi bản ghi bất biến vào statusHistory." },
+      { cat: "rev", tag: "Reverse", cls: "b-rev", text: "[Phòng thủ #11] Giữ nguyên 100% pass cho e2e/shopping-flow.spec.ts và npm run check." },
+    ];
+
+    function render(filter) {
+      const grid = document.getElementById("ideaGrid");
+      const list = filter === "all" ? ideas : ideas.filter((i) => i.cat === filter);
+      grid.innerHTML = list.map((i) => `
+        <article class="idea-card">
+          <span class="badge ${i.cls}">${i.tag}</span>
+          <div>${i.text}</div>
+        </article>
+      `).join("");
+    }
+
+    function filterIdeas(cat, btn) {
+      document.querySelectorAll(".tab-btn").forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      render(cat);
+    }
+
+    render("all");
+  </script>
+</body>
+</html>
