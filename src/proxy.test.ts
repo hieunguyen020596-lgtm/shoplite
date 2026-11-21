@@ -10,12 +10,24 @@ import { config, proxy } from "./proxy";
 
 const env = process.env as Record<string, string | undefined>;
 
-function makeAdminRequest(path: string, cookieToken?: string): NextRequest {
+function makeRawCookieRequest(
+  path: string,
+  cookieHeader?: string,
+): NextRequest {
   const headers = new Headers();
-  if (cookieToken !== undefined) {
-    headers.set("cookie", `${ADMIN_COOKIE_NAME}=${cookieToken}`);
+  if (cookieHeader !== undefined) {
+    headers.set("cookie", cookieHeader);
   }
   return new NextRequest(`http://localhost:3000${path}`, { headers });
+}
+
+function makeAdminRequest(path: string, cookieToken?: string): NextRequest {
+  return makeRawCookieRequest(
+    path,
+    cookieToken !== undefined
+      ? `${ADMIN_COOKIE_NAME}=${cookieToken}`
+      : undefined,
+  );
 }
 
 describe("Next.js 16 src/proxy.ts", () => {
@@ -69,6 +81,7 @@ describe("Next.js 16 src/proxy.ts", () => {
   it("chuyển hướng 307 về /admin/login khi thiếu ADMIN_PASSCODE (kể cả /admin và route con kèm query)", () => {
     for (const path of [
       "/admin",
+      "/admin/",
       "/admin/orders",
       "/admin/orders/123?status=pending",
     ]) {
@@ -79,6 +92,14 @@ describe("Next.js 16 src/proxy.ts", () => {
       );
       expect(res.headers.get("cache-control")).toBe("no-store");
     }
+
+    const resUnconfiguredWithCookie = proxy(
+      makeAdminRequest("/admin/orders", "1999999999999.forged"),
+    );
+    expect(resUnconfiguredWithCookie.status).toBe(307);
+    expect(resUnconfiguredWithCookie.headers.get("location")).toBe(
+      "http://localhost:3000/admin/login",
+    );
   });
 
   it("chuyển hướng 307 về /admin/login khi thiếu cookie", () => {
@@ -128,5 +149,36 @@ describe("Next.js 16 src/proxy.ts", () => {
       expect(res.headers.get("x-middleware-next")).toBe("1");
       expect(res.headers.get("cache-control")).toBe("no-store");
     }
+  });
+
+  it("nhất quán extractAdminSessionToken với quote RFC 6265, cookie rỗng theo sau và mã hóa phần trăm lỗi", () => {
+    env.ADMIN_PASSCODE = "secret-pass";
+    const validToken = createAdminSessionToken();
+
+    const quotedRes = proxy(
+      makeRawCookieRequest(
+        "/admin/orders",
+        `${ADMIN_COOKIE_NAME}="${validToken}"`,
+      ),
+    );
+    expect(quotedRes.status).toBe(200);
+    expect(quotedRes.headers.get("x-middleware-next")).toBe("1");
+
+    const trailingEmptyRes = proxy(
+      makeRawCookieRequest(
+        "/admin/orders",
+        `${ADMIN_COOKIE_NAME}=${validToken}; ${ADMIN_COOKIE_NAME}=`,
+      ),
+    );
+    expect(trailingEmptyRes.status).toBe(200);
+    expect(trailingEmptyRes.headers.get("x-middleware-next")).toBe("1");
+
+    const malformedPercentRes = proxy(
+      makeRawCookieRequest("/admin/orders", `${ADMIN_COOKIE_NAME}=%E0%A4%A`),
+    );
+    expect(malformedPercentRes.status).toBe(307);
+    expect(malformedPercentRes.headers.get("location")).toBe(
+      "http://localhost:3000/admin/login?expired=1",
+    );
   });
 });

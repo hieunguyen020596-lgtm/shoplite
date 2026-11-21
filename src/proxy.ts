@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import {
-  ADMIN_COOKIE_NAME,
+  extractAdminSessionToken,
   verifyAdminSessionToken,
 } from "@/features/orders/admin-auth";
 
@@ -12,7 +12,7 @@ export function proxy(request: NextRequest) {
   if (pathname === "/admin/login") {
     response = NextResponse.next();
   } else {
-    const token = request.cookies.get(ADMIN_COOKIE_NAME)?.value;
+    const token = extractAdminSessionToken(request.headers.get("cookie"));
     const status = verifyAdminSessionToken(token);
 
     if (status === "valid") {

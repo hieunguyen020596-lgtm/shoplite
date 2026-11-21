@@ -10,14 +10,17 @@ import {
 import { OrderError } from "@/features/orders/order-errors";
 import { handleRouteError, readJsonBody } from "@/lib/http";
 
-const adminLoginSchema = z.object({
-  passcode: z
-    .string("Vui lòng nhập mật khẩu quản trị")
-    .refine(
-      (value) => value.trim().length > 0,
-      "Mật khẩu quản trị không được để trống",
-    ),
-});
+const adminLoginSchema = z.object(
+  {
+    passcode: z
+      .string("Vui lòng nhập mật khẩu quản trị")
+      .refine(
+        (value) => value.trim().length > 0,
+        "Mật khẩu quản trị không được để trống",
+      ),
+  },
+  "Dữ liệu đăng nhập phải là một đối tượng JSON",
+);
 
 /** POST /api/admin/auth/login - xác thực fail-closed: 503 -> 400 -> 401 -> 200. */
 export async function POST(request: Request) {

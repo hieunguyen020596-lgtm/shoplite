@@ -74,18 +74,21 @@ describe("POST /api/admin/auth/login & /logout", () => {
       expect(invalidJsonRes.status).toBe(400);
       expect((await invalidJsonRes.json()).error.code).toBe("VALIDATION_ERROR");
 
-      for (const payload of [[], true, "secret-string"]) {
+      for (const payload of [null, [], true, 123, "secret-string"]) {
         const res = await loginPost(makeLoginRequest(payload));
         expect(res.status).toBe(400);
         const json = await res.json();
         expect(json.error.code).toBe("VALIDATION_ERROR");
-        expect(json.error.details).toHaveProperty("_form");
+        expect(json.error.details._form).toBe(
+          "Dữ liệu đăng nhập phải là một đối tượng JSON",
+        );
       }
 
       for (const payload of [
         {},
         { passcode: 12345 },
         { passcode: null },
+        { passcode: "" },
         { passcode: "   " },
       ]) {
         const res = await loginPost(makeLoginRequest(payload));
@@ -93,13 +96,19 @@ describe("POST /api/admin/auth/login & /logout", () => {
         const json = await res.json();
         expect(json.error.code).toBe("VALIDATION_ERROR");
         expect(json.error.details).toHaveProperty("passcode");
+        expect(json.error.details.passcode).not.toMatch(/^Invalid input/i);
       }
     });
 
-    it("401 UNAUTHORIZED khi sai mật khẩu (kể cả dư khoảng trắng cuối) và không lộ ADMIN_PASSCODE", async () => {
+    it("401 UNAUTHORIZED khi sai mật khẩu (kể cả cùng độ dài byte và dư khoảng trắng đầu/cuối) và không lộ ADMIN_PASSCODE", async () => {
       env.ADMIN_PASSCODE = "alpha-123";
 
-      for (const candidate of ["wrong", "alpha-123 "]) {
+      for (const candidate of [
+        "wrong",
+        "alpha-124",
+        "alpha-123 ",
+        " alpha-123",
+      ]) {
         const res = await loginPost(makeLoginRequest({ passcode: candidate }));
         expect(res.status).toBe(401);
         const text = await res.text();
@@ -171,6 +180,13 @@ describe("POST /api/admin/auth/login & /logout", () => {
       expect(resWithEnv.headers.get("cache-control")).toBe("no-store");
       expect(resWithEnv.headers.get("set-cookie")).toBe(
         `${ADMIN_COOKIE_NAME}=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0`,
+      );
+
+      env.NODE_ENV = "production";
+      const resProd = await logoutPost();
+      expect(resProd.status).toBe(200);
+      expect(resProd.headers.get("set-cookie")).toBe(
+        `${ADMIN_COOKIE_NAME}=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0; Secure`,
       );
     });
   });

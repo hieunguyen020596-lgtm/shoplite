@@ -75,7 +75,7 @@ export function verifyAdminPasscode(inputPasscode: string): void {
 /** Tạo token phiên quản trị dạng `<expiresAtEpochMs>.<hmacSha256Hex>` có hạn 8 giờ. */
 export function createAdminSessionToken(nowMs = Date.now()): string {
   const configured = requireConfiguredPasscode();
-  if (!Number.isFinite(nowMs)) {
+  if (!Number.isFinite(nowMs) || nowMs < 0) {
     throw new OrderError(
       "VALIDATION_ERROR",
       "Thời gian tạo phiên quản trị không hợp lệ",
@@ -107,7 +107,7 @@ export function verifyAdminSessionToken(
     return "missing";
   }
 
-  if (!Number.isFinite(nowMs)) {
+  if (!Number.isFinite(nowMs) || nowMs < 0) {
     return "expired";
   }
 
@@ -117,7 +117,7 @@ export function verifyAdminSessionToken(
   }
 
   const [expiresAtStr, signatureHex] = parts;
-  if (!/^\d+$/.test(expiresAtStr) || !/^[0-9a-f]{64}$/i.test(signatureHex)) {
+  if (!/^\d+$/.test(expiresAtStr) || !/^[0-9a-f]{64}$/.test(signatureHex)) {
     return "expired";
   }
 

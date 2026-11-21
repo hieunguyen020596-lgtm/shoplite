@@ -10,3 +10,7 @@
 - source_spec: `_bmad-output/implementation-artifacts/spec-1-3-api-van-hanh-chuyen-trang-thai-don.md`
   summary: Wrap `OrderService` read-modify-write transitions and JSON repository persistence inside re-entrant `StorageLock` (Story 2.1) so concurrent `expectedStatus` checks cannot race.
   evidence: Confirmed by edge-case-hunter and blind-hunter at `src/features/orders/order-service.ts:70-84` and `src/features/orders/order-repository.ts`; `StorageLock` is excluded from Story 1.3 by `<frozen-after-approval>` (`Never`) and belongs to Story 2.1.
+
+## Deferred from: code review of spec-1-2-xac-thuc-quan-tri-fail-closed.md (2026-11-21)
+
+- Document `ADMIN_PASSCODE` and `/api/admin/auth/login` + `/api/admin/auth/logout` endpoints in `README.md` and `.env.example` when the `/admin` UI (Story 3.1) lands.

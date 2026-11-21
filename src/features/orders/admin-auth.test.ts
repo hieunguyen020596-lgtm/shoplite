@@ -162,11 +162,14 @@ describe("admin-auth", () => {
         verifyAdminSessionToken(`9007199254740992.${"a".repeat(64)}`, now),
       ).toBe("expired");
 
+      const upperHexToken = `${exp}.${sig.toUpperCase()}`;
+      expect(verifyAdminSessionToken(upperHexToken, now)).toBe("expired");
+
       env.ADMIN_PASSCODE = "rotated-pass";
       expect(verifyAdminSessionToken(token, now)).toBe("expired");
     });
 
-    it("xử lý an toàn nowMs = NaN / Infinity / vượt MAX_SAFE_INTEGER", () => {
+    it("xử lý an toàn nowMs = NaN / Infinity / âm / vượt MAX_SAFE_INTEGER", () => {
       env.ADMIN_PASSCODE = "secret-pass";
       const validToken = createAdminSessionToken(1_700_000_000_000);
 
@@ -174,6 +177,8 @@ describe("admin-auth", () => {
         Number.NaN,
         Number.POSITIVE_INFINITY,
         Number.NEGATIVE_INFINITY,
+        -1,
+        -30_000_000,
         Number.MAX_SAFE_INTEGER,
       ]) {
         expect(() => createAdminSessionToken(badNow)).toThrowError(OrderError);
@@ -192,6 +197,7 @@ describe("admin-auth", () => {
       expect(
         verifyAdminSessionToken(validToken, Number.NEGATIVE_INFINITY),
       ).toBe("expired");
+      expect(verifyAdminSessionToken(validToken, -1)).toBe("expired");
     });
   });
 
@@ -220,26 +226,44 @@ describe("admin-auth", () => {
   });
 
   describe("assertAdminRequest", () => {
-    it("ưu tiên 503 trước 401 khi thiếu ADMIN_PASSCODE", () => {
-      const req = new Request("http://localhost/api/admin/orders");
-      try {
-        assertAdminRequest(req);
-        expect.fail("Phải ném OrderError 503");
-      } catch (error) {
-        expect(error).toBeInstanceOf(OrderError);
-        expect((error as OrderError).code).toBe("ADMIN_NOT_CONFIGURED");
-        expect((error as OrderError).httpStatus).toBe(503);
+    it("ưu tiên 503 trước 401 khi thiếu hoặc rỗng ADMIN_PASSCODE dù có cookie", () => {
+      env.ADMIN_PASSCODE = "secret-pass";
+      const validToken = createAdminSessionToken();
+
+      for (const envValue of [undefined, "", "   "]) {
+        if (envValue === undefined) {
+          delete env.ADMIN_PASSCODE;
+        } else {
+          env.ADMIN_PASSCODE = envValue;
+        }
+        const req = new Request("http://localhost/api/admin/orders", {
+          headers: { cookie: `${ADMIN_COOKIE_NAME}=${validToken}` },
+        });
+        try {
+          assertAdminRequest(req);
+          expect.fail("Phải ném OrderError 503");
+        } catch (error) {
+          expect(error).toBeInstanceOf(OrderError);
+          expect((error as OrderError).code).toBe("ADMIN_NOT_CONFIGURED");
+          expect((error as OrderError).httpStatus).toBe(503);
+        }
       }
     });
 
     it("ném 401 khi thiếu cookie hoặc cookie giả mạo/hết hạn", () => {
       env.ADMIN_PASSCODE = "secret-pass";
+      const expiredToken = createAdminSessionToken(Date.now() - 30_000_000);
+      const validToken = createAdminSessionToken();
+      const [exp, sig] = validToken.split(".");
+      const forgedToken = `${exp}.${sig.endsWith("0") ? `${sig.slice(0, -1)}1` : `${sig.slice(0, -1)}0`}`;
 
       for (const cookieHeader of [
         undefined,
         "other=1",
         `${ADMIN_COOKIE_NAME}=`,
         `${ADMIN_COOKIE_NAME}=tampered`,
+        `${ADMIN_COOKIE_NAME}=${expiredToken}`,
+        `${ADMIN_COOKIE_NAME}=${forgedToken}`,
       ]) {
         const req = new Request("http://localhost/api/admin/orders", {
           headers: cookieHeader ? { cookie: cookieHeader } : undefined,
@@ -280,10 +304,15 @@ describe("admin-auth", () => {
       );
     });
 
-    it("tạo cookie đăng xuất Max-Age=0", () => {
+    it("tạo cookie đăng xuất Max-Age=0 và thêm Secure ở production", () => {
       env.NODE_ENV = "test";
       expect(createAdminLogoutCookieHeader()).toBe(
         `${ADMIN_COOKIE_NAME}=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0`,
+      );
+
+      env.NODE_ENV = "production";
+      expect(createAdminLogoutCookieHeader()).toBe(
+        `${ADMIN_COOKIE_NAME}=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0; Secure`,
       );
     });
 

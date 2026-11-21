@@ -69,6 +69,20 @@ context:
 **Acceptance Criteria:**
 - Given `npm run check` chạy sau khi hoàn tất 4 task trên, when ESLint, `next typegen && tsc --noEmit`, và Vitest chạy xong, then toàn bộ 159 tests trước đó và tất cả test mới của Story 1.2 pass 100%, không còn file `next-env.d.ts` bẩn ngoài phạm vi.
 
+### Review Findings
+
+- [x] [Review][Patch] Thay `request.cookies.get` trong `src/proxy.ts:15` bằng `extractAdminSessionToken(request.headers.get("cookie"))` để đồng nhất RFC 6265/cookie rỗng/URI lỗi với `assertAdminRequest` (`AD-8`), kèm test trong `src/proxy.test.ts` [src/proxy.ts:15-16]
+- [x] [Review][Patch] Thêm thông báo tiếng Việt gốc vào `z.object(..., "Dữ liệu đăng nhập phải là một đối tượng JSON")` trong `adminLoginSchema` để `details._form` không lọt chuỗi Zod tiếng Anh, kèm assert trong `src/app/api/admin/auth/route.test.ts` [src/app/api/admin/auth/login/route.ts:13-20]
+- [x] [Review][Patch] Bỏ cờ `/i` ở kiểm tra 64 ký tự hex của `verifyAdminSessionToken` để nhất quán với `signExpiry` chữ thường [src/features/orders/admin-auth.ts:120]
+- [x] [Review][Patch] Từ chối `nowMs < 0` trong `createAdminSessionToken` (`VALIDATION_ERROR`) và `verifyAdminSessionToken` (`"expired"`), bổ sung test cho `assertAdminRequest` (`""`/`"   "` có cookie, hết hạn/giả mạo) [src/features/orders/admin-auth.ts:78-112]
+- [x] [Review][Patch] Bổ sung test thuộc tính `; Secure` khi `NODE_ENV === "production"` cho `createAdminLogoutCookieHeader` và `POST /api/admin/auth/logout` [src/features/orders/admin-auth.test.ts:283-295]
+- [x] [Review][Defer] Bổ sung biến `ADMIN_PASSCODE` và nhóm API `/api/admin/auth/*` vào `README.md` / `.env.example` [README.md:80-111] — deferred: thực hiện cùng UI `/admin/login` ở Epic 3 (Story 3.1)
+
+#### Rejected
+- **EC-4 + BH-6** (`edge-case-hunter`, `blind-hunter`, `admin-auth.ts:41-47`) — `false`: `buildAdminCookieHeader` không export và chỉ nhận `""` hoặc token `[0-9a-f.]` từ `createAdminSessionToken()`.
+- **BH-3** (`blind-hunter`, `login/route.ts:49-55`) — `false`: Phản hồi lỗi `POST` qua `handleRouteError` không được cache theo chuẩn HTTP, thống nhất với các route API khác.
+- **BH-7** (`blind-hunter`, `proxy.ts:21`) — `low`: ShopLite không cấu hình `basePath`, `new URL("/admin/login", request.url)` hoạt động đúng với URL gốc hiện tại.
+
 ## Implementation Notes
 
 - Hoàn thành triển khai `admin-auth.ts`, `src/proxy.ts` (Next.js 16), `/api/admin/auth/login`, `/api/admin/auth/logout` và 3 file test Node.
