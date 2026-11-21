@@ -459,7 +459,6 @@ Không câu nào dưới đây chặn UX, kiến trúc hoặc chia story.
 4. Các ngưỡng ở FR-3, FR-8 và FR-20 có phù hợp với lượng đơn thật không? Xem lại sau 4 tuần có đơn thật.
 5. Khi triển khai, ứng dụng đứng sau proxy nào? Quyết định ở bước triển khai. Trước đó local dùng bucket `direct`; production không khởi động nếu chưa khai báo `TRUSTED_PROXY_HOPS` hợp lệ.
 6. Đã từng có sự cố mất tiền thật chưa? Chủ shop trả lời để xác nhận mức ưu tiên của tính năng.
-7. (Ràng buộc khóa học) Bài 4.4 ghi "không thêm database", trong khi dự án dùng PostgreSQL theo quyết định của landv. landv cần báo giảng viên nếu bài bị chấm theo ràng buộc đó.
 
 ## 9. Assumptions Index
 
