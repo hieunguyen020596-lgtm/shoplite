@@ -8,6 +8,27 @@
       "when": 1795246453399,
       "tag": "0000_fancy_quicksilver",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1795247343194,
+      "tag": "0001_superb_sister_grimm",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1795247347252,
+      "tag": "0002_order_status_history_append_only",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1795247428758,
+      "tag": "0003_order_created_reason_null",
+      "breakpoints": true
     }
   ]
 }
