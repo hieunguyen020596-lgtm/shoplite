@@ -31,19 +31,18 @@ sources:
   - _bmad-output/planning-artifacts/ux-designs/ux-shoplite-2026-11-21/EXPERIENCE.md
 companions: []
 ---
-
 # Architecture Spine — ShopLite Ops
 
 ## Design Paradigm
 
 **Feature-Sliced Modular Monolith with Pure Domain Core & Repository Seam** trên Next.js 16 App Router (single-node Node.js runtime, lưu trữ file JSON cục bộ trong `storage/`).
 
-| Lớp kiến trúc (Layer) | Ánh xạ thư mục / Module | Trách nhiệm & Giới hạn |
-| --- | --- | --- |
-| **Routing & Delivery Layer** | `src/app/**`, `src/proxy.ts` | Server Components, Route Handlers (`/api/**`), và Next.js 16 Proxy (`src/proxy.ts`). Chỉ parse/validate HTTP request, kiểm tra phiên, gọi Feature Service và render UI / trả `NextResponse`. |
-| **Feature Domain & Application Layer** | `src/features/<feature>/**` (`orders`, `catalog`, `cart`, `checkout`) | Lõi nghiệp vụ thuần túy (`order-state-machine.ts`, `pricing.ts`, `cart-reducer.ts`, `catalog-service.ts`), điều phối use-case (`order-service.ts`), xác thực quản trị (`admin-auth.ts`) và React components đặc thù của từng tính năng. |
-| **Persistence Adapter Layer (Repository Seam)** | `src/features/orders/order-repository.ts`, `src/features/orders/inventory-repository.ts`, `src/features/orders/server.ts` | Cài đặt giao diện `OrderRepository` và `InventoryRepository` với 2 biến thể song hành: `JsonFile*` (ghi đĩa vào `storage/*.json`) và `InMemory*` (dùng cho unit test), khởi tạo singleton tại `src/features/orders/server.ts`. |
-| **Shared Kernel & Utilities** | `src/lib/**`, `src/components/ui/**`, `src/data/products.ts` | Tiện ích dùng chung không chứa quy tắc miền: `src/lib/storage-lock.ts` (`StorageLock`), `src/lib/http.ts` (`handleRouteError`, `jsonError`, `readJsonBody`), `src/lib/format.ts`, UI primitives và dữ liệu catalog gốc (`PRODUCTS`). |
+| Lớp kiến trúc (Layer)                              | Ánh xạ thư mục / Module                                                                                                     | Trách nhiệm & Giới hạn                                                                                                                                                                                                                                              |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Routing & Delivery Layer**                    | `src/app/**`, `src/proxy.ts`                                                                                                | Server Components, Route Handlers (`/api/**`), và Next.js 16 Proxy (`src/proxy.ts`). Chỉ parse/validate HTTP request, kiểm tra phiên, gọi Feature Service và render UI / trả `NextResponse`.                                                               |
+| **Feature Domain & Application Layer**          | `src/features/<feature>/**` (`orders`, `catalog`, `cart`, `checkout`)                                                 | Lõi nghiệp vụ thuần túy (`order-state-machine.ts`, `pricing.ts`, `cart-reducer.ts`, `catalog-service.ts`), điều phối use-case (`order-service.ts`), xác thực quản trị (`admin-auth.ts`) và React components đặc thù của từng tính năng. |
+| **Persistence Adapter Layer (Repository Seam)** | `src/features/orders/order-repository.ts`, `src/features/orders/inventory-repository.ts`, `src/features/orders/server.ts` | Cài đặt giao diện `OrderRepository` và `InventoryRepository` với 2 biến thể song hành: `JsonFile*` (ghi đĩa vào `storage/*.json`) và `InMemory*` (dùng cho unit test), khởi tạo singleton tại `src/features/orders/server.ts`.             |
+| **Shared Kernel & Utilities**                   | `src/lib/**`, `src/components/ui/**`, `src/data/products.ts`                                                              | Tiện ích dùng chung không chứa quy tắc miền: `src/lib/storage-lock.ts` (`StorageLock`), `src/lib/http.ts` (`handleRouteError`, `jsonError`, `readJsonBody`), `src/lib/format.ts`, UI primitives và dữ liệu catalog gốc (`PRODUCTS`).         |
 
 ## Invariants & Rules
 
@@ -132,23 +131,26 @@ flowchart TD
 
 ## Consistency Conventions
 
-| Mối quan tâm (Concern) | Quy ước bắt buộc (Convention) |
-| --- | --- |
-| **Đặt tên file & ký hiệu** | Tên file dùng `kebab-case.ts` / `.tsx`; React component và kiểu TypeScript dùng `PascalCase`; hàm và biến dùng `camelCase`; hằng số cấu hình dùng `UPPER_SNAKE_CASE`. |
-| **Định danh & Thời gian** | Mã đơn hàng giữ định dạng `SL-YYYYMMDD-XXXXXX`; toàn bộ dấu thời gian (`createdAt`, `updatedAt`, `OrderStatusEvent.at`) dùng chuỗi ISO 8601 UTC (`new Date().toISOString()`); hiển thị UI qua `formatDateTime()` và `formatCurrency()` trong `src/lib/format.ts`. |
-| **Cấu trúc sự kiện lịch sử (`OrderStatusEvent`)** | Mỗi phần tử trong `order.statusHistory` gồm: `status` (`OrderStatus`), `at` (ISO 8601), `actor` (`"customer" \| "staff"`), `action` (`"transition" \| "restock"`), và `note?` (chuỗi đã `.trim()`, dài `1..200` ký tự, chỉ có mặt khi khác rỗng). |
-| **Hợp đồng HTTP & Parse Body** | Mọi đọc body JSON trong Route Handler đi qua `readJsonBody(request)` (`src/lib/http.ts`). `POST /api/admin/auth/login` và `PATCH /api/admin/orders/:id/status` bắt buộc có body JSON hợp lệ (`400 VALIDATION_ERROR` nếu `undefined`); `POST /api/admin/orders/:id/restock` chấp nhận body rỗng (`request.text()` rỗng) **hoặc** JSON hợp lệ có `note?: string` (`<= 200` ký tự); `POST /api/admin/auth/logout` không đọc body. |
-| **UI, Trợ năng & Xử lý lỗi Client** | Tuân thủ đúng token Tailwind v4 và quy tắc hành vi trong `DESIGN.md` & `EXPERIENCE.md`: vùng chạm tối thiểu `min-h-11` (`44px`), không tràn ngang ở `390px`, ghép đủ **màu + icon `lucide-react` + văn bản** cho mọi trạng thái. Khi `/checkout` nhận `409 INSUFFICIENT_STOCK`, giữ nguyên state form địa chỉ và giỏ hàng. Khi `/admin/orders` nhận `401`, điều hướng sang `/admin/login?expired=1`; khi nhận `409`, hiện `role="alert"` và tự tải lại danh sách đơn. |
-| **Biến môi trường** | `ORDERS_FILE` (mặc định `storage/orders.json`), `INVENTORY_FILE` (mặc định `storage/inventory.json`), `ADMIN_PASSCODE` (bắt buộc phải khác rỗng để mở cổng `/admin/*` và `/api/admin/*`, không có giá trị fallback trong code). |
+| Mối quan tâm (Concern)                                        | Quy ước bắt buộc (Convention)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Đặt tên file & ký hiệu**                           | Tên file dùng `kebab-case.ts` / `.tsx`; React component và kiểu TypeScript dùng `PascalCase`; hàm và biến dùng `camelCase`; hằng số cấu hình dùng `UPPER_SNAKE_CASE`.                                                                                                                                                                                                                                                                                                                                                       |
+| **Định danh & Thời gian**                              | Mã đơn hàng giữ định dạng `SL-YYYYMMDD-XXXXXX`; toàn bộ dấu thời gian (`createdAt`, `updatedAt`, `OrderStatusEvent.at`) dùng chuỗi ISO 8601 UTC (`new Date().toISOString()`); hiển thị UI qua `formatDateTime()` và `formatCurrency()` trong `src/lib/format.ts`.                                                                                                                                                                                                                                                  |
+| **Cấu trúc sự kiện lịch sử (`OrderStatusEvent`)** | Mỗi phần tử trong `order.statusHistory` gồm: `status` (`OrderStatus`), `at` (ISO 8601), `actor` (`"customer" \| "staff"`), `action` (`"transition" \| "restock"`), và `note?` (chuỗi đã `.trim()`, dài `1..200` ký tự, chỉ có mặt khi khác rỗng).                                                                                                                                                                                                                                                               |
+| **Hợp đồng HTTP & Parse Body**                         | Mọi đọc body JSON trong Route Handler đi qua `readJsonBody(request)` (`src/lib/http.ts`). `POST /api/admin/auth/login` và `PATCH /api/admin/orders/:id/status` bắt buộc có body JSON hợp lệ (`400 VALIDATION_ERROR` nếu `undefined`); `POST /api/admin/orders/:id/restock` chấp nhận body rỗng (`request.text()` rỗng) **hoặc** JSON hợp lệ có `note?: string` (`<= 200` ký tự); `POST /api/admin/auth/logout` không đọc body.                                                                  |
+| **UI, Trợ năng & Xử lý lỗi Client**                  | Tuân thủ đúng token Tailwind v4 và quy tắc hành vi trong `DESIGN.md` & `EXPERIENCE.md`: vùng chạm tối thiểu `min-h-11` (`44px`), không tràn ngang ở `390px`, ghép đủ **màu + icon `lucide-react` + văn bản** cho mọi trạng thái. Khi `/checkout` nhận `409 INSUFFICIENT_STOCK`, giữ nguyên state form địa chỉ và giỏ hàng. Khi `/admin/orders` nhận `401`, điều hướng sang `/admin/login?expired=1`; khi nhận `409`, hiện `role="alert"` và tự tải lại danh sách đơn. |
+| **Biến môi trường & Chạy Local** | Toàn bộ hệ thống chạy độc lập 100% trên máy local (`http://localhost:3000` qua `npm run dev` hoặc `npm run build && npm run start`), không phụ thuộc DB hay dịch vụ đám mây. Cấu hình qua `.env.local` hoặc biến môi trường shell: `ORDERS_FILE` (mặc định `storage/orders.json`), `INVENTORY_FILE` (mặc định `storage/inventory.json`), `ADMIN_PASSCODE` (bắt buộc phải khác rỗng để mở cổng `/admin/*` và `/api/admin/*`, không có giá trị fallback trong code). |
 | **Test Seam & Cô lập dữ liệu** | Unit test của service/state-machine dùng `InMemoryOrderRepository` + `InMemoryInventoryRepository`; test của `JsonFile*Repository` và route test tạo thư mục tạm riêng trong `os.tmpdir()` hoặc truyền `ORDERS_FILE` / `INVENTORY_FILE` riêng, không ghi bẩn vào `storage/` thật. |
 
 ## Stack
 
 | Name | Version |
 | --- | --- |
-| Node.js Runtime | `22.23.4` (`>=22.12.0`) |
+| Local Execution Environment (Single-Node `localhost:3000`, zero external DB/cloud) | `Node.js 22.23.4` (`>=22.12.0`) |
+| Local Persistence (`node:fs/promises` + atomic UUID `.tmp` JSON files in `storage/`) | `Node.js 22.23.4 built-in` |
+| Concurrency & Re-entrant Mutex (`node:async_hooks` `AsyncLocalStorage` + FIFO Queue) | `Node.js 22.23.4 built-in` |
+| Auth & Cryptography (`node:crypto` `SHA-256`, `HMAC-SHA256`, `timingSafeEqual`) | `Node.js 22.23.4 built-in` |
 | TypeScript | `5.9.3` |
-| Next.js (App Router) | `16.4.2` |
+| Next.js (App Router + `src/proxy.ts` Node Runtime) | `16.4.2` |
 | React / React DOM | `19.3.0` |
 | Tailwind CSS (`@tailwindcss/turbopack`) | `4.3.3` |
 | Zod | `4.6.7` |
@@ -156,7 +158,7 @@ flowchart TD
 | clsx | `2.1.1` |
 | Vitest / `@vitest/coverage-v8` | `5.0.5` |
 | Testing Library (`@testing-library/react`) | `16.3.3` |
-| Playwright (`@playwright/test`) | `1.64.1` |
+| Playwright (`@playwright/test` — Local Chromium E2E) | `1.64.1` |
 | ESLint / `eslint-config-next` | `9.x` / `16.4.2` |
 | Prettier / `prettier-plugin-tailwindcss` | `3.9.10` / `0.8.1` |
 
@@ -396,19 +398,19 @@ shoplite/
 
 ## Capability → Architecture Map
 
-| Yêu cầu (FR / Invariant) | Nằm tại Module / Route | Bị ràng buộc bởi |
-| --- | --- | --- |
-| **FR-1:** Chuyển trạng thái đơn hàng theo ma trận 5×5 + `expectedStatus` | `src/features/orders/order-state-machine.ts`, `src/features/orders/order-service.ts`, `src/app/api/admin/orders/[id]/status/route.ts` | `AD-1`, `AD-3`, `AD-4`, `AD-6`, `AD-8`, `AD-9`, `AD-10` |
-| **FR-2:** Nhân viên hủy đơn `pending`/`confirmed`/`shipping` kèm lý do bắt buộc | `src/features/orders/order-state-machine.ts`, `src/features/orders/order-service.ts`, `src/app/api/admin/orders/[id]/status/route.ts` | `AD-3`, `AD-4`, `AD-5`, `AD-6`, `AD-8`, `AD-10` |
-| **FR-3:** Ghi nhận `statusHistory` bất biến & tương thích ngược đơn cũ | `src/features/orders/types.ts`, `src/features/orders/order-state-machine.ts`, `src/features/orders/order-repository.ts` | `AD-2`, `AD-4`, `AD-5`, `AD-6`, `AD-10` |
-| **FR-4:** Khách hàng tự hủy đơn khi còn `pending` (`PATCH /api/orders/:id`) | `src/app/api/orders/[id]/route.ts`, `src/features/orders/order-service.ts` | `AD-3`, `AD-4`, `AD-5`, `AD-6`, `AD-10` |
-| **FR-5:** Khởi tạo & lưu trữ Tồn kho khả dụng tại `storage/inventory.json` | `src/features/orders/inventory-repository.ts`, `src/features/orders/server.ts` | `AD-2`, `AD-5`, `AD-6`, `AD-10` |
-| **FR-6:** Trừ kho nguyên tử lúc đặt hàng (`pending`), all-or-nothing & rollback | `src/features/orders/order-service.ts`, `src/lib/storage-lock.ts` | `AD-2`, `AD-3`, `AD-5`, `AD-6`, `AD-7`, `AD-10` |
-| **FR-7:** Hoàn kho idempotent & xác nhận nhận hàng hoàn từ `shipping` (`POST .../restock`) | `src/features/orders/order-service.ts`, `src/app/api/admin/orders/[id]/restock/route.ts` | `AD-3`, `AD-4`, `AD-5`, `AD-6`, `AD-8`, `AD-10` |
-| **FR-8:** Đồng bộ Tồn kho khả dụng động lên `/`, `/products`, `/products/[slug]`, `/api/products*`, `/checkout` | `src/features/catalog/catalog-inventory.ts`, `src/app/page.tsx`, `src/app/products/**`, `src/app/api/products/**` | `AD-1`, `AD-5`, `AD-7`, `AD-10` |
-| **FR-9, FR-10, FR-11:** Bảo vệ `/admin/*` & `/api/admin/*` Fail-Closed (`503 → 401`) + Đăng xuất | `src/features/orders/admin-auth.ts`, `src/proxy.ts`, `src/app/admin/login/page.tsx`, `src/app/api/admin/auth/**` | `AD-3`, `AD-8`, `AD-10` |
-| **FR-12, FR-13, FR-14:** Cổng vận hành `/admin/orders` (lọc URL, đếm tab, FIFO `pending`, tồn kho giữ chỗ inline, hộp thoại hủy, hoàn kho) | `src/app/admin/orders/page.tsx`, `src/features/orders/components/admin-orders-view.tsx`, `src/app/api/admin/orders/route.ts` | `AD-1`, `AD-4`, `AD-5`, `AD-8`, `AD-9`, `AD-10` |
-| **FR-15:** Timeline tiến trình 4 bước & nút Làm mới thủ công tại `/orders/[id]` | `src/app/orders/[id]/page.tsx`, `src/features/orders/components/order-progress-timeline.tsx`, `src/features/orders/components/refresh-status-button.tsx` | `AD-1`, `AD-4`, `AD-10` |
+| Yêu cầu (FR / Invariant)                                                                                                                                        | Nằm tại Module / Route                                                                                                                                       | Bị ràng buộc bởi                                                  |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| **FR-1:** Chuyển trạng thái đơn hàng theo ma trận 5×5 + `expectedStatus`                                                                          | `src/features/orders/order-state-machine.ts`, `src/features/orders/order-service.ts`, `src/app/api/admin/orders/[id]/status/route.ts`                    | `AD-1`, `AD-3`, `AD-4`, `AD-6`, `AD-8`, `AD-9`, `AD-10` |
+| **FR-2:** Nhân viên hủy đơn `pending`/`confirmed`/`shipping` kèm lý do bắt buộc                                                              | `src/features/orders/order-state-machine.ts`, `src/features/orders/order-service.ts`, `src/app/api/admin/orders/[id]/status/route.ts`                    | `AD-3`, `AD-4`, `AD-5`, `AD-6`, `AD-8`, `AD-10`           |
+| **FR-3:** Ghi nhận `statusHistory` bất biến & tương thích ngược đơn cũ                                                                         | `src/features/orders/types.ts`, `src/features/orders/order-state-machine.ts`, `src/features/orders/order-repository.ts`                                  | `AD-2`, `AD-4`, `AD-5`, `AD-6`, `AD-10`                     |
+| **FR-4:** Khách hàng tự hủy đơn khi còn `pending` (`PATCH /api/orders/:id`)                                                                      | `src/app/api/orders/[id]/route.ts`, `src/features/orders/order-service.ts`                                                                                 | `AD-3`, `AD-4`, `AD-5`, `AD-6`, `AD-10`                     |
+| **FR-5:** Khởi tạo & lưu trữ Tồn kho khả dụng tại `storage/inventory.json`                                                                        | `src/features/orders/inventory-repository.ts`, `src/features/orders/server.ts`                                                                             | `AD-2`, `AD-5`, `AD-6`, `AD-10`                               |
+| **FR-6:** Trừ kho nguyên tử lúc đặt hàng (`pending`), all-or-nothing & rollback                                                                    | `src/features/orders/order-service.ts`, `src/lib/storage-lock.ts`                                                                                          | `AD-2`, `AD-3`, `AD-5`, `AD-6`, `AD-7`, `AD-10`           |
+| **FR-7:** Hoàn kho idempotent & xác nhận nhận hàng hoàn từ `shipping` (`POST .../restock`)                                                       | `src/features/orders/order-service.ts`, `src/app/api/admin/orders/[id]/restock/route.ts`                                                                   | `AD-3`, `AD-4`, `AD-5`, `AD-6`, `AD-8`, `AD-10`           |
+| **FR-8:** Đồng bộ Tồn kho khả dụng động lên `/`, `/products`, `/products/[slug]`, `/api/products*`, `/checkout`                          | `src/features/catalog/catalog-inventory.ts`, `src/app/page.tsx`, `src/app/products/**`, `src/app/api/products/**`                                      | `AD-1`, `AD-5`, `AD-7`, `AD-10`                               |
+| **FR-9, FR-10, FR-11:** Bảo vệ `/admin/*` & `/api/admin/*` Fail-Closed (`503 → 401`) + Đăng xuất                                                | `src/features/orders/admin-auth.ts`, `src/proxy.ts`, `src/app/admin/login/page.tsx`, `src/app/api/admin/auth/**`                                       | `AD-3`, `AD-8`, `AD-10`                                         |
+| **FR-12, FR-13, FR-14:** Cổng vận hành `/admin/orders` (lọc URL, đếm tab, FIFO `pending`, tồn kho giữ chỗ inline, hộp thoại hủy, hoàn kho) | `src/app/admin/orders/page.tsx`, `src/features/orders/components/admin-orders-view.tsx`, `src/app/api/admin/orders/route.ts`                             | `AD-1`, `AD-4`, `AD-5`, `AD-8`, `AD-9`, `AD-10`           |
+| **FR-15:** Timeline tiến trình 4 bước & nút Làm mới thủ công tại `/orders/[id]`                                                                 | `src/app/orders/[id]/page.tsx`, `src/features/orders/components/order-progress-timeline.tsx`, `src/features/orders/components/refresh-status-button.tsx` | `AD-1`, `AD-4`, `AD-10`                                         |
 
 ## Deferred
 
