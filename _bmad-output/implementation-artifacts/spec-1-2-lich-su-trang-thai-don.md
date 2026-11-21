@@ -73,6 +73,18 @@ context:
 - Given `npm run check`, when chạy sau thay đổi, then pass; test cũ của `placeOrder`, `cancelOrder` không cần sửa.
 - Given một file `orders.json` có đơn cũ, when mở `/orders` và `/orders/[id]`, then trang không lỗi và file không đổi.
 
+### Review Findings
+
+- [x] [Review][Patch] Ghi chú đúng 200 ký tự bị từ chối (`>=` thay vì `>`); test "dài tối đa" chỉ thử 199 ký tự nên không bắt được [src/features/orders/order-history.ts:10]
+- [x] [Review][Patch] `transitionOrder` push vào mảng `statusHistory` của đơn đầu vào - không còn là hàm thuần; test "không mutate" chỉ chạy với đơn chưa có lịch sử [src/features/orders/order-state-machine.ts:44]
+- [x] [Review][Patch] `listOrders` trả đơn cũ không có `statusHistory` - vi phạm "chuẩn hóa ở mọi đường đọc" (dòng Matrix "Đơn cũ - đọc"); chỉ `getOrder` được test [src/features/orders/order-service.ts:149]
+
+**Rejected**
+
+- `false` — "Ghi chú không được escape HTML": chưa có nơi hiển thị trong story này; React tự escape khi render.
+- `false` — "Mục suy ra của đơn cũ nên dùng `createdAt`": spec (frozen) chốt `at: updatedAt` - thời điểm đơn đạt trạng thái hiện tại.
+- `low` — "`withStatusHistory` trả về chính đối tượng đầu vào khi đã có lịch sử": không ai sửa kết quả sau khi `transitionOrder` đã tạo mảng mới; sao chép thêm là thừa.
+
 ## Implementation Notes
 
 - `withStatusHistory` trả kiểu `Order & { statusHistory: OrderStatusEntry[] }` để nơi gọi không phải xử lý `undefined`.

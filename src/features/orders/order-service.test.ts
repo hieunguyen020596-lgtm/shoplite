@@ -299,6 +299,23 @@ describe("orderService", () => {
       expect(await legacyRepository.findById(legacy.id)).not.toHaveProperty("statusHistory");
     });
 
+    it("listOrders cũng suy ra lịch sử cho đơn cũ, không ghi lại", async () => {
+      const legacy = { ...(await service.placeOrder(validInput())) };
+      delete legacy.statusHistory;
+      const placed = await service.placeOrder(validInput());
+      const legacyRepository = createInMemoryOrderRepository([legacy, placed]);
+      const save = vi.spyOn(legacyRepository, "save");
+      const legacyService = createOrderService({ repository: legacyRepository });
+
+      const orders = await legacyService.listOrders();
+
+      expect(orders.map((order) => order.statusHistory)).toEqual([
+        [{ status: "pending", at: legacy.updatedAt, actor: "system" }],
+        placed.statusHistory,
+      ]);
+      expect(save).not.toHaveBeenCalled();
+    });
+
     it("đơn cũ: hủy lưu lịch sử gồm mục suy ra và mục hủy", async () => {
       const placed = await service.placeOrder(validInput());
       const legacy = { ...placed };

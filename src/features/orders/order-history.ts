@@ -7,7 +7,7 @@ export const MAX_NOTE_LENGTH = 200;
 export function normalizeNote(note: string | undefined): string | undefined {
   const trimmed = note?.trim();
   if (!trimmed) return undefined;
-  if (trimmed.length >= MAX_NOTE_LENGTH) {
+  if (trimmed.length > MAX_NOTE_LENGTH) {
     throw new OrderError("VALIDATION_ERROR", "Ghi chú không hợp lệ", {
       note: `Ghi chú tối đa ${MAX_NOTE_LENGTH} ký tự`,
     });

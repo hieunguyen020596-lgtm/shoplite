@@ -45,12 +45,10 @@ export function transitionOrder(
     );
   }
   const entryNote = normalizeNote(note);
-  const { statusHistory } = withStatusHistory(order);
-  statusHistory.push({
-    status: to,
-    at: at.toISOString(),
-    actor,
-    ...(entryNote ? { note: entryNote } : {}),
-  });
+  // Tạo mảng mới - không push vào mảng của đơn đầu vào (hàm thuần)
+  const statusHistory = [
+    ...withStatusHistory(order).statusHistory,
+    { status: to, at: at.toISOString(), actor, ...(entryNote ? { note: entryNote } : {}) },
+  ];
   return { ...order, status: to, updatedAt: at.toISOString(), statusHistory };
 }

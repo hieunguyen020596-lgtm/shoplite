@@ -38,7 +38,7 @@ story_location: _bmad-output/implementation-artifacts
 development_status:
   epic-1: in-progress
   1-1-máy-trạng-thái-đơn-hàng: done
-  1-2-lịch-sử-trạng-thái-đơn: review
+  1-2-lịch-sử-trạng-thái-đơn: done
   1-3-api-chuyển-trạng-thái-cho-nhân-viên: ready-for-dev
   epic-1-retrospective: optional
 

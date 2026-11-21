@@ -148,7 +148,7 @@ export function createOrderService({
     /** Danh sách đơn hàng, mới nhất trước. */
     async listOrders(): Promise<Order[]> {
       const orders = await repository.findAll();
-      return orders.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+      return orders.map(withStatusHistory).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
     },
 
     getOrder,

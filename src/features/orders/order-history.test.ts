@@ -21,9 +21,10 @@ describe("normalizeNote", () => {
     expect(normalizeNote("   ")).toBeUndefined();
   });
 
-  it("chấp nhận ghi chú dài tối đa", () => {
-    const note = "a".repeat(MAX_NOTE_LENGTH - 1);
+  it("chấp nhận ghi chú đúng 200 ký tự, tính sau khi bỏ khoảng trắng hai đầu", () => {
+    const note = "a".repeat(MAX_NOTE_LENGTH);
     expect(normalizeNote(note)).toBe(note);
+    expect(normalizeNote(`  ${note}  `)).toBe(note);
   });
 
   it("từ chối ghi chú quá dài với VALIDATION_ERROR", () => {

@@ -172,6 +172,16 @@ describe("lịch sử trạng thái", () => {
     expect(error.details).toHaveProperty("note");
   });
 
+  it("không sửa mảng statusHistory của đơn đầu vào", () => {
+    const order = withHistory("pending");
+    Object.freeze(order.statusHistory);
+    const confirmed = transitionOrder(order, "confirmed", { actor: "staff", at: AT });
+
+    expect(order.statusHistory).toHaveLength(1);
+    expect(confirmed.statusHistory).toHaveLength(2);
+    expect(confirmed.statusHistory).not.toBe(order.statusHistory);
+  });
+
   it("bước chuyển bị từ chối không thêm mục lịch sử", () => {
     const order = withHistory("delivered");
     expect(() => transitionOrder(order, "cancelled", { actor: "staff", at: AT })).toThrow(
