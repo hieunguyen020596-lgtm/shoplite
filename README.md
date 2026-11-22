@@ -105,9 +105,24 @@ curl -X POST http://localhost:3000/api/orders \
 
 ## Biến môi trường
 
-| Biến          | Mặc định              | Mô tả                       |
-| ------------- | --------------------- | --------------------------- |
-| `ORDERS_FILE` | `storage/orders.json` | Đường dẫn file lưu đơn hàng |
+| Biến             | Mặc định              | Mô tả                                                                          |
+| ---------------- | --------------------- | ------------------------------------------------------------------------------ |
+| `ORDERS_FILE`    | `storage/orders.json` | Đường dẫn file lưu đơn hàng                                                    |
+| `SESSION_SECRET` | (không có)            | Bí mật ký cookie phiên nhân viên (HMAC-SHA256); chuỗi ngẫu nhiên dài, bắt buộc |
+| `STAFF_ACCOUNTS` | (không có)            | JSON `[{ "username", "displayName", "passwordHash" }]`, bắt buộc               |
+
+Thiếu hoặc sai `SESSION_SECRET` / `STAFF_ACCOUNTS` thì mọi lần đăng nhập nhân viên đều bị từ chối (401) và server ghi log tên biến bị lỗi.
+
+Tạo `passwordHash` bằng script:
+
+```bash
+npm run staff:hash -- matkhau123
+# scrypt$<salt>$<hash>  -> dán vào trường passwordHash của STAFF_ACCOUNTS
+```
+
+**Lưu ý khi đặt trong `.env.local`:** Next.js coi `$tên` là tham chiếu biến và xóa phần đó, làm hash bị cụt và mọi lần đăng nhập đều 401. Phải thoát mỗi dấu `$` thành `\$`, ví dụ `"passwordHash":"scrypt\$<salt>\$<hash>"`. Thêm cờ `--env` để script in sẵn bản đã thoát: `npm run staff:hash -- matkhau123 --env`.
+
+**Ràng buộc:** ứng dụng chỉ hỗ trợ chạy một instance (đơn hàng lưu file, bộ đếm trong bộ nhớ).
 
 ## Giấy phép
 

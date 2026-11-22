@@ -4,7 +4,15 @@ import { placeOrderSchema, toFieldErrors } from "@/features/checkout/checkout-sc
 import { calculateOrderTotals } from "@/features/checkout/pricing";
 import { OrderError } from "./order-errors";
 import type { OrderRepository } from "./order-repository";
+import { matchesStatusFilter, QUEUE_CHIPS, type StatusFilter } from "./staff-order-schema";
 import type { Order, OrderItem } from "./types";
+
+/** Chuẩn hóa ô tìm mã đơn: bỏ khoảng trắng, viết hoa. "4f9a2c " -> "4F9A2C" */
+export function normalizeOrderCode(value: string): string {
+  return value.replace(/\s+/g, "").toUpperCase();
+}
+
+const SHORT_CODE_LENGTH = 6;
 
 export interface OrderServiceDeps {
   repository: OrderRepository;
@@ -109,10 +117,41 @@ export function createOrderService({
       return order;
     },
 
-    /** Danh sách đơn hàng, mới nhất trước. */
-    async listOrders(): Promise<Order[]> {
-      const orders = await repository.findAll();
-      return orders.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    /**
+     * Danh sách đơn hàng, có thể lọc theo trạng thái.
+     * Riêng "pending" xếp cũ nhất trước (đơn chờ lâu nhất lên đầu); còn lại mới nhất trước.
+     */
+    async listOrders({ status }: { status?: StatusFilter } = {}): Promise<Order[]> {
+      const all = await repository.findAll();
+      const orders = status ? all.filter((o) => matchesStatusFilter(o.status, status)) : all;
+      const oldestFirst = status === "pending";
+      return orders.sort((a, b) =>
+        oldestFirst ? a.createdAt.localeCompare(b.createdAt) : b.createdAt.localeCompare(a.createdAt),
+      );
+    },
+
+    /** Tìm theo Mã đơn đầy đủ (khớp chính xác) hoặc 6 ký tự cuối, ở mọi trạng thái. */
+    async searchOrders(query: string): Promise<Order[]> {
+      const code = normalizeOrderCode(query);
+      if (!code) return [];
+      const all = await repository.findAll();
+      return all
+        .filter(
+          (o) =>
+            o.id.toUpperCase() === code ||
+            (code.length === SHORT_CODE_LENGTH && o.id.toUpperCase().endsWith(code)),
+        )
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    },
+
+    /** Số đơn của từng chip bộ lọc, tính trong một lần đọc. */
+    async countByFilter(): Promise<Record<string, number>> {
+      const all = await repository.findAll();
+      const counts: Record<string, number> = {};
+      for (const { filter } of QUEUE_CHIPS) {
+        counts[filter] = all.filter((o) => matchesStatusFilter(o.status, filter)).length;
+      }
+      return counts;
     },
 
     getOrder,

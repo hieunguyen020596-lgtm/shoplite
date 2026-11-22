@@ -1,0 +1,72 @@
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic not yet started
+#   - in-progress: Epic actively being worked on
+#   - done: All stories in epic completed
+
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - ready-for-dev: Story file created, ready for development
+#   - in-progress: Developer actively working on implementation
+#   - review: Implementation complete, ready for review
+#   - done: Story completed
+
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - done: Retrospective has been completed
+
+# Action Item Status:
+#   - open: Committed during a retrospective, not yet addressed
+#   - in-progress: Actively being worked on
+#   - done: Completed
+
+# WORKFLOW NOTES:
+# ===============
+# - Epic transitions to 'in-progress' automatically when its first story starts (via build's sprint sync)
+# - Stories can be worked in parallel if team capacity allows
+# - Developer typically creates the next story after the previous one is 'done' to incorporate learnings
+# - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
+# - Retrospective appends its action items to action_items; the status view surfaces open ones
+generated: 11-21-2026 13:59
+last_updated: 11-21-2026 16:30
+project: project_ai
+project_key: NOKEY
+tracking_system: file-system
+story_location: _bmad-output/implementation-artifacts
+development_status:
+  epic-1: in-progress
+  1-1-xác-thực-nhân-viên-qua-api: done
+  1-2-trang-đăng-nhập-và-khung-trang-nhân-viên: done
+  1-3-khóa-danh-sách-đơn-và-danh-sách-đơn-cho-nhân-viên: done
+
+  1-4-xem-chi-tiết-đơn-cho-nhân-viên: done
+  1-5-che-dữ-liệu-cá-nhân-trên-trang-đơn-của-khách: done
+  1-6-xác-minh-bằng-sđt-và-giới-hạn-tra-sai: done
+  1-7-đơn-hàng-của-bạn-và-tra-cứu-đơn: done
+  1-8-khách-tự-hủy-đơn-phải-được-xác-minh: done
+  epic-1-retrospective: optional
+
+  epic-2: backlog
+  2-1-khởi-tạo-mốc-tồn-kho-và-thời-điểm-nâng-cấp: backlog
+  2-2-sơ-đồ-trạng-thái-và-lịch-sử-sự-kiện: backlog
+  2-3-api-chuyển-trạng-thái-cho-nhân-viên: backlog
+  2-4-hàng-đợi-có-nút-xác-nhận-bắt-đầu-giao-đã-giao: backlog
+  2-5-hủy-đơn-và-giao-thất-bại-kèm-lý-do: backlog
+  2-6-tự-hủy-đơn-quá-hạn-xác-nhận: backlog
+  2-7-lịch-sử-và-ghi-chú-nội-bộ-cho-nhân-viên: backlog
+  2-8-timeline-và-lý-do-trên-trang-đơn-của-khách: backlog
+  epic-2-retrospective: optional
+
+  epic-3: backlog
+  3-1-tính-tồn-thực-hàng-đang-giữ-và-tồn-khả-dụng: backlog
+  3-2-giữ-hàng-khi-đặt-hai-khách-tranh-món-cuối: backlog
+  3-3-hiển-thị-tồn-khả-dụng-trên-catalog-trang-sản-phẩm-và-giỏ-hàn: backlog
+  3-4-bộ-test-kịch-bản-vận-hành-đầu-cuối: backlog
+  epic-3-retrospective: optional
+
+  epic-4: backlog
+  4-1-xác-nhận-nhiều-đơn-cùng-lúc: backlog
+  4-2-in-phiếu-giao-hàng: backlog
+  4-3-cờ-đã-nhận-tiền-chuyển-khoản: backlog
+  epic-4-retrospective: optional

@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trang đơn chưa xác minh — mock</title>
+<style>
+/* Mock minh họa — spine thắng khi mâu thuẫn.
+   Chi phối bởi: DESIGN.md Components (timeline-dot, masked-field, card, input, button-secondary),
+   EXPERIENCE.md IA (Trang đơn chưa xác minh), Component Patterns (Timeline, Form xác minh SĐT, Masked field),
+   State Patterns (Chưa xác minh), Key Flows UJ-2 bước 2 và UJ-4 cao trào.
+   Header, nav và bố cục max-w-4xl giữ nguyên như src/app/orders/[id]/page.tsx hiện có; chỉ thêm thẻ Tiến trình đơn và form xác minh.
+   Điện thoại 402×874 (giả định iPhone 18). Desktop 1280. */
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Be Vietnam Pro",system-ui,sans-serif;background:#e2e8f0;color:#0f172a;padding:32px;display:flex;flex-direction:column;gap:40px;align-items:center}
+.label{font-size:13px;font-weight:600;color:#475569;text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px}
+.cap{text-align:center;font-size:13px;color:#475569;margin-top:10px;max-width:720px;margin-left:auto;margin-right:auto}
+.row2{display:flex;gap:32px;flex-wrap:wrap;justify-content:center}
+.phone{width:422px;height:894px;border:10px solid #111827;border-radius:62px;background:#f8fafc;position:relative;overflow:hidden;box-shadow:0 24px 48px rgba(15,23,42,.22)}
+.island{position:absolute;top:11px;left:50%;transform:translateX(-50%);width:126px;height:37px;border-radius:20px;background:#000;z-index:9}
+.status{height:54px;display:flex;align-items:center;justify-content:space-between;padding:0 32px 0 44px;font-size:16px;font-weight:600;background:#fff}
+.status i{font-style:normal;font-size:12px;letter-spacing:2px}
+.home{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:134px;height:5px;border-radius:9999px;background:#0f172a;z-index:9}
+.browser{width:1280px;border-radius:12px;overflow:hidden;box-shadow:0 24px 48px rgba(15,23,42,.22);background:#f8fafc}
+.chrome{height:44px;background:#f1f5f9;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;gap:8px;padding:0 16px}
+.chrome b{width:12px;height:12px;border-radius:9999px;background:#cbd5e1}
+.url{margin-left:16px;flex:1;max-width:560px;height:28px;border-radius:8px;background:#fff;font-size:13px;color:#64748b;display:flex;align-items:center;padding:0 12px}
+header.shop{height:64px;background:rgba(255,255,255,.9);border-bottom:1px solid #e2e8f0}
+header.shop .in{height:100%;display:flex;align-items:center;gap:4px;padding:0 16px;max-width:1152px;margin:0 auto;font-size:14px;font-weight:500}
+.browser header.shop .in{gap:24px}
+.brand{display:flex;align-items:center;gap:8px;font-size:18px;font-weight:700}
+.logo{width:32px;height:32px;border-radius:8px;background:#4f46e5;color:#fff;display:grid;place-items:center;font-size:16px}
+.nav{display:flex;gap:4px}
+.nav span{padding:8px;border-radius:8px;color:#475569}
+.browser .nav span{padding:8px 12px}
+.nav .on{background:#eef2ff;color:#4338ca}
+.cart{margin-left:auto;font-size:18px}
+main{padding:24px 16px;display:flex;flex-direction:column;gap:16px;max-width:896px;margin:0 auto}
+.browser main{padding:32px 16px 48px;gap:24px}
+.back{font-size:14px;color:#475569;font-weight:500}
+h1{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums;display:flex;gap:8px 12px;align-items:center;flex-wrap:wrap}
+.browser h1{font-size:24px}
+.sub{font-size:14px;color:#64748b;margin-top:4px}
+.badge{border-radius:9999px;padding:2px 10px;font-size:12px;font-weight:600}
+.shipping{background:#eef2ff;color:#4338ca;box-shadow:inset 0 0 0 1px #c7d2fe}
+.failed{background:#fff1f2;color:#be123c;box-shadow:inset 0 0 0 1px #fecdd3}
+.card{background:#fff;border-radius:16px;box-shadow:0 1px 2px rgba(0,0,0,.05),inset 0 0 0 1px #e2e8f0;padding:20px;font-size:14px}
+.card h2{font-size:18px;font-weight:600;margin-bottom:12px}
+.grid2{display:grid;gap:16px}
+.browser .grid2{grid-template-columns:1fr 1fr}
+ol{list-style:none}
+.browser ol{display:flex}
+ol li{position:relative;padding:0 0 18px 24px}
+ol li:before{content:"";position:absolute;left:5px;top:14px;bottom:-2px;width:2px;background:#4f46e5}
+ol li:last-child:before{display:none}
+ol li.up:before{background:#cbd5e1}
+.browser ol li{flex:1;padding:24px 8px 0 0}
+.browser ol li:before{left:12px;right:0;top:5px;bottom:auto;width:auto;height:2px}
+.dot{position:absolute;left:0;top:4px;width:12px;height:12px;border-radius:9999px;background:#4f46e5}
+.browser .dot{top:0}
+.cur .dot{background:#fff;box-shadow:inset 0 0 0 2px #4f46e5}
+.up .dot{background:#cbd5e1}
+.fail .dot{background:#e11d48}
+.up{color:#94a3b8}
+.cur b,.fail b{font-weight:600}
+time{display:block;font-size:12px;color:#64748b;font-variant-numeric:tabular-nums}
+.reason{margin-top:6px;background:#fff1f2;color:#be123c;border-radius:12px;padding:8px 12px;font-size:13px}
+.muted{color:#475569}
+.mask{color:#64748b;display:flex;gap:6px;align-items:center}
+label{display:block;font-size:14px;font-weight:500;color:#334155;margin:12px 0 6px}
+.frow{display:flex;gap:8px}
+.input{flex:1;height:44px;border-radius:12px;box-shadow:inset 0 0 0 1px #cbd5e1;padding:0 12px;display:flex;align-items:center;color:#94a3b8;background:#fff}
+.sec{height:44px;padding:0 16px;border-radius:12px;background:#fff;box-shadow:inset 0 0 0 1px #cbd5e1;font-weight:600;display:flex;align-items:center;white-space:nowrap}
+.line{display:flex;align-items:center;gap:12px;padding:8px 0}
+.thumb{width:48px;height:48px;border-radius:12px;background:linear-gradient(135deg,#e0f2fe,#c7d2fe);display:grid;place-items:center;font-size:24px;flex:none}
+.line .n{flex:1}
+.line .n small{display:block;color:#64748b;font-size:13px}
+.tot{display:flex;justify-content:space-between;border-top:1px solid #e2e8f0;padding-top:12px;margin-top:8px;font-size:16px;font-weight:600}
+.tot b{color:#4338ca}
+</style>
+</head>
+<body>
+
+<section>
+<p class="label">Điện thoại · 402×874</p>
+<div class="row2">
+<div>
+<div class="phone">
+  <div class="island"></div>
+  <div class="status"><span>9:41</span><i>▂▄▆ ᯤ ▭</i></div>
+  <header class="shop"><div class="in"><span class="logo">🏪</span><span class="nav"><span>Trang chủ</span><span>Sản phẩm</span><span class="on">Đơn hàng</span></span><span class="cart">🛒</span></div></header>
+  <main>
+    <h1>Đơn hàng SL-20261121-4F9A2C <span class="badge shipping">Đang giao</span></h1>
+    <div class="card"><h2>Tiến trình đơn</h2>
+      <ol>
+        <li><span class="dot"></span>Đã đặt<time>21/11 07:58</time></li>
+        <li><span class="dot"></span>Đã xác nhận<time>21/11 08:12 · Cửa hàng</time></li>
+        <li class="cur" aria-current="step"><span class="dot"></span><b>Đang giao</b><time>21/11 14:30</time></li>
+        <li class="up"><span class="dot"></span>Đã giao</li>
+      </ol>
+    </div>
+    <div class="card"><h2>Người nhận</h2>
+      <p class="mask">🔒 <span>09****678</span></p>
+      <label for="p1">Nhập số điện thoại đặt hàng để xem đầy đủ thông tin.</label>
+      <div class="frow"><span class="input" id="p1">0912 345 678</span><span class="sec">Xem đầy đủ</span></div>
+    </div>
+    <div class="card"><div class="line"><span class="thumb">🎧</span><span class="n">Tai nghe SoundMax Pro<small>1.290.000 ₫ × 1</small></span></div><div class="tot"><span>Tổng cộng</span><b>1.290.000 ₫</b></div></div>
+  </main>
+  <div class="home"></div>
+</div>
+<p class="cap">UJ-2 bước 2: Timeline, SĐT bị che, form xác minh. Không có nút Hủy.</p>
+</div>
+<div>
+<div class="phone">
+  <div class="island"></div>
+  <div class="status"><span>9:41</span><i>▂▄▆ ᯤ ▭</i></div>
+  <header class="shop"><div class="in"><span class="logo">🏪</span><span class="nav"><span>Trang chủ</span><span>Sản phẩm</span><span class="on">Đơn hàng</span></span><span class="cart">🛒</span></div></header>
+  <main>
+    <h1>Đơn hàng SL-20261119-C0D3E5 <span class="badge failed">Giao thất bại</span></h1>
+    <div class="card"><h2>Tiến trình đơn</h2>
+      <ol>
+        <li><span class="dot"></span>Đã đặt<time>19/11 10:02</time></li>
+        <li><span class="dot"></span>Đã xác nhận<time>19/11 10:30 · Cửa hàng</time></li>
+        <li><span class="dot"></span>Đang giao<time>20/11 08:15</time></li>
+        <li class="fail" aria-current="step"><span class="dot"></span><b>Giao thất bại</b><time>20/11 13:50</time><div class="reason">Lý do: Khách từ chối nhận</div></li>
+      </ol>
+    </div>
+  </main>
+  <div class="home"></div>
+</div>
+<p class="cap">UJ-4 cao trào: Timeline dừng ở chấm rose kèm Lý do. Bước "Đã giao" bị ẩn.</p>
+</div>
+</div>
+</section>
+
+<section>
+<p class="label">Desktop · 1280px</p>
+<div class="browser">
+  <div class="chrome"><b></b><b></b><b></b><span class="url">shoplite.vn/orders/SL-20261121-4F9A2C</span></div>
+  <header class="shop"><div class="in"><span class="brand"><span class="logo">🏪</span>ShopLite</span><span class="nav"><span>Trang chủ</span><span>Sản phẩm</span><span class="on">Đơn hàng</span></span><span class="cart">🛒</span></div></header>
+  <main>
+    <span class="back">← Tất cả đơn hàng</span>
+    <div><h1>Đơn hàng SL-20261121-4F9A2C <span class="badge shipping">Đang giao</span></h1><p class="sub">Đặt lúc 21/11/2026 07:58</p></div>
+    <div class="card"><h2>Tiến trình đơn</h2>
+      <ol>
+        <li><span class="dot"></span>Đã đặt<time>21/11 07:58</time></li>
+        <li><span class="dot"></span>Đã xác nhận<time>21/11 08:12 · Cửa hàng</time></li>
+        <li class="cur" aria-current="step"><span class="dot"></span><b>Đang giao</b><time>21/11 14:30</time></li>
+        <li class="up"><span class="dot"></span>Đã giao</li>
+      </ol>
+    </div>
+    <div class="card"><h2>Sản phẩm</h2><div class="line"><span class="thumb">🎧</span><span class="n">Tai nghe không dây SoundMax Pro<small>1.290.000 ₫ × 1</small></span><b>1.290.000 ₫</b></div><div class="tot"><span>Tổng cộng</span><b>1.290.000 ₫</b></div></div>
+    <div class="grid2">
+      <div class="card"><h2>Người nhận</h2><p class="mask">🔒 <span>09****678</span></p>
+        <label for="p2">Nhập số điện thoại đặt hàng để xem đầy đủ thông tin.</label>
+        <div class="frow"><span class="input" id="p2">0912 345 678</span><span class="sec">Xem đầy đủ</span></div></div>
+      <div class="card"><h2>Giao hàng & thanh toán</h2><p class="muted">Giao hàng: Giao hàng tiêu chuẩn</p><p class="muted">Thanh toán: Thanh toán khi nhận hàng (COD)</p></div>
+    </div>
+  </main>
+</div>
+<p class="cap">Từ md trở lên: Timeline chuyển sang nằm ngang, bốn bước trên một dòng. Bố cục còn lại giữ nguyên như trang đơn hiện có (sản phẩm, rồi lưới 2 cột Người nhận / Giao hàng & thanh toán). Form xác minh nằm trong thẻ Người nhận.</p>
+</section>
+
+</body>
+</html>

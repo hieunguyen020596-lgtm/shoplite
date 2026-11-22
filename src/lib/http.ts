@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { AccessError } from "@/features/auth/access-errors";
 import { OrderError } from "@/features/orders/order-errors";
 
 export interface ApiErrorBody {
@@ -16,7 +17,7 @@ export function jsonError(
 
 /** Chuyển lỗi thành response chuẩn { error: { code, message, details? } }. */
 export function handleRouteError(error: unknown): NextResponse<ApiErrorBody> {
-  if (error instanceof OrderError) {
+  if (error instanceof OrderError || error instanceof AccessError) {
     return jsonError(error.httpStatus, error.code, error.message, error.details);
   }
   console.error(error);

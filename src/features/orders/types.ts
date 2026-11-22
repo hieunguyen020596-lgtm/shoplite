@@ -8,6 +8,7 @@ export const ORDER_STATUSES = [
   "shipping",
   "delivered",
   "cancelled",
+  "failed",
 ] as const;
 
 export type OrderStatus = (typeof ORDER_STATUSES)[number];
@@ -18,6 +19,7 @@ export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   shipping: "Đang giao",
   delivered: "Đã giao",
   cancelled: "Đã hủy",
+  failed: "Giao thất bại",
 };
 
 export interface OrderCustomer {

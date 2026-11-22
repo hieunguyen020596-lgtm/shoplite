@@ -18,8 +18,10 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "staff:hash": "node scripts/staff-hash.mjs",
     "test:e2e": "playwright test",
-    "check": "npm run lint && npm run typecheck && npm run test"
+    "check": "npm run lint && npm run typecheck && npm run test",
+    "seed:orders": "node scripts/seed-orders.mjs"
   },
   "dependencies": {
     "clsx": "^2.1.1",

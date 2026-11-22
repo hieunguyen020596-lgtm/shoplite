@@ -6,6 +6,7 @@ import { useState, type ChangeEvent, type FormEvent, type ReactNode } from "reac
 import { Banknote, CreditCard, Truck, Zap } from "lucide-react";
 import { Button, buttonStyles } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Field, inputClass } from "@/components/ui/field";
 import { useCart } from "@/features/cart/use-cart";
 import {
   checkoutFormSchema,
@@ -46,9 +47,6 @@ const PAYMENT_ICONS: Record<PaymentMethod, ReactNode> = {
   cod: <Banknote className="size-5" />,
   bank_transfer: <CreditCard className="size-5" />,
 };
-
-const inputClass =
-  "h-11 w-full rounded-xl border-0 bg-white px-3 text-sm ring-1 ring-inset placeholder:text-slate-400 focus:ring-2 focus:ring-indigo-600 focus:outline-none";
 
 export function CheckoutForm() {
   const router = useRouter();
@@ -268,31 +266,6 @@ export function CheckoutForm() {
         </Button>
       </div>
     </form>
-  );
-}
-
-interface FieldProps {
-  label: string;
-  name: string;
-  error?: string;
-  required?: boolean;
-  className?: string;
-  children: ReactNode;
-}
-
-function Field({ label, name, error, required, className, children }: FieldProps) {
-  return (
-    <div className={cn("flex flex-col gap-1.5", className)}>
-      <label htmlFor={name} className="text-sm font-medium text-slate-700">
-        {label} {required && <span className="text-rose-600">*</span>}
-      </label>
-      {children}
-      {error && (
-        <p className="text-xs text-rose-600" data-testid={`error-${name}`}>
-          {error}
-        </p>
-      )}
-    </div>
   );
 }
 

@@ -24,3 +24,6 @@ test-results/
 
 # OS
 .DS_Store
+
+# dữ liệu cục bộ (đơn hàng, tồn kho) - không commit
+storage/

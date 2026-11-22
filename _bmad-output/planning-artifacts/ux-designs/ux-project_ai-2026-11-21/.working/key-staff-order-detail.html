@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chi tiết đơn (nhân viên) — mock</title>
+<style>
+/* Mock minh họa — spine thắng khi mâu thuẫn.
+   Chi phối bởi: DESIGN.md Components (action-bar, bottom-sheet, card, status-badge, OptionCard, button-danger),
+   EXPERIENCE.md State Patterns (bảng thao tác theo trạng thái: shipping), Component Patterns (Bottom sheet chọn Lý do,
+   Lịch sử trạng thái, Ghi chú nội bộ), Responsive & Platform, Key Flows UJ-4 bước 1–2.
+   Điện thoại 402×874 (giả định iPhone 18): trạng thái nghỉ + sheet Giao thất bại.
+   Desktop 1280: nút nằm ở dòng tiêu đề; sheet hiển thị thành dialog ở giữa (max-w 448px). */
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Be Vietnam Pro",system-ui,sans-serif;background:#e2e8f0;color:#0f172a;padding:32px;display:flex;flex-direction:column;gap:40px;align-items:center}
+.label{font-size:13px;font-weight:600;color:#475569;text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px}
+.cap{text-align:center;font-size:13px;color:#475569;margin-top:10px;max-width:720px;margin-left:auto;margin-right:auto}
+.row2{display:flex;gap:32px;flex-wrap:wrap;justify-content:center}
+.phone{width:422px;height:894px;border:10px solid #111827;border-radius:62px;background:#f8fafc;position:relative;overflow:hidden;box-shadow:0 24px 48px rgba(15,23,42,.22)}
+.island{position:absolute;top:11px;left:50%;transform:translateX(-50%);width:126px;height:37px;border-radius:20px;background:#000;z-index:9}
+.status{height:54px;display:flex;align-items:center;justify-content:space-between;padding:0 32px 0 44px;font-size:16px;font-weight:600;background:#fff}
+.status i{font-style:normal;font-size:12px;letter-spacing:2px}
+.home{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:134px;height:5px;border-radius:9999px;background:#0f172a;z-index:9}
+.browser{width:1280px;border-radius:12px;overflow:hidden;box-shadow:0 24px 48px rgba(15,23,42,.22);background:#f8fafc;position:relative}
+.chrome{height:44px;background:#f1f5f9;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;gap:8px;padding:0 16px}
+.chrome b{width:12px;height:12px;border-radius:9999px;background:#cbd5e1}
+.url{margin-left:16px;flex:1;max-width:560px;height:28px;border-radius:8px;background:#fff;font-size:13px;color:#64748b;display:flex;align-items:center;padding:0 12px}
+header.staff{height:56px;background:#fff;border-bottom:1px solid #e2e8f0}
+header.staff .in{height:100%;display:flex;align-items:center;gap:8px;padding:0 16px;max-width:896px;margin:0 auto}
+.logo{width:32px;height:32px;border-radius:8px;background:#4f46e5;color:#fff;display:grid;place-items:center}
+.role{font-size:14px;color:#64748b;font-weight:500}
+.who{margin-left:auto;font-size:14px;font-weight:500;color:#334155}
+.ghost{height:32px;padding:0 12px;border-radius:12px;font-size:14px;font-weight:600;color:#334155;display:flex;align-items:center}
+main{padding:16px 16px 120px;display:flex;flex-direction:column;gap:12px;max-width:896px;margin:0 auto}
+.browser main{padding:24px 16px 48px;gap:16px}
+.back{font-size:14px;color:#475569;font-weight:500}
+.title{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.title h1{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums}
+.browser .title h1{font-size:24px}
+.title .acts{margin-left:auto;display:flex;gap:8px}
+.badge{border-radius:9999px;padding:2px 10px;font-size:12px;font-weight:600}
+.shipping{background:#eef2ff;color:#4338ca;box-shadow:inset 0 0 0 1px #c7d2fe}
+.grid2{display:grid;gap:12px}
+.browser .grid2{grid-template-columns:1fr 1fr;gap:16px}
+.card{background:#fff;border-radius:16px;box-shadow:0 1px 2px rgba(0,0,0,.05),inset 0 0 0 1px #e2e8f0;padding:16px;font-size:14px}
+.browser .card{padding:20px}
+.card h2{font-size:16px;font-weight:600;margin-bottom:8px}
+.muted{color:#475569}
+.hist li{list-style:none;display:flex;gap:8px;padding:6px 0;border-top:1px solid #f1f5f9;font-size:13px}
+.hist li:first-child{border-top:0}
+.hist time{color:#64748b;font-variant-numeric:tabular-nums;min-width:74px}
+.ta{height:72px;border-radius:12px;box-shadow:inset 0 0 0 1px #cbd5e1;padding:10px 12px;color:#94a3b8;font-size:14px;margin-bottom:8px}
+.cnt{font-size:12px;color:#64748b;display:flex;justify-content:space-between;align-items:center}
+.bar{position:absolute;left:0;right:0;bottom:0;background:#fff;border-top:1px solid #e2e8f0;padding:12px 16px 34px;display:flex;gap:8px}
+.btn{border-radius:12px;font-weight:600;display:flex;align-items:center;justify-content:center}
+.lg{height:48px;font-size:16px;flex:1}
+.md{height:40px;font-size:14px;padding:0 16px}
+.sm{height:32px;font-size:14px;padding:0 12px}
+.primary{background:#4f46e5;color:#fff}
+.secondary{background:#fff;color:#0f172a;box-shadow:inset 0 0 0 1px #cbd5e1}
+.danger{background:#e11d48;color:#fff}
+.ghostb{color:#334155}
+.full{width:100%;flex:none}
+.scrim{position:absolute;inset:0;background:rgba(15,23,42,.4);z-index:6}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:16px 16px 0 0;padding:20px 16px 34px;display:flex;flex-direction:column;gap:10px;z-index:7}
+.dialog{position:absolute;left:50%;top:50%;transform:translate(-50%,-40%);width:448px;background:#fff;border-radius:16px;padding:24px;display:flex;flex-direction:column;gap:10px;z-index:7;box-shadow:0 20px 40px rgba(15,23,42,.25)}
+.sheet h2,.dialog h2{font-size:18px;font-weight:600}
+.opt{border-radius:12px;padding:14px 16px;box-shadow:inset 0 0 0 1px #e2e8f0;font-size:14px;font-weight:600}
+.opt.on{background:#eef2ff;box-shadow:inset 0 0 0 2px #4f46e5}
+.grip{width:40px;height:4px;border-radius:9999px;background:#cbd5e1;margin:0 auto 4px}
+.dacts{display:flex;gap:8px;justify-content:flex-end;margin-top:4px}
+</style>
+</head>
+<body>
+
+<section>
+<p class="label">Điện thoại · 402×874</p>
+<div class="row2">
+<div>
+<div class="phone">
+  <div class="island"></div>
+  <div class="status"><span>9:41</span><i>▂▄▆ ᯤ ▭</i></div>
+  <header class="staff"><div class="in"><div class="logo">🏪</div><span class="role">Nhân viên</span></div></header>
+  <main>
+    <span class="back">← Hàng đợi</span>
+    <div class="title"><h1>SL-20261119-C0D3E5</h1><span class="badge shipping">Đang giao</span></div>
+    <div class="card"><h2>Người nhận</h2><p><b>Ngô Bảo Anh</b></p><p class="muted">0901 222 333</p><p class="muted">45 Lê Lợi, Quận 1, TP.HCM</p></div>
+    <div class="card"><h2>Sản phẩm · 1.290.000 ₫ (COD)</h2><p class="muted">Tai nghe không dây SoundMax Pro × 1</p></div>
+    <div class="card"><h2>Lịch sử trạng thái</h2><ul class="hist">
+      <li><time>19/11 10:02</time><span>Khách · Đặt đơn</span></li>
+      <li><time>19/11 10:30</time><span>Lan · Chờ xác nhận → Đã xác nhận</span></li>
+      <li><time>20/11 08:15</time><span>Huy · Đã xác nhận → Đang giao</span></li>
+    </ul></div>
+  </main>
+  <div class="bar"><span class="btn lg secondary">Giao thất bại</span><span class="btn lg primary">Đã giao</span></div>
+  <div class="home"></div>
+</div>
+<p class="cap">Trạng thái nghỉ. Action bar sticky, chừa vùng an toàn 34px ở đáy.</p>
+</div>
+<div>
+<div class="phone">
+  <div class="island"></div>
+  <div class="status"><span>9:41</span><i>▂▄▆ ᯤ ▭</i></div>
+  <header class="staff"><div class="in"><div class="logo">🏪</div><span class="role">Nhân viên</span></div></header>
+  <main><span class="back">← Hàng đợi</span><div class="title"><h1>SL-20261119-C0D3E5</h1><span class="badge shipping">Đang giao</span></div></main>
+  <div class="scrim"></div>
+  <div class="sheet" role="dialog" aria-label="Giao thất bại">
+    <div class="grip"></div>
+    <h2>Giao thất bại</h2>
+    <p class="muted" style="font-size:14px">Chọn lý do. Khách sẽ thấy lý do này trên trang đơn.</p>
+    <div class="opt">Khách không nhận máy</div>
+    <div class="opt on">Khách từ chối nhận</div>
+    <div class="opt">Sai địa chỉ</div>
+    <div class="opt">Khác…</div>
+    <span class="btn lg danger full">Xác nhận giao thất bại</span>
+    <span class="btn md ghostb full">Không</span>
+  </div>
+  <div class="home"></div>
+</div>
+<p class="cap">UJ-4 bước 2: bottom sheet, đã chọn "Khách từ chối nhận".</p>
+</div>
+</div>
+</section>
+
+<section>
+<p class="label">Desktop · 1280px</p>
+<div class="browser">
+  <div class="chrome"><b></b><b></b><b></b><span class="url">shoplite.vn/staff/orders/SL-20261119-C0D3E5</span></div>
+  <header class="staff"><div class="in"><div class="logo">🏪</div><span class="role">Nhân viên</span><span class="who">Nguyễn Thị Lan</span><span class="ghost">⎋ Đăng xuất</span></div></header>
+  <main>
+    <span class="back">← Hàng đợi</span>
+    <div class="title"><h1>SL-20261119-C0D3E5</h1><span class="badge shipping">Đang giao</span>
+      <div class="acts"><span class="btn md ghostb">⎙ In phiếu</span><span class="btn md secondary">Giao thất bại</span><span class="btn md primary">Đã giao</span></div></div>
+    <div class="grid2">
+      <div class="card"><h2>Người nhận</h2><p><b>Ngô Bảo Anh</b></p><p class="muted">0901 222 333</p><p class="muted">45 Lê Lợi, Quận 1, TP.HCM</p></div>
+      <div class="card"><h2>Sản phẩm & thanh toán</h2><p class="muted">Tai nghe không dây SoundMax Pro × 1</p><p style="margin-top:8px"><b>1.290.000 ₫</b> · Thu khi giao (COD)</p></div>
+      <div class="card"><h2>Lịch sử trạng thái</h2><ul class="hist">
+        <li><time>19/11 10:02</time><span>Khách · Đặt đơn</span></li>
+        <li><time>19/11 10:30</time><span>Lan · Chờ xác nhận → Đã xác nhận</span></li>
+        <li><time>20/11 08:15</time><span>Huy · Đã xác nhận → Đang giao</span></li>
+      </ul></div>
+      <div class="card"><h2>Ghi chú nội bộ</h2><div class="ta">Thêm ghi chú (khách không thấy)…</div><div class="cnt"><span>0/500</span><span class="btn sm secondary">Lưu ghi chú</span></div></div>
+    </div>
+  </main>
+  <div class="scrim"></div>
+  <div class="dialog" role="dialog" aria-label="Giao thất bại">
+    <h2>Giao thất bại</h2>
+    <p class="muted" style="font-size:14px">Chọn lý do. Khách sẽ thấy lý do này trên trang đơn.</p>
+    <div class="opt">Khách không nhận máy</div>
+    <div class="opt on">Khách từ chối nhận</div>
+    <div class="opt">Sai địa chỉ</div>
+    <div class="opt">Khác…</div>
+    <div class="dacts"><span class="btn md ghostb">Không</span><span class="btn md danger">Xác nhận giao thất bại</span></div>
+  </div>
+</div>
+<p class="cap">Từ md trở lên: không có action bar. Nút md nằm ở dòng tiêu đề (In phiếu · Giao thất bại · Đã giao). Các thẻ xếp lưới 2 cột. Sheet hiển thị thành dialog ở giữa, rộng 448px, nút nằm bên phải.</p>
+</section>
+
+</body>
+</html>

@@ -7,6 +7,7 @@ const STATUS_CLASSES: Record<OrderStatus, string> = {
   shipping: "bg-indigo-50 text-indigo-700 ring-indigo-200",
   delivered: "bg-emerald-50 text-emerald-700 ring-emerald-200",
   cancelled: "bg-slate-100 text-slate-500 ring-slate-200",
+  failed: "bg-rose-50 text-rose-700 ring-rose-200",
 };
 
 export function OrderStatusBadge({ status }: { status: OrderStatus }) {

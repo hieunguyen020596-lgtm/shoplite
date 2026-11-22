@@ -3,6 +3,7 @@ import { SHIPPING_OPTIONS } from "@/features/checkout/pricing";
 import { OrderError } from "./order-errors";
 import { createInMemoryOrderRepository, type OrderRepository } from "./order-repository";
 import { createOrderService, generateOrderId, type OrderService } from "./order-service";
+import type { Order } from "./types";
 
 const FIXED_DATE = new Date("2026-10-21T03:00:00.000Z");
 
@@ -159,5 +160,76 @@ describe("orderService", () => {
 describe("generateOrderId", () => {
   it("có dạng SL-YYYYMMDD-XXXXXX", () => {
     expect(generateOrderId(FIXED_DATE)).toMatch(/^SL-20261021-[0-9A-F]{6}$/);
+  });
+
+  describe("danh sách, tìm kiếm và đếm", () => {
+    const order = (id: string, status: Order["status"], createdAt: string): Order => ({
+      id,
+      status,
+      createdAt,
+      updatedAt: createdAt,
+      customer: { fullName: "A", phone: "0901234567", address: "x" },
+      shippingMethod: "standard",
+      paymentMethod: "cod",
+      items: [],
+      subtotal: 0,
+      shippingFee: 0,
+      total: 0,
+    });
+
+    it("pending cũ nhất trước, không lọc mới nhất trước, finished gộp delivered+cancelled", async () => {
+      const svc = createOrderService({
+        repository: createInMemoryOrderRepository([
+          order("SL-20261021-AAAAAA", "pending", "2026-10-21T01:00:00.000Z"),
+          order("SL-20261021-BBBBBB", "pending", "2026-10-21T02:00:00.000Z"),
+          order("SL-20261021-CCCCCC", "delivered", "2026-10-21T03:00:00.000Z"),
+          order("SL-20261021-DDDDDD", "cancelled", "2026-10-21T04:00:00.000Z"),
+        ]),
+      });
+      expect((await svc.listOrders({ status: "pending" })).map((o) => o.id)).toEqual([
+        "SL-20261021-AAAAAA",
+        "SL-20261021-BBBBBB",
+      ]);
+      expect((await svc.listOrders())[0].id).toBe("SL-20261021-DDDDDD");
+      expect(await svc.listOrders({ status: "finished" })).toHaveLength(2);
+      expect(await svc.countByFilter()).toEqual({
+        pending: 2,
+        confirmed: 0,
+        shipping: 0,
+        finished: 2,
+      });
+    });
+
+    it("searchOrders: 6 ký tự cuối hoặc mã đầy đủ, bỏ khoảng trắng, nhiều kết quả", async () => {
+      const svc = createOrderService({
+        repository: createInMemoryOrderRepository([
+          order("SL-20261021-4F9A2C", "pending", "2026-10-21T01:00:00.000Z"),
+          order("SL-20261022-4F9A2C", "delivered", "2026-10-22T01:00:00.000Z"),
+          order("SL-20261021-111111", "pending", "2026-10-21T02:00:00.000Z"),
+        ]),
+      });
+      expect(await svc.searchOrders("4f9a2c ")).toHaveLength(2);
+      expect(await svc.searchOrders("sl-20261021-4f9a2c")).toHaveLength(1);
+      expect(await svc.searchOrders("4F9A")).toEqual([]);
+      expect(await svc.searchOrders("   ")).toEqual([]);
+    });
+
+    it("lọc và đếm 1.000 đơn dưới 1 giây (NFR4)", async () => {
+      const orders = Array.from({ length: 1000 }, (_, i) =>
+        order(
+          `SL-20261021-${String(i).padStart(6, "0")}`,
+          (["pending", "confirmed", "shipping", "delivered", "cancelled"] as const)[i % 5],
+          new Date(Date.UTC(2026, 9, 21, 0, 0, i)).toISOString(),
+        ),
+      );
+      const svc = createOrderService({ repository: createInMemoryOrderRepository(orders) });
+      const start = performance.now();
+      const pending = await svc.listOrders({ status: "pending" });
+      const counts = await svc.countByFilter();
+      await svc.searchOrders("000123");
+      expect(performance.now() - start).toBeLessThan(1000);
+      expect(pending).toHaveLength(200);
+      expect(counts.finished).toBe(400);
+    });
   });
 });

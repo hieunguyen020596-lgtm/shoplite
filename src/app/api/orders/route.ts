@@ -1,15 +1,13 @@
 import { NextResponse } from "next/server";
+import { rememberOrder } from "@/features/auth/guards";
+import { toCustomerOrderView } from "@/features/orders/customer-view";
 import { orderService } from "@/features/orders/server";
+import { listOrdersForStaff } from "@/features/orders/staff-orders-route";
 import { handleRouteError, jsonError, readJsonBody } from "@/lib/http";
 
-/** GET /api/orders - danh sách đơn hàng, mới nhất trước. */
-export async function GET() {
-  try {
-    const orders = await orderService.listOrders();
-    return NextResponse.json({ orders });
-  } catch (error) {
-    return handleRouteError(error);
-  }
+/** GET /api/orders - danh sách đơn hàng, chỉ dành cho nhân viên (401 nếu chưa đăng nhập). */
+export async function GET(request: Request) {
+  return listOrdersForStaff(request);
 }
 
 /** POST /api/orders - tạo đơn hàng mới. Body: PlaceOrderInput (xem checkout-schema.ts). */
@@ -21,7 +19,15 @@ export async function POST(request: Request) {
 
   try {
     const order = await orderService.placeOrder(body);
-    return NextResponse.json(order, { status: 201 });
+    // Trình duyệt vừa đặt đơn được xác minh luôn: ghi Mã đơn vào cookie sl_orders.
+    const response = NextResponse.json(
+      toCustomerOrderView(order, { verified: true }),
+      {
+        status: 201,
+      },
+    );
+    await rememberOrder(response, order.id);
+    return response;
   } catch (error) {
     return handleRouteError(error);
   }
