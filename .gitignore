@@ -43,3 +43,8 @@ storage/
 gate-*.log
 gate-*.json
 .ci/
+
+# Cho phép commit artifact triển khai BMAD (global ignore đang chặn _bmad-output/)
+!_bmad-output/
+_bmad-output/*
+!_bmad-output/implementation-artifacts/
