@@ -70,6 +70,8 @@ export async function PATCH(
     response.headers.set("Cache-Control", "no-store");
     return response;
   } catch (error) {
-    return handleRouteError(error);
+    const response = handleRouteError(error);
+    response.headers.set("Cache-Control", "no-store");
+    return response;
   }
 }

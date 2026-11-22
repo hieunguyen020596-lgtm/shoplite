@@ -11,8 +11,12 @@ export async function GET(request: NextRequest) {
       rawParams[key] = request.nextUrl.searchParams.getAll(key);
     }
     const query = parseCatalogQuery(rawParams);
-    return NextResponse.json(await queryProductsWithStock(query));
+    const response = NextResponse.json(await queryProductsWithStock(query));
+    response.headers.set("Cache-Control", "no-store");
+    return response;
   } catch (error) {
-    return handleRouteError(error);
+    const response = handleRouteError(error);
+    response.headers.set("Cache-Control", "no-store");
+    return response;
   }
 }

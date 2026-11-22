@@ -100,17 +100,13 @@ describe("POST /api/admin/auth/login & /logout", () => {
       }
     });
 
-    it("401 UNAUTHORIZED khi sai mật khẩu (kể cả cùng độ dài byte và dư khoảng trắng đầu/cuối) và không lộ ADMIN_PASSCODE", async () => {
+    it("401 UNAUTHORIZED khi sai mật khẩu (kể cả cùng độ dài byte hoặc khác hoa thường) và không lộ ADMIN_PASSCODE", async () => {
       env.ADMIN_PASSCODE = "alpha-123";
 
-      for (const candidate of [
-        "wrong",
-        "alpha-124",
-        "alpha-123 ",
-        " alpha-123",
-      ]) {
+      for (const candidate of ["wrong", "alpha-124", "ALPHA-123"]) {
         const res = await loginPost(makeLoginRequest({ passcode: candidate }));
         expect(res.status).toBe(401);
+        expect(res.headers.get("cache-control")).toBe("no-store");
         const text = await res.text();
         expect(text).not.toContain("alpha-123");
         const json = JSON.parse(text);
@@ -118,12 +114,12 @@ describe("POST /api/admin/auth/login & /logout", () => {
       }
     });
 
-    it("200 { ok: true } + Set-Cookie hợp lệ khi đăng nhập thành công (trim ADMIN_PASSCODE)", async () => {
+    it("200 { ok: true } + Set-Cookie hợp lệ khi đăng nhập thành công (trim cả ADMIN_PASSCODE và passcode)", async () => {
       env.ADMIN_PASSCODE = "  secret-pass  ";
       env.NODE_ENV = "test";
 
       const res = await loginPost(
-        makeLoginRequest({ passcode: "secret-pass" }),
+        makeLoginRequest({ passcode: "  secret-pass  " }),
       );
       expect(res.status).toBe(200);
       expect(await res.json()).toEqual({ ok: true });

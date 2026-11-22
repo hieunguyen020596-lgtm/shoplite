@@ -132,7 +132,11 @@ export function createOrderService({
     shouldRestock: boolean,
   ): Promise<Order> {
     await repository.save(nextOrder);
-    if (shouldRestock && nextOrder.items.length > 0) {
+    if (
+      shouldRestock &&
+      Array.isArray(nextOrder.items) &&
+      nextOrder.items.length > 0
+    ) {
       const restockItems = mergeItems(nextOrder.items);
       try {
         await inventoryRepository.restock(restockItems);
@@ -363,7 +367,9 @@ export function createOrderService({
     async listOrders(): Promise<Order[]> {
       return storageLock.runExclusive(async () => {
         const orders = await repository.findAll();
-        return orders.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+        return orders.sort((a, b) =>
+          compareCreatedAt(b.createdAt, a.createdAt),
+        );
       });
     },
 
@@ -383,6 +389,7 @@ export function createOrderService({
       return transitionOrderStatus(id, {
         status: "cancelled",
         actor: "customer",
+        expectedStatus: "pending",
       });
     },
   };

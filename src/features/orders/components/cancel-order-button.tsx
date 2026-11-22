@@ -51,7 +51,10 @@ function CancelOrderButtonInner({ orderId }: { orderId: string }) {
         {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ status: "cancelled" }),
+          body: JSON.stringify({
+            status: "cancelled",
+            expectedStatus: "pending",
+          }),
         },
       );
 
@@ -69,6 +72,7 @@ function CancelOrderButtonInner({ orderId }: { orderId: string }) {
           body?.error?.code === "INVALID_STATUS_TRANSITION";
 
         if (isConflict) {
+          submittingRef.current = false;
           setConflictDetected(true);
           setPending(false);
           setError(

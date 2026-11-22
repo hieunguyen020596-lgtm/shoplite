@@ -11,14 +11,20 @@ export async function GET(
     const { slug } = await ctx.params;
     const product = await getProductBySlugWithStock(slug);
     if (!product) {
-      return jsonError(
+      const notFoundResponse = jsonError(
         404,
         "PRODUCT_NOT_FOUND",
         `Không tìm thấy sản phẩm "${slug}"`,
       );
+      notFoundResponse.headers.set("Cache-Control", "no-store");
+      return notFoundResponse;
     }
-    return NextResponse.json(product);
+    const response = NextResponse.json(product);
+    response.headers.set("Cache-Control", "no-store");
+    return response;
   } catch (error) {
-    return handleRouteError(error);
+    const response = handleRouteError(error);
+    response.headers.set("Cache-Control", "no-store");
+    return response;
   }
 }

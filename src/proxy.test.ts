@@ -135,14 +135,23 @@ describe("Next.js 16 src/proxy.ts", () => {
     expect(resForged.headers.get("cache-control")).toBe("no-store");
   });
 
+  it("chuyển hướng 307 từ /admin và /admin/ sang /admin/orders khi có cookie hợp lệ kèm Cache-Control: no-store", () => {
+    env.ADMIN_PASSCODE = "secret-pass";
+    const validToken = createAdminSessionToken();
+    for (const path of ["/admin", "/admin/"]) {
+      const res = proxy(makeAdminRequest(path, validToken));
+      expect(res.status).toBe(307);
+      expect(res.headers.get("location")).toBe(
+        "http://localhost:3000/admin/orders",
+      );
+      expect(res.headers.get("cache-control")).toBe("no-store");
+    }
+  });
+
   it("cho phép đi tiếp khi có cookie hợp lệ và gắn Cache-Control: no-store", () => {
     env.ADMIN_PASSCODE = "secret-pass";
     const validToken = createAdminSessionToken();
-    for (const path of [
-      "/admin",
-      "/admin/orders",
-      "/admin/orders/123?status=pending",
-    ]) {
+    for (const path of ["/admin/orders", "/admin/orders/123?status=pending"]) {
       const res = proxy(makeAdminRequest(path, validToken));
       expect(res.status).toBe(200);
       expect(res.headers.get("location")).toBeNull();

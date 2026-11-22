@@ -194,5 +194,28 @@ describe("Storefront Server Components với tồn kho động", () => {
     expect(
       within(purchasePanel).getByRole("button", { name: /Mua ngay/ }),
     ).toBeEnabled();
+
+    cleanup();
+    await testState.inventoryRepository.deduct([
+      { productId: "p008", quantity: 35 },
+    ]);
+
+    render(
+      await ProductDetailPage({
+        params: Promise.resolve({ slug: "gia-do-laptop-nhom" }),
+        searchParams: Promise.resolve({}),
+      }),
+    );
+
+    const relatedHeading = screen.getByRole("heading", {
+      name: "Sản phẩm liên quan",
+    });
+    const relatedSection = relatedHeading.closest("section");
+    expect(relatedSection).not.toBeNull();
+    expect(
+      within(relatedSection as HTMLElement).getByRole("button", {
+        name: "Hết hàng",
+      }),
+    ).toBeDisabled();
   });
 });

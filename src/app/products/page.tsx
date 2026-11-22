@@ -70,7 +70,10 @@ export default async function ProductsPage({
           action={
             <Link
               href="/products"
-              className={buttonStyles({ variant: "secondary" })}
+              className={buttonStyles({
+                variant: "secondary",
+                className: "min-h-11 h-auto",
+              })}
             >
               Xem tất cả sản phẩm
             </Link>

@@ -541,6 +541,9 @@ describe("Giao diện hàng chờ /admin/orders, tồn kho giữ chỗ inline & 
       const deliverBtn = await screen.findByRole("button", {
         name: "Đánh dấu đã giao",
       });
+      expect(
+        screen.getByText("Ghi chú: Mã vận đơn GHN-882910"),
+      ).toBeInTheDocument();
       await user.click(deliverBtn);
 
       expect(fetchMock).toHaveBeenLastCalledWith(
@@ -886,6 +889,7 @@ describe("Giao diện hàng chờ /admin/orders, tồn kho giữ chỗ inline & 
       expect(
         await screen.findByRole("button", { name: "Bàn giao giao hàng" }),
       ).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Hủy đơn" })).toHaveFocus();
     });
 
     it("khi gặp lỗi 500 hoặc mất kết nối mạng: hiển thị role=alert và giữ nguyên CancelOrderDialog cùng nội dung đã nhập", async () => {
@@ -1353,6 +1357,7 @@ describe("Giao diện hàng chờ /admin/orders, tồn kho giữ chỗ inline & 
       expect(pendingShipBtn).toBeDisabled();
       expect(trackingInput).toBeDisabled();
       expect(cancelBtn).toBeDisabled();
+      expect(restockBtn).toBeDisabled();
 
       expect(fetchMock).toHaveBeenLastCalledWith(
         "/api/admin/orders/SL-20261121-LOCK1/status",
@@ -1791,6 +1796,121 @@ describe("Giao diện hàng chờ /admin/orders, tồn kho giữ chỗ inline & 
       );
       expect(screen.getByLabelText("ShopLite - Trang chủ")).toBeInTheDocument();
       expect(screen.getByTestId("null-path-child")).toBeInTheDocument();
+    });
+
+    it("không cộng khống availableStockByProductId khi chuyển trạng thái hoặc hủy đơn lịch sử thiếu statusHistory, chuyển hướng về /admin/login khi nhận 503, và trả focus về listRegion sau khi hủy thành công (200)", async () => {
+      const legacyPending: Order = {
+        ...makeOrder({
+          id: "SL-20261108-LEGACY1",
+          status: "pending",
+        }),
+        statusHistory: undefined,
+        inventoryRestocked: undefined,
+      };
+      const activePending = makeOrder({
+        id: "SL-20261121-ACTIVE1",
+        status: "pending",
+      });
+
+      const fetchMock = vi
+        .fn()
+        .mockResolvedValueOnce(
+          new Response(
+            JSON.stringify({
+              order: {
+                ...legacyPending,
+                status: "confirmed",
+                inventoryRestocked: true,
+                statusHistory: [
+                  {
+                    status: "pending",
+                    at: legacyPending.createdAt,
+                    actor: "customer",
+                    action: "transition",
+                  },
+                  {
+                    status: "confirmed",
+                    at: "2026-11-21T04:00:00.000Z",
+                    actor: "staff",
+                    action: "transition",
+                  },
+                ],
+              },
+            }),
+            { status: 200, headers: { "Content-Type": "application/json" } },
+          ),
+        )
+        .mockResolvedValueOnce(
+          new Response(
+            JSON.stringify({
+              order: {
+                ...activePending,
+                status: "cancelled",
+                inventoryRestocked: true,
+              },
+            }),
+            { status: 200, headers: { "Content-Type": "application/json" } },
+          ),
+        )
+        .mockResolvedValueOnce(
+          new Response(
+            JSON.stringify({
+              error: {
+                code: "ADMIN_NOT_CONFIGURED",
+                message: "Hệ thống chưa cấu hình mật khẩu quản trị",
+              },
+            }),
+            { status: 503, headers: { "Content-Type": "application/json" } },
+          ),
+        );
+      vi.stubGlobal("fetch", fetchMock);
+      const user = userEvent.setup();
+
+      render(
+        <AdminOrdersView
+          initialData={makeListResult([legacyPending, activePending], {
+            availableStockByProductId: { p001: 3 },
+          })}
+        />,
+      );
+
+      const confirmButtons = screen.getAllByRole("button", {
+        name: "Xác nhận đơn",
+      });
+      await user.click(confirmButtons[0]);
+
+      await screen.findByRole("button", { name: "Bàn giao giao hàng" });
+      for (const indicator of screen.getAllByRole("status")) {
+        expect(indicator).toHaveTextContent("Còn cho đơn mới: 3");
+      }
+
+      const cancelButtons = screen.getAllByRole("button", { name: "Hủy đơn" });
+      await user.click(cancelButtons[1]);
+      const dialog = screen.getByRole("dialog");
+      await user.click(
+        within(dialog).getByRole("button", { name: "Hết hàng thực tế" }),
+      );
+      await user.click(
+        within(dialog).getByRole("button", { name: "Xác nhận hủy đơn" }),
+      );
+
+      await vi.waitFor(() => {
+        expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      });
+      const listRegion = screen
+        .getByText("SL-20261121-ACTIVE1")
+        .closest('[tabindex="-1"]');
+      expect(listRegion).toHaveFocus();
+      expect(screen.getByRole("status")).toHaveTextContent(
+        "Còn cho đơn mới: 5",
+      );
+
+      await user.click(
+        screen.getByRole("button", { name: "Bàn giao giao hàng" }),
+      );
+      await vi.waitFor(() => {
+        expect(testState.pushMock).toHaveBeenCalledWith("/admin/login");
+      });
     });
   });
 });

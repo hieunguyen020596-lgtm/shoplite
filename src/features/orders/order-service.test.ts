@@ -153,18 +153,28 @@ describe("orderService", () => {
 
     it("trả lỗi INSUFFICIENT_STOCK khi vượt tồn kho hoặc hết hàng", async () => {
       // Giá đỡ laptop (p011) chỉ còn 3 sản phẩm, micro (p004) đã hết hàng
-      await expectOrderError(
+      const partialErr = await expectOrderError(
         service.placeOrder(
           validInput({ items: [{ productId: "p011", quantity: 4 }] }),
         ),
         "INSUFFICIENT_STOCK",
       );
-      await expectOrderError(
+      expect(partialErr.details).toEqual({
+        productId: "p011",
+        available: "3",
+        requested: "4",
+      });
+      const outErr = await expectOrderError(
         service.placeOrder(
           validInput({ items: [{ productId: "p004", quantity: 1 }] }),
         ),
         "INSUFFICIENT_STOCK",
       );
+      expect(outErr.details).toEqual({
+        productId: "p004",
+        available: "0",
+        requested: "1",
+      });
     });
   });
 
@@ -480,7 +490,7 @@ describe("orderService", () => {
     });
   });
 
-  describe("Tích hợp tồn kho nguyên tử, rollback & hoàn kho (Story 2.1)", () => {
+  describe("Tích hợp tồn kho nguyên tử, rollback & hoàn kho", () => {
     it("all-or-nothing: đơn có món 1 đủ kho nhưng món 2 thiếu kho thì không trừ kho món 1", async () => {
       const inventoryRepository = createInMemoryInventoryRepository({
         p006: 10,

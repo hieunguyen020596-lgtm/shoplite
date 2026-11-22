@@ -41,6 +41,7 @@ describe("GET /api/products & GET /api/products/[slug]", () => {
       new NextRequest("http://localhost/api/products?q=gia%20do%20laptop"),
     );
     expect(resZero.status).toBe(200);
+    expect(resZero.headers.get("cache-control")).toBe("no-store");
     const bodyZero = (await resZero.json()) as CatalogResult;
     expect(bodyZero.items.find((p) => p.id === "p011")?.stock).toBe(0);
 
@@ -50,6 +51,7 @@ describe("GET /api/products & GET /api/products/[slug]", () => {
       ),
     );
     expect(resInStockExcluded.status).toBe(200);
+    expect(resInStockExcluded.headers.get("cache-control")).toBe("no-store");
     const bodyExcluded = (await resInStockExcluded.json()) as CatalogResult;
     expect(bodyExcluded.total).toBe(0);
     expect(bodyExcluded.items).toHaveLength(0);
@@ -59,6 +61,7 @@ describe("GET /api/products & GET /api/products/[slug]", () => {
       { params: Promise.resolve({ slug: "gia-do-laptop-nhom" }) },
     );
     expect(slugResZero.status).toBe(200);
+    expect(slugResZero.headers.get("cache-control")).toBe("no-store");
     expect(((await slugResZero.json()) as Product).stock).toBe(0);
 
     // Hoàn kho p011 lên 5
@@ -90,6 +93,7 @@ describe("GET /api/products & GET /api/products/[slug]", () => {
       { params: Promise.resolve({ slug: "khong-ton-tai" }) },
     );
     expect(response.status).toBe(404);
+    expect(response.headers.get("cache-control")).toBe("no-store");
     const body = (await response.json()) as { error: { code: string } };
     expect(body.error.code).toBe("PRODUCT_NOT_FOUND");
   });

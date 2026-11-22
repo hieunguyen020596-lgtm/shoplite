@@ -1,10 +1,8 @@
 import type { Metadata } from "next";
 import { AdminHeaderBar } from "@/features/orders/components/admin-header-bar";
-import {
-  AdminOrdersView,
-  normalizeFilterStatus,
-} from "@/features/orders/components/admin-orders-view";
+import { AdminOrdersView } from "@/features/orders/components/admin-orders-view";
 import { orderService } from "@/features/orders/server";
+import { normalizeFilterStatus } from "@/features/orders/types";
 
 export const dynamic = "force-dynamic";
 

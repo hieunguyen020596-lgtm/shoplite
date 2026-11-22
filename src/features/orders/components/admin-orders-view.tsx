@@ -20,9 +20,10 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { AdminOrderListResult } from "@/features/orders/order-service";
 import {
-  ORDER_STATUSES,
+  normalizeFilterStatus,
   ORDER_STATUS_LABELS,
   type Order,
+  type OrderFilterStatus,
   type OrderStatus,
 } from "@/features/orders/types";
 import { cn } from "@/lib/cn";
@@ -30,7 +31,7 @@ import { formatCurrency, formatDateTime } from "@/lib/format";
 import type { ApiErrorBody } from "@/lib/http";
 import { OrderStatusBadge } from "./order-status-badge";
 
-export type OrderFilterStatus = OrderStatus | "all";
+export { normalizeFilterStatus, type OrderFilterStatus };
 
 const SYSTEM_ERROR_MESSAGE = "Có lỗi hệ thống xảy ra. Vui lòng thử lại sau.";
 const NETWORK_ERROR_MESSAGE =
@@ -69,19 +70,6 @@ const DEFAULT_COUNTS: Record<OrderFilterStatus, number> = {
 };
 
 const SEARCH_DEBOUNCE_MS = 250;
-
-export function normalizeFilterStatus(
-  rawStatus?: string | null,
-): OrderFilterStatus {
-  const normalized = rawStatus?.trim().toLowerCase();
-  if (
-    normalized !== undefined &&
-    (ORDER_STATUSES as readonly string[]).includes(normalized)
-  ) {
-    return normalized as OrderStatus;
-  }
-  return "all";
-}
 
 function buildAdminOrdersQueryString(
   status: OrderFilterStatus,
@@ -436,7 +424,6 @@ function CancelOrderDialogContent({
         }
         event.preventDefault();
         onCloseRef.current();
-        restoreOpenerFocus();
         return;
       }
 
@@ -483,6 +470,7 @@ function CancelOrderDialogContent({
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
       document.body.style.overflow = previousOverflow;
+      restoreOpenerFocus();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -506,7 +494,6 @@ function CancelOrderDialogContent({
       return;
     }
     onClose();
-    restoreOpenerFocus();
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -994,6 +981,7 @@ export function AdminOrdersView({
   const mutatingOrderIdRef = useRef<string | null>(null);
   const cancelOpenerRef = useRef<HTMLElement | null>(null);
   const listRegionRef = useRef<HTMLDivElement | null>(null);
+  const hasMountedRef = useRef(false);
   const [prevSyncedProps, setPrevSyncedProps] = useState({
     initialData,
     initialStatus,
@@ -1028,6 +1016,8 @@ export function AdminOrdersView({
     fetchAbortRef.current = null;
     requestSeqRef.current += 1;
     setIsLoading(false);
+    searchInputRef.current = appliedQueryRef.current;
+    setSearchInput(appliedQueryRef.current);
   }
 
   function handleShippingNoteChange(orderId: string, value: string) {
@@ -1077,6 +1067,13 @@ export function AdminOrdersView({
         if (controller.signal.aborted || seq !== requestSeqRef.current) {
           return;
         }
+        if (
+          response.status === 503 ||
+          body?.error?.code === "ADMIN_NOT_CONFIGURED"
+        ) {
+          router.push("/admin/login");
+          return;
+        }
         const message =
           response.status >= 500
             ? SYSTEM_ERROR_MESSAGE
@@ -1092,7 +1089,11 @@ export function AdminOrdersView({
       const json = (await response
         .json()
         .catch(() => null)) as AdminOrderListResult | null;
-      if (controller.signal.aborted || seq !== requestSeqRef.current) {
+      if (
+        controller.signal.aborted ||
+        seq !== requestSeqRef.current ||
+        mutatingOrderIdRef.current !== null
+      ) {
         return;
       }
 
@@ -1129,11 +1130,18 @@ export function AdminOrdersView({
     activeStatusRef.current = normalizeFilterStatus(initialStatus);
     searchInputRef.current = initialQuery;
     appliedQueryRef.current = initialQuery;
+    if (!hasMountedRef.current) {
+      hasMountedRef.current = true;
+      return;
+    }
     if (initialData !== undefined) {
       fetchAbortRef.current?.abort();
       fetchAbortRef.current = null;
       requestSeqRef.current += 1;
+    } else {
+      void fetchOrders(activeStatusRef.current, appliedQueryRef.current);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialData, initialStatus, initialQuery]);
 
   function syncUrlAndFetch(nextStatus: OrderFilterStatus, nextQuery: string) {
@@ -1223,7 +1231,12 @@ export function AdminOrdersView({
         .filter((item) => currentTab === "all" || item.status === currentTab);
 
       let nextAvailableStock = prev.availableStockByProductId;
+      const hadOriginalHistory =
+        Array.isArray(previousOrder.statusHistory) &&
+        previousOrder.statusHistory.length > 0;
       const didRestockInventory =
+        hadOriginalHistory &&
+        updatedOrder.status === "cancelled" &&
         previousOrder.inventoryRestocked !== true &&
         updatedOrder.inventoryRestocked === true;
       const sourceItems = Array.isArray(updatedOrder.items)
@@ -1331,6 +1344,16 @@ export function AdminOrdersView({
         const body = (await response
           .json()
           .catch(() => null)) as ApiErrorBody | null;
+        if (
+          response.status === 503 ||
+          body?.error?.code === "ADMIN_NOT_CONFIGURED"
+        ) {
+          mutatingOrderIdRef.current = null;
+          setPendingOrderId(null);
+          setPendingAction(null);
+          router.push("/admin/login");
+          return;
+        }
         const message =
           response.status >= 500
             ? SYSTEM_ERROR_MESSAGE
@@ -1424,6 +1447,16 @@ export function AdminOrdersView({
         const body = (await response
           .json()
           .catch(() => null)) as ApiErrorBody | null;
+        if (
+          response.status === 503 ||
+          body?.error?.code === "ADMIN_NOT_CONFIGURED"
+        ) {
+          mutatingOrderIdRef.current = null;
+          setPendingOrderId(null);
+          setPendingAction(null);
+          router.push("/admin/login");
+          return;
+        }
         const message =
           response.status >= 500
             ? SYSTEM_ERROR_MESSAGE
@@ -1583,7 +1616,7 @@ export function AdminOrdersView({
               key={order.id}
               order={order}
               availableStockByProductId={data.availableStockByProductId}
-              isPending={pendingOrderId === order.id}
+              isPending={pendingOrderId !== null}
               pendingAction={pendingOrderId === order.id ? pendingAction : null}
               shippingNote={shippingNotesByOrderId[order.id] ?? ""}
               onShippingNoteChange={handleShippingNoteChange}

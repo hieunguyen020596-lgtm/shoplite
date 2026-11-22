@@ -16,7 +16,14 @@ export function proxy(request: NextRequest) {
     const status = verifyAdminSessionToken(token);
 
     if (status === "valid") {
-      response = NextResponse.next();
+      if (pathname === "/admin") {
+        response = NextResponse.redirect(
+          new URL("/admin/orders", request.url),
+          307,
+        );
+      } else {
+        response = NextResponse.next();
+      }
     } else {
       const loginUrl = new URL("/admin/login", request.url);
       if (status === "expired") {

@@ -650,7 +650,10 @@ describe("Timeline tiến trình 4 bước, Làm mới trạng thái & Hủy đ�
         "/api/orders/SL-20261121-A1B2C3",
         expect.objectContaining({
           method: "PATCH",
-          body: JSON.stringify({ status: "cancelled" }),
+          body: JSON.stringify({
+            status: "cancelled",
+            expectedStatus: "pending",
+          }),
         }),
       );
       expect(testState.refreshMock).toHaveBeenCalledTimes(1);

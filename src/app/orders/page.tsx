@@ -3,9 +3,10 @@ import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { buttonStyles } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
+import { safeFormatDateTime } from "@/features/orders/components/order-progress-timeline";
 import { OrderStatusBadge } from "@/features/orders/components/order-status-badge";
 import { orderService } from "@/features/orders/server";
-import { formatCurrency, formatDateTime } from "@/lib/format";
+import { formatCurrency } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Đơn hàng" };
 
@@ -33,7 +34,11 @@ export default async function OrdersPage() {
       ) : (
         <ul className="flex flex-col gap-3">
           {orders.map((order) => {
-            const itemCount = order.items.reduce((sum, item) => sum + item.quantity, 0);
+            const items = Array.isArray(order.items) ? order.items : [];
+            const itemCount = items.reduce(
+              (sum, item) => sum + item.quantity,
+              0,
+            );
             return (
               <li key={order.id}>
                 <Link
@@ -42,9 +47,9 @@ export default async function OrdersPage() {
                   data-testid="order-row"
                 >
                   <div className="flex -space-x-3">
-                    {order.items.slice(0, 3).map((item) => (
+                    {items.slice(0, 3).map((item, index) => (
                       <span
-                        key={item.productId}
+                        key={`${item.productId}-${index}`}
                         className="flex size-11 items-center justify-center rounded-full text-xl ring-2 ring-white"
                         style={{
                           backgroundImage: `linear-gradient(135deg, ${item.image.from}, ${item.image.to})`,
@@ -61,10 +66,13 @@ export default async function OrdersPage() {
                       <OrderStatusBadge status={order.status} />
                     </div>
                     <span className="text-sm text-slate-500">
-                      {formatDateTime(order.createdAt)} · {itemCount} sản phẩm
+                      {safeFormatDateTime(order.createdAt)} · {itemCount} sản
+                      phẩm
                     </span>
                   </div>
-                  <span className="font-bold text-slate-900">{formatCurrency(order.total)}</span>
+                  <span className="font-bold text-slate-900">
+                    {formatCurrency(order.total)}
+                  </span>
                   <ChevronRight className="size-5 text-slate-400" />
                 </Link>
               </li>

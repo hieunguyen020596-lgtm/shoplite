@@ -14,10 +14,8 @@ const adminLoginSchema = z.object(
   {
     passcode: z
       .string("Vui lòng nhập mật khẩu quản trị")
-      .refine(
-        (value) => value.trim().length > 0,
-        "Mật khẩu quản trị không được để trống",
-      ),
+      .trim()
+      .min(1, "Mật khẩu quản trị không được để trống"),
   },
   "Dữ liệu đăng nhập phải là một đối tượng JSON",
 );
@@ -54,6 +52,8 @@ export async function POST(request: Request) {
     response.headers.set("Cache-Control", "no-store");
     return response;
   } catch (error) {
-    return handleRouteError(error);
+    const response = handleRouteError(error);
+    response.headers.set("Cache-Control", "no-store");
+    return response;
   }
 }

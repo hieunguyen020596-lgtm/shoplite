@@ -11,6 +11,21 @@ export const ORDER_STATUSES = [
 ] as const;
 
 export type OrderStatus = (typeof ORDER_STATUSES)[number];
+export type OrderFilterStatus = OrderStatus | "all";
+
+/** Chuẩn hóa tham số `status` trên URL/API về `OrderStatus` hợp lệ hoặc `"all"`. */
+export function normalizeFilterStatus(
+  rawStatus?: string | null,
+): OrderFilterStatus {
+  const normalized = rawStatus?.trim().toLowerCase();
+  if (
+    normalized !== undefined &&
+    (ORDER_STATUSES as readonly string[]).includes(normalized)
+  ) {
+    return normalized as OrderStatus;
+  }
+  return "all";
+}
 
 export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   pending: "Chờ xác nhận",
