@@ -1,0 +1,49 @@
+# Workflow đơn giản: chạy mỗi khi có PR vào nhánh main.
+# Chỉ in thông tin PR và runner, không gọi AI, không cần secret. Dùng để thử runner tự dựng.
+name: PR vào main
+
+on:
+  pull_request:
+    branches: [main]
+
+# Chỉ đọc code, không ghi gì lên repo.
+permissions:
+  contents: read
+
+# Đẩy commit mới thì hủy lượt chạy cũ của cùng PR.
+concurrency:
+  group: pr-main-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  kiem-tra:
+    name: Kiểm tra nhanh
+    # Repo có biến RUNNER_AI (vd: shoplite) thì chạy trên runner tự dựng; không có thì dùng máy của GitHub.
+    runs-on: ${{ vars.RUNNER_AI || 'ubuntu-latest' }}
+    # Trên runner tự dựng: bỏ qua PR từ fork, không để code người ngoài chạy trên máy mình.
+    if: ${{ !vars.RUNNER_AI || github.event.pull_request.head.repo.full_name == github.repository }}
+    timeout-minutes: 5
+    steps:
+      - name: Lấy code của PR
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Thông tin PR và runner
+        # Giá trị do người mở PR đặt (tiêu đề, tên nhánh) đi qua env, không chèn thẳng vào lệnh shell.
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          HEAD_REF: ${{ github.head_ref }}
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          echo "PR #${PR_NUMBER}: ${PR_TITLE}"
+          echo "Nhánh: ${HEAD_REF} -> ${BASE_REF}"
+          echo "Runner: ${RUNNER_NAME} (${RUNNER_OS}/${RUNNER_ARCH})"
+          node --version
+
+      - name: Kiểm tra file bắt buộc của dự án
+        run: |
+          test -f package.json || { echo "Thiếu package.json"; exit 1; }
+          test -f AGENTS.md || { echo "Thiếu AGENTS.md"; exit 1; }
+          echo "Đủ file bắt buộc."
